@@ -12,6 +12,18 @@ import math
 from agent_ppo.conf.conf import GameConfig
 
 
+def safe_div(numerator, denominator, default=0.0):
+    if denominator in (0, None):
+        return default
+    return numerator / denominator
+
+
+def distance(pos1, pos2):
+    if not pos1 or not pos2:
+        return 0.0
+    return math.dist((pos1.get("x", 0), pos1.get("z", 0)), (pos2.get("x", 0), pos2.get("z", 0)))
+
+
 # Used to record various reward information
 # 用于记录各个奖励信息
 class RewardStruct:
@@ -86,12 +98,14 @@ class GameRewardManager:
 
         # Get both agents
         # 获取双方智能体
-        main_hero = None
+        main_hero, enemy_hero = None, None
         hero_list = frame_data["hero_states"]
         for hero in hero_list:
             hero_camp = hero["camp"]
             if hero_camp == camp:
                 main_hero = hero
+            else:
+                enemy_hero = hero
 
         # Get both defense towers
         # 获取双方防御塔
@@ -107,30 +121,69 @@ class GameRewardManager:
                 if organ_subtype == 21:
                     enemy_tower = organ
 
+        default_location = {"x": 0, "z": 0}
+        main_hero = main_hero or {"hp": 0, "max_hp": 1, "location": default_location}
+        enemy_hero = enemy_hero or {"hp": 0, "max_hp": 1, "location": default_location}
+        main_tower = main_tower or {"hp": 0, "max_hp": 1, "location": default_location}
+        enemy_tower = enemy_tower or {"hp": 0, "max_hp": 1, "location": default_location}
+
         for reward_name, reward_struct in cul_calc_frame_map.items():
             reward_struct.last_frame_value = reward_struct.cur_frame_value
             # Tower health points
             # 塔血量
             if reward_name == "tower_hp_point":
-                reward_struct.cur_frame_value = 1.0 * main_tower["hp"] / main_tower["max_hp"]
+                reward_struct.cur_frame_value = safe_div(main_tower.get("hp", 0), main_tower.get("max_hp", 1))
+            # Hero health points
+            # 英雄血量
+            elif reward_name in ("hero_hp_point", "damage_taken"):
+                reward_struct.cur_frame_value = safe_div(main_hero.get("hp", 0), main_hero.get("max_hp", 1))
+            # Enemy hero health, used to derive damage dealt
+            # 敌方英雄血量，用于计算造成伤害
+            elif reward_name == "damage_to_enemy":
+                reward_struct.cur_frame_value = safe_div(enemy_hero.get("hp", 0), enemy_hero.get("max_hp", 1))
+            # Kill/death terminal signals
+            # 击杀/死亡终局信号
+            elif reward_name == "kill":
+                reward_struct.cur_frame_value = 1.0 if enemy_hero.get("hp", 0) <= 0 else 0.0
+            elif reward_name == "death":
+                reward_struct.cur_frame_value = 1.0 if main_hero.get("hp", 0) <= 0 else 0.0
             # Forward
             # 前进
             elif reward_name == "forward":
                 reward_struct.cur_frame_value = self.calculate_forward(main_hero, main_tower, enemy_tower)
+            # Low-health safety shaping
+            # 低血量安全位置塑形
+            elif reward_name == "retreat_low_hp":
+                hp_rate = safe_div(main_hero.get("hp", 0), main_hero.get("max_hp", 1))
+                dist_to_own_tower = distance(main_hero.get("location", {}), main_tower.get("location", {}))
+                safety = 1.0 - min(dist_to_own_tower / 30000.0, 1.0)
+                reward_struct.cur_frame_value = (1.0 - hp_rate) * safety
+            # Penalize standing near enemy tower, especially when low HP
+            # 惩罚靠近敌方塔，低血时惩罚更强
+            elif reward_name == "under_enemy_tower":
+                hp_rate = safe_div(main_hero.get("hp", 0), main_hero.get("max_hp", 1))
+                dist_to_enemy_tower = distance(main_hero.get("location", {}), enemy_tower.get("location", {}))
+                danger = 1.0 if dist_to_enemy_tower < 6500 else 0.0
+                reward_struct.cur_frame_value = danger * (1.0 + (1.0 - hp_rate))
 
     # Calculate the forward reward based on the distance between the agent and both defensive towers
     # 用智能体到双方防御塔的距离，计算前进奖励
     def calculate_forward(self, main_hero, main_tower, enemy_tower):
-        main_tower_pos = (main_tower["location"]["x"], main_tower["location"]["z"])
-        enemy_tower_pos = (enemy_tower["location"]["x"], enemy_tower["location"]["z"])
+        main_tower_location = main_tower.get("location", {})
+        enemy_tower_location = enemy_tower.get("location", {})
+        main_tower_pos = (main_tower_location.get("x", 0), main_tower_location.get("z", 0))
+        enemy_tower_pos = (enemy_tower_location.get("x", 0), enemy_tower_location.get("z", 0))
+        main_hero_location = main_hero.get("location", {})
         hero_pos = (
-            main_hero["location"]["x"],
-            main_hero["location"]["z"],
+            main_hero_location.get("x", 0),
+            main_hero_location.get("z", 0),
         )
         forward_value = 0
         dist_hero2emy = math.dist(hero_pos, enemy_tower_pos)
         dist_main2emy = math.dist(main_tower_pos, enemy_tower_pos)
-        if main_hero["hp"] / main_hero["max_hp"] > 0.99 and dist_hero2emy > dist_main2emy:
+        if dist_main2emy <= 0:
+            return 0
+        if safe_div(main_hero.get("hp", 0), main_hero.get("max_hp", 1)) > 0.99 and dist_hero2emy > dist_main2emy:
             forward_value = (dist_main2emy - dist_hero2emy) / dist_main2emy
         return forward_value
 
@@ -155,6 +208,20 @@ class GameRewardManager:
         reward_sum, weight_sum = 0.0, 0.0
         for reward_name, reward_struct in self.m_cur_calc_frame_map.items():
             if reward_name == "forward":
+                reward_struct.value = self.m_main_calc_frame_map[reward_name].cur_frame_value
+            elif reward_name == "damage_to_enemy":
+                reward_struct.value = max(
+                    0.0,
+                    self.m_main_calc_frame_map[reward_name].last_frame_value
+                    - self.m_main_calc_frame_map[reward_name].cur_frame_value,
+                )
+            elif reward_name == "damage_taken":
+                reward_struct.value = max(
+                    0.0,
+                    self.m_main_calc_frame_map[reward_name].last_frame_value
+                    - self.m_main_calc_frame_map[reward_name].cur_frame_value,
+                )
+            elif reward_name in ("retreat_low_hp", "under_enemy_tower"):
                 reward_struct.value = self.m_main_calc_frame_map[reward_name].cur_frame_value
             else:
                 # Calculate zero-sum reward

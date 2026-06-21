@@ -112,6 +112,7 @@ class Model(nn.Module):
             return result_list
 
     def compute_loss(self, data_list, rst_list):
+        device = rst_list[-1].device
         seri_vec = data_list[0].reshape(-1, self.data_split_shape[0])
         usq_reward = data_list[1].reshape(-1, self.data_split_shape[1])
         usq_advantage = data_list[2].reshape(-1, self.data_split_shape[2])
@@ -147,6 +148,11 @@ class Model(nn.Module):
         for weight in usq_weight_list:
             weight_list.append(weight.squeeze(dim=1))
         frame_is_train = usq_is_train.squeeze(dim=1)
+        train_frame_count = torch.sum(frame_is_train)
+        if train_frame_count > 1:
+            advantage_mean = torch.sum(advantage * frame_is_train) / train_frame_count
+            advantage_var = torch.sum(torch.square(advantage - advantage_mean) * frame_is_train) / train_frame_count
+            advantage = (advantage - advantage_mean) / torch.sqrt(advantage_var + 1e-8)
 
         label_result = rst_list[:-1]
 
@@ -169,7 +175,6 @@ class Model(nn.Module):
         # loss of value net
         # 值网络的损失
         fc2_value_result_squeezed = value_result.squeeze(dim=1)
-        self.value_cost = 0.5 * torch.mean(torch.square(reward - fc2_value_result_squeezed), dim=0)
         new_advantage = reward - fc2_value_result_squeezed
         self.value_cost = 0.5 * torch.mean(torch.square(new_advantage), dim=0)
 
@@ -181,11 +186,11 @@ class Model(nn.Module):
 
         # policy loss: ppo clip loss
         # 策略损失：PPO剪辑损失
-        self.policy_cost = torch.tensor(0.0)
+        self.policy_cost = torch.zeros((), device=device)
         for task_index in range(len(self.is_reinforce_task_list)):
             if self.is_reinforce_task_list[task_index]:
-                final_log_p = torch.tensor(0.0)
-                boundary = torch.pow(torch.tensor(10.0), torch.tensor(20.0))
+                final_log_p = torch.zeros((), device=device)
+                boundary = torch.tensor(1e20, device=device)
                 one_hot_actions = nn.functional.one_hot(label_list[task_index].long(), self.label_size_list[task_index])
 
                 legal_action_flag_list_max_mask = (1 - legal_action_flag_list[task_index]) * boundary
@@ -222,7 +227,7 @@ class Model(nn.Module):
                 surr2 = ratio.clamp(1.0 - self.clip_param, 1.0 + self.clip_param) * advantage
                 temp_policy_loss = -torch.sum(
                     torch.minimum(surr1, surr2) * (weight_list[task_index].float()) * frame_is_train
-                ) / torch.maximum(torch.sum((weight_list[task_index].float()) * frame_is_train), torch.tensor(1.0))
+                ) / torch.clamp(torch.sum((weight_list[task_index].float()) * frame_is_train), min=1.0)
 
                 self.policy_cost = self.policy_cost + temp_policy_loss
 
@@ -241,15 +246,15 @@ class Model(nn.Module):
 
                 temp_entropy_loss = -torch.sum(
                     (temp_entropy_loss * weight_list[task_index].float() * frame_is_train)
-                ) / torch.maximum(torch.sum(weight_list[task_index].float() * frame_is_train), torch.tensor(1.0))
+                ) / torch.clamp(torch.sum(weight_list[task_index].float() * frame_is_train), min=1.0)
 
                 entropy_loss_list.append(temp_entropy_loss)
                 current_entropy_loss_index = current_entropy_loss_index + 1
             else:
-                temp_entropy_loss = torch.tensor(0.0)
+                temp_entropy_loss = torch.zeros((), device=device)
                 entropy_loss_list.append(temp_entropy_loss)
 
-        self.entropy_cost = torch.tensor(0.0)
+        self.entropy_cost = torch.zeros((), device=device)
         for entropy_element in entropy_loss_list:
             self.entropy_cost = self.entropy_cost + entropy_element
 
@@ -274,7 +279,7 @@ class Model(nn.Module):
 def make_fc_layer(in_features: int, out_features: int, use_bias=True):
     fc_layer = nn.Linear(in_features, out_features, bias=use_bias)
 
-    nn.init.orthogonal(fc_layer.weight)
+    nn.init.orthogonal_(fc_layer.weight)
     if use_bias:
         nn.init.zeros_(fc_layer.bias)
 

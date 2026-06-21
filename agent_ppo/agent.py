@@ -125,7 +125,7 @@ class Agent(BaseAgent):
         lstm_hidden = [obs_data.lstm_hidden for obs_data in list_obs_data]
 
         input_list = [np.array(feature), np.array(lstm_cell), np.array(lstm_hidden)]
-        torch_inputs = [torch.from_numpy(nparr).to(torch.float32) for nparr in input_list]
+        torch_inputs = [torch.from_numpy(nparr).to(self.device).to(torch.float32) for nparr in input_list]
         for i, data in enumerate(torch_inputs):
             data = data.reshape(-1)
             torch_inputs[i] = data.float()
@@ -143,7 +143,7 @@ class Agent(BaseAgent):
 
         np_output = []
         for output in output_list:
-            np_output.append(output.numpy())
+            np_output.append(output.detach().cpu().numpy())
 
         logits, value, _lstm_cell, _lstm_hidden = np_output[:4]
 

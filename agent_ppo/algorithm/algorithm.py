@@ -85,7 +85,7 @@ class Algorithm:
 
         # update the learning rate
         # 更新学习率
-        self.scheduler.step(self.train_step)
+        self.scheduler.step()
 
         _info_list = []
         for info in info_list:
@@ -104,3 +104,5 @@ class Algorithm:
             if self.monitor:
                 self.monitor.put_data({os.getpid(): results})
             self.last_report_monitor_time = now
+
+        return results
