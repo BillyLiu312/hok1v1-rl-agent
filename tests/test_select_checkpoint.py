@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from utils.select_checkpoint import attach_matchup_metrics, collect_candidates, rank_candidates, write_markdown
+from utils.select_checkpoint import attach_matchup_metrics, collect_candidates, rank_candidates, write_csv, write_markdown
 
 
 class SelectCheckpointTest(unittest.TestCase):
@@ -58,9 +58,9 @@ class SelectCheckpointTest(unittest.TestCase):
             training_csv.write_text(
                 "\n".join(
                     [
-                        "source_file,step,common_ai_win_rate,common_ai_enemy_tower_hp,common_ai_self_tower_hp,common_ai_death",
-                        "a,100,0.8,1000,7000,2",
-                        "b,200,0.7,900,7000,2",
+                        "source_file,step,common_ai_win_rate,common_ai_enemy_tower_hp,common_ai_self_tower_hp,common_ai_death,reward_push_window_tower_damage,reward_unsafe_dive,reward_win_result,reward_timeout_tower_gap",
+                        "a,100,0.8,1000,7000,2,0.1,-1,0,0",
+                        "b,200,0.7,900,7000,2,0.4,-0.5,1,0",
                     ]
                 )
                 + "\n",
@@ -86,12 +86,21 @@ class SelectCheckpointTest(unittest.TestCase):
             self.assertEqual(rows[0]["checkpoint_step"], 200)
             self.assertEqual(rows[0]["matchup_groups"], 1)
             self.assertEqual(rows[0]["matchup_rows"], 2)
+            self.assertEqual(rows[0]["reward_push_window_tower_damage"], 0.4)
+            self.assertEqual(rows[0]["reward_win_result"], 1)
             self.assertEqual(rows[0]["matchup_min_win_rate"], 0.8)
             self.assertAlmostEqual(rows[0]["matchup_avg_push_window_tower_damage"], 0.3)
             self.assertEqual(rows[0]["matchup_avg_push_window_active_frames"], 11)
             self.assertEqual(rows[0]["matchup_avg_unsafe_dive_active_frames"], 3)
             self.assertEqual(rows[0]["matchup_avg_push_window_tower_damage_share"], 0.625)
             self.assertAlmostEqual(rows[0]["matchup_avg_unsafe_dive_death_corr"], 0.15)
+
+            csv_path = log_dir / "ranking.csv"
+            md_path = log_dir / "ranking.md"
+            write_csv(rows, csv_path)
+            write_markdown(rows, md_path, "Ranking")
+            self.assertIn("reward_push_window_tower_damage", csv_path.read_text(encoding="utf-8"))
+            self.assertIn("reward_win_result", md_path.read_text(encoding="utf-8"))
 
     def test_matchup_actual_step_maps_to_target_step(self):
         with tempfile.TemporaryDirectory() as temp_dir:

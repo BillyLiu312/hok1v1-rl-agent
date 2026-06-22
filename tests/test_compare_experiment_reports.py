@@ -23,8 +23,8 @@ def make_report(root: Path, name: str, profile: str, win_rate: float, gate_statu
     (report_dir / "checkpoint_ranking.csv").write_text(
         "\n".join(
             [
-                "checkpoint_step,score,matchup_groups,matchup_rows,matchup_avg_win_rate,matchup_min_win_rate,matchup_avg_death,matchup_avg_enemy_tower_hp,matchup_avg_push_window_active_frames,matchup_avg_unsafe_dive_active_frames,matchup_avg_push_window_tower_damage_share,matchup_avg_unsafe_dive_death_corr",
-                f"15000,100,9,18,{win_rate},0.7,2.1,900,12,1,0.75,0.1",
+                "checkpoint_step,score,matchup_groups,matchup_rows,matchup_avg_win_rate,matchup_min_win_rate,matchup_avg_death,matchup_avg_enemy_tower_hp,reward_push_window_tower_damage,reward_unsafe_dive,reward_win_result,matchup_avg_push_window_active_frames,matchup_avg_unsafe_dive_active_frames,matchup_avg_push_window_tower_damage_share,matchup_avg_unsafe_dive_death_corr",
+                f"15000,100,9,18,{win_rate},0.7,2.1,900,0.4,-0.5,1,12,1,0.75,0.1",
             ]
         )
         + "\n",
@@ -78,6 +78,8 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertEqual(rows[0]["evaluation_matchups"], "9")
             self.assertEqual(rows[0]["gate_status"], "PASS")
             self.assertEqual(rows[0]["matchup_rows"], "18")
+            self.assertEqual(rows[0]["reward_push_window_tower_damage"], 0.4)
+            self.assertEqual(rows[0]["reward_win_result"], 1.0)
             self.assertEqual(rows[0]["avg_push_window_tower_damage_share"], 0.75)
             self.assertEqual(rows[0]["avg_unsafe_dive_death_corr"], 0.1)
             self.assertEqual(rows[1]["reward_profile"], "no_window_reward")
