@@ -207,6 +207,7 @@ def check_evidence_chain_fields(root: Path) -> list[dict]:
             "matchup_filter_opponent_agent",
             "matchup_eval_ids",
             "max_death_p90",
+            "hero_damage_balance",
         ],
         "utils/select_checkpoint.py": [
             "matchup_filter_eval_only",
@@ -214,6 +215,8 @@ def check_evidence_chain_fields(root: Path) -> list[dict]:
             "matchup_eval_ids",
             "matchup_repeat_indices",
             "matchup_max_death_p90",
+            "matchup_avg_hurt_to_hero",
+            "matchup_avg_hurt_by_hero",
         ],
         "utils/evaluate_v1_2_candidate.py": [
             "read_baseline",

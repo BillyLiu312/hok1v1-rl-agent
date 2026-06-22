@@ -152,6 +152,10 @@ def attach_matchup_metrics(
         win_rates = [value for value in win_rates if value is not None]
         deaths = [to_float(row.get("avg_death")) for row in rows]
         deaths = [value for value in deaths if value is not None]
+        hurt_to_hero = [to_float(row.get("avg_hurt_to_hero")) for row in rows]
+        hurt_to_hero = [value for value in hurt_to_hero if value is not None]
+        hurt_by_hero = [to_float(row.get("avg_hurt_by_hero")) for row in rows]
+        hurt_by_hero = [value for value in hurt_by_hero if value is not None]
         death_p90 = [to_float(row.get("death_p90")) for row in rows]
         death_p90 = [value for value in death_p90 if value is not None]
         enemy_tower_hp = [to_float(row.get("avg_enemy_tower_hp")) for row in rows]
@@ -191,6 +195,8 @@ def attach_matchup_metrics(
                 "matchup_avg_win_rate": avg(win_rates),
                 "matchup_min_win_rate": min(win_rates) if win_rates else None,
                 "matchup_avg_death": avg(deaths),
+                "matchup_avg_hurt_to_hero": avg(hurt_to_hero),
+                "matchup_avg_hurt_by_hero": avg(hurt_by_hero),
                 "matchup_avg_death_p90": avg(death_p90),
                 "matchup_max_death_p90": max(death_p90) if death_p90 else None,
                 "matchup_avg_enemy_tower_hp": avg(enemy_tower_hp),
@@ -338,6 +344,8 @@ def write_csv(rows: list[dict], output_path: Path):
         "matchup_avg_win_rate",
         "matchup_min_win_rate",
         "matchup_avg_death",
+        "matchup_avg_hurt_to_hero",
+        "matchup_avg_hurt_by_hero",
         "matchup_avg_death_p90",
         "matchup_max_death_p90",
         "matchup_avg_enemy_tower_hp",
@@ -381,6 +389,8 @@ def write_markdown(rows: list[dict], output_path: Path, title: str):
         "matchup_avg_win_rate",
         "matchup_min_win_rate",
         "matchup_avg_death",
+        "matchup_avg_hurt_to_hero",
+        "matchup_avg_hurt_by_hero",
         "matchup_max_death_p90",
         "matchup_min_self_tower_hp_p10",
         "matchup_avg_timeout_rate",

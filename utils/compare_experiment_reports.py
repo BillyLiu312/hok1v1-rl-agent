@@ -84,6 +84,10 @@ def summarize_report(report_dir: Path) -> dict:
     metadata = first_row(read_csv_rows(report_dir / "run_metadata_summary.csv"))
     manifest = read_manifest_summary(report_dir / "manifest.md")
 
+    avg_hurt_to_hero = to_float(ranking.get("matchup_avg_hurt_to_hero") or ranking.get("common_ai_hurt_to_hero"), "")
+    avg_hurt_by_hero = to_float(ranking.get("matchup_avg_hurt_by_hero") or ranking.get("common_ai_hurt_by_hero"), "")
+    hero_damage_balance = metric_delta(avg_hurt_to_hero, avg_hurt_by_hero)
+
     return {
         "report": report_label(report_dir),
         "path": report_dir.as_posix(),
@@ -124,6 +128,9 @@ def summarize_report(report_dir: Path) -> dict:
         "avg_win_rate": to_float(ranking.get("matchup_avg_win_rate") or ranking.get("common_ai_win_rate"), ""),
         "min_win_rate": to_float(ranking.get("matchup_min_win_rate"), ""),
         "avg_death": to_float(ranking.get("matchup_avg_death") or ranking.get("common_ai_death"), ""),
+        "avg_hurt_to_hero": avg_hurt_to_hero,
+        "avg_hurt_by_hero": avg_hurt_by_hero,
+        "hero_damage_balance": hero_damage_balance,
         "max_death_p90": to_float(ranking.get("matchup_max_death_p90"), ""),
         "min_self_tower_hp_p10": to_float(ranking.get("matchup_min_self_tower_hp_p10"), ""),
         "avg_timeout_rate": to_float(ranking.get("matchup_avg_timeout_rate"), ""),
@@ -143,6 +150,9 @@ DELTA_METRICS = [
     "avg_win_rate",
     "min_win_rate",
     "avg_death",
+    "avg_hurt_to_hero",
+    "avg_hurt_by_hero",
+    "hero_damage_balance",
     "max_death_p90",
     "min_self_tower_hp_p10",
     "avg_timeout_rate",
@@ -186,9 +196,14 @@ def interpret_ablation(row: dict, baseline_label: str) -> str:
         return "baseline"
     win_delta = row.get("avg_win_rate_delta_vs_baseline")
     death_delta = row.get("avg_death_delta_vs_baseline")
+    damage_balance_delta = row.get("hero_damage_balance_delta_vs_baseline")
     tower_delta = row.get("avg_enemy_tower_hp_delta_vs_baseline")
     push_share_delta = row.get("avg_push_window_tower_damage_share_delta_vs_baseline")
-    observed = [value for value in (win_delta, death_delta, tower_delta, push_share_delta) if value not in ("", None)]
+    observed = [
+        value
+        for value in (win_delta, death_delta, damage_balance_delta, tower_delta, push_share_delta)
+        if value not in ("", None)
+    ]
     if not observed:
         return "inconclusive"
 
@@ -200,6 +215,9 @@ def interpret_ablation(row: dict, baseline_label: str) -> str:
     if death_delta not in ("", None):
         worse += death_delta > 0
         better += death_delta < 0
+    if damage_balance_delta not in ("", None):
+        worse += damage_balance_delta < 0
+        better += damage_balance_delta > 0
     if tower_delta not in ("", None):
         worse += tower_delta > 0
         better += tower_delta < 0
@@ -245,6 +263,8 @@ def research_story_verdict(row: dict, baseline_label: str) -> str:
     min_win_worse = is_worse_delta(row.get("min_win_rate_delta_vs_baseline"), higher_is_better=True)
     death_better = is_better_delta(row.get("avg_death_delta_vs_baseline"), higher_is_better=False)
     death_worse = is_worse_delta(row.get("avg_death_delta_vs_baseline"), higher_is_better=False)
+    damage_balance_better = is_better_delta(row.get("hero_damage_balance_delta_vs_baseline"), higher_is_better=True)
+    damage_balance_worse = is_worse_delta(row.get("hero_damage_balance_delta_vs_baseline"), higher_is_better=True)
     death_tail_better = is_better_delta(row.get("max_death_p90_delta_vs_baseline"), higher_is_better=False)
     death_tail_worse = is_worse_delta(row.get("max_death_p90_delta_vs_baseline"), higher_is_better=False)
     self_tower_tail_better = is_better_delta(row.get("min_self_tower_hp_p10_delta_vs_baseline"), higher_is_better=True)
@@ -268,6 +288,8 @@ def research_story_verdict(row: dict, baseline_label: str) -> str:
         death_worse,
         death_tail_better,
         death_tail_worse,
+        damage_balance_better,
+        damage_balance_worse,
         self_tower_tail_better,
         self_tower_tail_worse,
         timeout_better,
@@ -285,33 +307,37 @@ def research_story_verdict(row: dict, baseline_label: str) -> str:
         return "insufficient_evidence"
 
     if profile == "no_window_reward" or "window" in name:
-        if any_true([win_worse, min_win_worse, death_worse, tower_worse, push_share_worse]):
+        if any_true([win_worse, min_win_worse, death_worse, damage_balance_worse, tower_worse, push_share_worse]):
             return "supports_push_window_modeling"
-        if any_true([win_better, death_better, tower_better, push_share_better]) and not any_true([win_worse, death_worse, tower_worse]):
+        if any_true([win_better, death_better, damage_balance_better, tower_better, push_share_better]) and not any_true(
+            [win_worse, death_worse, damage_balance_worse, tower_worse]
+        ):
             return "challenges_push_window_modeling"
         return "mixed_push_window_evidence"
 
     if profile == "no_terminal_reward" or "terminal" in name:
-        if any_true([win_worse, min_win_worse, tower_worse]):
+        if any_true([win_worse, min_win_worse, damage_balance_worse, tower_worse]):
             return "supports_terminal_alignment"
-        if any_true([win_better, tower_better]) and not any_true([win_worse, tower_worse]):
+        if any_true([win_better, damage_balance_better, tower_better]) and not any_true([win_worse, damage_balance_worse, tower_worse]):
             return "challenges_terminal_alignment"
         return "mixed_terminal_evidence"
 
     if profile == "death_only_risk" or "death" in name or "risk" in name:
         risk_better = any_true([death_better, death_tail_better, self_tower_tail_better, timeout_better, unsafe_severity_better])
         risk_worse = any_true([death_worse, death_tail_worse, self_tower_tail_worse, timeout_worse, unsafe_severity_worse])
-        if risk_better and any_true([win_worse, min_win_worse, tower_worse, push_share_worse]):
+        if risk_better and any_true([win_worse, min_win_worse, damage_balance_worse, tower_worse, push_share_worse]):
             return "death_risk_reduces_deaths_but_hurts_objective"
-        if risk_better and any_true([win_better, tower_better]) and not any_true([win_worse, tower_worse]):
+        if risk_better and any_true([win_better, damage_balance_better, tower_better]) and not any_true(
+            [win_worse, damage_balance_worse, tower_worse]
+        ):
             return "death_risk_improves_stability"
         if risk_worse:
             return "challenges_death_only_risk"
         return "mixed_risk_evidence"
 
-    if any_true([win_worse, death_worse, tower_worse, push_share_worse, unsafe_corr_worse, unsafe_severity_worse]):
+    if any_true([win_worse, death_worse, damage_balance_worse, tower_worse, push_share_worse, unsafe_corr_worse, unsafe_severity_worse]):
         return "supports_full_v1_2_recipe"
-    if any_true([win_better, death_better, tower_better, push_share_better, unsafe_corr_better, unsafe_severity_better]):
+    if any_true([win_better, death_better, damage_balance_better, tower_better, push_share_better, unsafe_corr_better, unsafe_severity_better]):
         return "ablation_may_improve_recipe"
     return "mixed_research_evidence"
 
@@ -349,6 +375,7 @@ def interpretation_summary_lines(rows: list[dict]) -> list[str]:
             f"[{row.get('research_story_verdict', '')}] "
             f"(win_delta={fmt(row.get('avg_win_rate_delta_vs_baseline'))}, "
             f"death_delta={fmt(row.get('avg_death_delta_vs_baseline'))}, "
+            f"damage_balance_delta={fmt(row.get('hero_damage_balance_delta_vs_baseline'))}, "
             f"tower_hp_delta={fmt(row.get('avg_enemy_tower_hp_delta_vs_baseline'))})"
         )
     lines.append("")
@@ -396,6 +423,12 @@ def write_csv(rows: list[dict], output_path: Path):
         "min_win_rate_delta_vs_baseline",
         "avg_death",
         "avg_death_delta_vs_baseline",
+        "avg_hurt_to_hero",
+        "avg_hurt_to_hero_delta_vs_baseline",
+        "avg_hurt_by_hero",
+        "avg_hurt_by_hero_delta_vs_baseline",
+        "hero_damage_balance",
+        "hero_damage_balance_delta_vs_baseline",
         "max_death_p90",
         "max_death_p90_delta_vs_baseline",
         "min_self_tower_hp_p10",
@@ -446,6 +479,10 @@ def write_markdown(rows: list[dict], output_path: Path, title="v1.2 Experiment C
         "min_win_rate",
         "avg_death",
         "avg_death_delta_vs_baseline",
+        "avg_hurt_to_hero",
+        "avg_hurt_by_hero",
+        "hero_damage_balance",
+        "hero_damage_balance_delta_vs_baseline",
         "max_death_p90",
         "max_death_p90_delta_vs_baseline",
         "min_self_tower_hp_p10",
