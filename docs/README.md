@@ -28,6 +28,7 @@
 - `utils/run_metadata_summary.py`：汇总训练启动配置快照、reward profile、对手课程和关键配置 hash。
 - `utils/checkpoint_matrix.py`：生成 checkpoint-vs-opponent 胜率矩阵和 Elo 排名。
 - `utils/summoner_skill_results.py`：按 matchup 和召唤师技能选择聚合胜率、死亡和推塔指标，并输出技能推荐。
+- `utils/summoner_skill_policy_patch.py`：把技能推荐导出为可审阅的 matchup-conditioned 规则表草案。
 - `utils/build_experiment_report.py`：一键生成 v1.2 训练摘要、评估矩阵、召唤师技能网格和 checkpoint 排名证据包。
 - `utils/offline_sync.py check --preset v1.2`：训练前检查离线同步包是否包含 v1.2 必备代码、工具、测试和文档。
 

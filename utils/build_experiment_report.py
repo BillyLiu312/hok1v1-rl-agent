@@ -46,6 +46,9 @@ from utils.summoner_skill_results import write_csv as write_skill_result_csv
 from utils.summoner_skill_results import write_markdown as write_skill_result_markdown
 from utils.summoner_skill_results import write_recommendation_csv as write_skill_recommendation_csv
 from utils.summoner_skill_results import write_recommendation_markdown as write_skill_recommendation_markdown
+from utils.summoner_skill_policy_patch import build_patch_rows as build_skill_policy_patch_rows
+from utils.summoner_skill_policy_patch import write_markdown as write_skill_policy_patch_markdown
+from utils.summoner_skill_policy_patch import write_python_patch as write_skill_policy_patch_python
 
 
 DEFAULT_OUTPUT_DIR = Path("logs/v1.2/report-v1.2")
@@ -139,6 +142,14 @@ def build_report(
         )
         artifacts["summoner_skill_recommendations_csv"] = skill_recommendation_csv
         artifacts["summoner_skill_recommendations_md"] = skill_recommendation_md
+
+        skill_policy_patch_rows = build_skill_policy_patch_rows(skill_recommendation_rows)
+        skill_policy_patch_py = output_dir / "summoner_skill_policy_patch.py"
+        skill_policy_patch_md = output_dir / "summoner_skill_policy_patch.md"
+        write_skill_policy_patch_python(skill_policy_patch_rows, skill_policy_patch_py)
+        write_skill_policy_patch_markdown(skill_policy_patch_rows, skill_policy_patch_md)
+        artifacts["summoner_skill_policy_patch_py"] = skill_policy_patch_py
+        artifacts["summoner_skill_policy_patch_md"] = skill_policy_patch_md
 
     candidates = collect_candidates(training_csv=training_csv)
     attach_matchup_metrics(candidates, matchup_csv)

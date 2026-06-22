@@ -35,6 +35,7 @@ REQUIRED_TOOLS = [
     "utils/run_metadata_summary.py",
     "utils/select_checkpoint.py",
     "utils/summoner_skill_grid.py",
+    "utils/summoner_skill_policy_patch.py",
     "utils/summoner_skill_results.py",
     "utils/offline_sync.py",
     "utils/v1_2_experiment_plan.py",
