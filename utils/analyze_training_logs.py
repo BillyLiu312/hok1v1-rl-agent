@@ -47,6 +47,14 @@ FIELDS = [
     ("reward_kill", "Reward Detail Metrics", "kill"),
     ("reward_death", "Reward Detail Metrics", "death"),
     ("reward_forward", "Reward Detail Metrics", "forward"),
+    ("reward_enemy_tower_hp_down", "Reward Detail Metrics", "enemy_tower_hp_down"),
+    ("reward_self_tower_hp_down", "Reward Detail Metrics", "self_tower_hp_down"),
+    ("reward_push_window_tower_damage", "Reward Detail Metrics", "push_window_tower_damage"),
+    ("reward_unsafe_dive", "Reward Detail Metrics", "unsafe_dive"),
+    ("reward_push_window_active", "Reward Detail Metrics", "push_window_active"),
+    ("reward_unsafe_dive_active", "Reward Detail Metrics", "unsafe_dive_active"),
+    ("reward_win_result", "Reward Detail Metrics", "win_result"),
+    ("reward_timeout_tower_gap", "Reward Detail Metrics", "timeout_tower_gap"),
 ]
 
 
@@ -119,6 +127,9 @@ def write_markdown(rows: list[dict], output_path: Path, title: str):
         "common_ai_self_tower_hp",
         "common_ai_death",
         "selfplay_win_rate",
+        "reward_push_window_tower_damage",
+        "reward_unsafe_dive",
+        "reward_win_result",
         "reward",
         "total_loss",
     ]
