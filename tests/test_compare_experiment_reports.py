@@ -82,6 +82,7 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertEqual(rows[0]["success_metric_count"], "7")
             self.assertEqual(rows[0]["success_metrics"], "avg_win_rate,avg_death")
             self.assertEqual(rows[0]["baseline_experiment"], "v1.2")
+            self.assertEqual(rows[0]["ablation_interpretation"], "baseline")
             self.assertEqual(rows[0]["avg_win_rate_delta_vs_baseline"], 0.0)
             self.assertEqual(rows[0]["launch_run_id"], "v1.2-run")
             self.assertEqual(rows[0]["launch_preflight_status"], "PASS")
@@ -95,6 +96,7 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertEqual(rows[1]["reward_profile"], "no_window_reward")
             self.assertEqual(rows[1]["gate_status"], "WARN")
             self.assertEqual(rows[1]["baseline_experiment"], "v1.2")
+            self.assertEqual(rows[1]["ablation_interpretation"], "supports_baseline")
             self.assertAlmostEqual(rows[1]["avg_win_rate_delta_vs_baseline"], -0.08)
             self.assertEqual(rows[1]["avg_death_delta_vs_baseline"], 0.0)
             self.assertEqual(rows[1]["avg_enemy_tower_hp_delta_vs_baseline"], 0.0)
@@ -106,11 +108,13 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertIn("launch_run_id", csv_path.read_text(encoding="utf-8"))
             self.assertIn("experiment_hypothesis", csv_path.read_text(encoding="utf-8"))
             self.assertIn("success_metric_count", csv_path.read_text(encoding="utf-8"))
+            self.assertIn("ablation_interpretation", csv_path.read_text(encoding="utf-8"))
             self.assertIn("avg_win_rate_delta_vs_baseline", csv_path.read_text(encoding="utf-8"))
             self.assertIn("reward_profile", csv_path.read_text(encoding="utf-8"))
             self.assertIn("v1.2-run", md_path.read_text(encoding="utf-8"))
             self.assertIn("no_window_reward", md_path.read_text(encoding="utf-8"))
             self.assertIn("hypothesis for v1.2", md_path.read_text(encoding="utf-8"))
+            self.assertIn("supports_baseline", md_path.read_text(encoding="utf-8"))
             self.assertIn("-0.08", md_path.read_text(encoding="utf-8"))
 
     def test_read_manifest_summary_parses_top_level_keys(self):
@@ -172,6 +176,7 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertEqual(rows[0]["experiment_hypothesis"], "No window reward ablation.")
             self.assertEqual(rows[0]["success_metric_count"], "7")
             self.assertEqual(rows[0]["baseline_experiment"], "no_window_reward")
+            self.assertEqual(rows[0]["ablation_interpretation"], "baseline")
             self.assertEqual(rows[0]["avg_win_rate_delta_vs_baseline"], 0.0)
             self.assertEqual(rows[0]["gate_status"], "PASS")
 

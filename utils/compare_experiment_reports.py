@@ -157,6 +157,7 @@ def attach_baseline_deltas(rows: list[dict]) -> list[dict]:
         row["baseline_experiment"] = baseline_label
         for metric in DELTA_METRICS:
             row[f"{metric}_delta_vs_baseline"] = metric_delta(row.get(metric), baseline.get(metric))
+        row["ablation_interpretation"] = interpret_ablation(row, baseline_label)
     return rows
 
 
@@ -164,6 +165,39 @@ def metric_delta(value, baseline_value):
     if value in ("", None) or baseline_value in ("", None):
         return ""
     return value - baseline_value
+
+
+def interpret_ablation(row: dict, baseline_label: str) -> str:
+    if first_non_empty(row.get("experiment_name"), row.get("report")) == baseline_label:
+        return "baseline"
+    win_delta = row.get("avg_win_rate_delta_vs_baseline")
+    death_delta = row.get("avg_death_delta_vs_baseline")
+    tower_delta = row.get("avg_enemy_tower_hp_delta_vs_baseline")
+    push_share_delta = row.get("avg_push_window_tower_damage_share_delta_vs_baseline")
+    observed = [value for value in (win_delta, death_delta, tower_delta, push_share_delta) if value not in ("", None)]
+    if not observed:
+        return "inconclusive"
+
+    worse = 0
+    better = 0
+    if win_delta not in ("", None):
+        worse += win_delta < 0
+        better += win_delta > 0
+    if death_delta not in ("", None):
+        worse += death_delta > 0
+        better += death_delta < 0
+    if tower_delta not in ("", None):
+        worse += tower_delta > 0
+        better += tower_delta < 0
+    if push_share_delta not in ("", None):
+        worse += push_share_delta < 0
+        better += push_share_delta > 0
+
+    if worse and not better:
+        return "supports_baseline"
+    if better and not worse:
+        return "ablation_improves"
+    return "mixed"
 
 
 def collect_rows(report_dirs: list[Path]) -> list[dict]:
@@ -185,6 +219,7 @@ def write_csv(rows: list[dict], output_path: Path):
         "success_metric_count",
         "success_metrics",
         "baseline_experiment",
+        "ablation_interpretation",
         "reward_profile",
         "reward_weight_overrides",
         "opponent_schedule",
@@ -233,6 +268,7 @@ def write_markdown(rows: list[dict], output_path: Path, title="v1.2 Experiment C
         "experiment_hypothesis",
         "success_metric_count",
         "baseline_experiment",
+        "ablation_interpretation",
         "recommended_checkpoint",
         "gate_status",
         "evaluation_matchups",
