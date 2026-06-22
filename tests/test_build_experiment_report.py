@@ -32,10 +32,24 @@ class BuildExperimentReportTest(unittest.TestCase):
 """,
                 encoding="utf-8",
             )
+            launch_manifest = root / "launch_manifest.json"
+            launch_manifest.write_text(
+                json.dumps(
+                    {
+                        "stage": "v1.2-a",
+                        "run_id": "unit-launch",
+                        "git_commit": "abc123",
+                        "preflight_status": "PASS",
+                        "sync_package_sha256": "f" * 64,
+                    }
+                ),
+                encoding="utf-8",
+            )
 
             artifacts = build_report(
                 log_dir=log_dir,
                 output_dir=output_dir,
+                launch_manifest=launch_manifest,
                 checkpoints=[15000],
                 heroes=[112],
                 repeats=1,
@@ -48,6 +62,9 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertIn("evaluation_rows: 2", manifest)
             self.assertIn("evaluation_skill_pairs: 1", manifest)
             self.assertIn("candidate_gate_status: FAIL", manifest)
+            self.assertIn("launch_run_id: unit-launch", manifest)
+            self.assertIn("launch_git_commit: abc123", manifest)
+            self.assertIn("launch_sync_package_sha256: " + "f" * 64, manifest)
             self.assertIn("checkpoint_ranking_csv", manifest)
             self.assertIn("v1.2_candidate_gate_csv", manifest)
 

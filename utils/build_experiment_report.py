@@ -6,6 +6,7 @@ Build a local experiment evidence package for v1.2 training runs.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -51,6 +52,7 @@ def build_report(
     log_dir: Path,
     output_dir: Path,
     record_dir: Path | None = None,
+    launch_manifest: Path | None = None,
     checkpoints=None,
     heroes=None,
     repeats=20,
@@ -59,6 +61,7 @@ def build_report(
 ):
     output_dir.mkdir(parents=True, exist_ok=True)
     artifacts = {}
+    launch_metadata = read_launch_manifest(launch_manifest)
 
     training_rows = collect_training_rows(log_dir)
     training_csv = output_dir / "training_summary.csv"
@@ -181,9 +184,18 @@ def build_report(
     artifacts["summoner_skill_grid_md"] = skill_md
 
     manifest = output_dir / "manifest.md"
-    write_manifest(manifest, artifacts, training_rows, checkpoint_rows, candidate_gate_rows, eval_rows)
+    write_manifest(manifest, artifacts, training_rows, checkpoint_rows, candidate_gate_rows, eval_rows, launch_metadata)
     artifacts["manifest"] = manifest
     return artifacts
+
+
+def read_launch_manifest(path: Path | None) -> dict:
+    if not path or not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
 
 
 def count_status(rows: list[dict], status: str) -> int:
@@ -197,6 +209,7 @@ def write_manifest(
     checkpoint_rows: list[dict],
     candidate_gate_rows: list[dict],
     eval_rows: list[dict],
+    launch_metadata: dict | None = None,
 ):
     checkpoint_count = len({row["checkpoint_step"] for row in eval_rows})
     matchup_count = len({row["matchup"] for row in eval_rows})
@@ -215,6 +228,12 @@ def write_manifest(
         f"- candidate_gate_fail: {count_status(candidate_gate_rows, 'FAIL')}",
         f"- candidate_gate_missing: {count_status(candidate_gate_rows, 'MISSING')}",
     ]
+    if launch_metadata:
+        lines.append(f"- launch_stage: {launch_metadata.get('stage', '')}")
+        lines.append(f"- launch_run_id: {launch_metadata.get('run_id', '')}")
+        lines.append(f"- launch_git_commit: {launch_metadata.get('git_commit', '')}")
+        lines.append(f"- launch_preflight_status: {launch_metadata.get('preflight_status', '')}")
+        lines.append(f"- launch_sync_package_sha256: {launch_metadata.get('sync_package_sha256', '')}")
     if checkpoint_rows:
         best = checkpoint_rows[0]
         lines.append(f"- recommended_checkpoint: {best.get('checkpoint_step')}")
@@ -237,6 +256,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Build v1.2 local experiment report artifacts.")
     parser.add_argument("--log-dir", type=Path, required=True, help="Directory containing step-*.md training logs")
     parser.add_argument("--record-dir", type=Path, default=None, help="Directory containing training recorder JSONL files")
+    parser.add_argument("--launch-manifest", type=Path, default=Path("logs/v1.2/launch_manifest.json"), help="JSON from utils/v1_2_launch_manifest.py")
     parser.add_argument("--output-dir", type=Path, default=Path("logs/v1.2/report"), help="Output directory")
     parser.add_argument("--checkpoints", default="15000,17057", help="Comma-separated checkpoint steps for eval matrix")
     parser.add_argument("--heroes", default="112,133,199", help="Comma-separated hero IDs")
@@ -251,6 +271,7 @@ def main():
     artifacts = build_report(
         log_dir=args.log_dir,
         record_dir=args.record_dir,
+        launch_manifest=args.launch_manifest,
         output_dir=args.output_dir,
         checkpoints=parse_ids(args.checkpoints),
         heroes=parse_ids(args.heroes),

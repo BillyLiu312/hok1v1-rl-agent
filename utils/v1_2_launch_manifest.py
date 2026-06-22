@@ -73,7 +73,7 @@ def build_manifest(sync_package: Path, run_id: str, stage: str, reward_profile: 
         "commands": {
             "preflight": "python3 utils/v1_2_preflight.py --md logs/v1.2/preflight.md --csv logs/v1.2/preflight.csv",
             "pack": "python3 utils/offline_sync.py pack --preset v1.2 --note v1.2-a-ready -o sync_package.txt",
-            "report": "python3 utils/build_experiment_report.py --log-dir logs/v1.2 --record-dir logs/run_records/v1.2-a --output-dir logs/v1.2/report --checkpoints 15000,17057 --heroes 112,133,199 --repeats 20",
+            "report": "python3 utils/build_experiment_report.py --log-dir logs/v1.2 --record-dir logs/run_records/v1.2-a --launch-manifest logs/v1.2/launch_manifest.json --output-dir logs/v1.2/report --checkpoints 15000,17057 --heroes 112,133,199 --repeats 20",
         },
     }
 

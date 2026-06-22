@@ -19,6 +19,7 @@ class V12LaunchManifestTest(unittest.TestCase):
             self.assertEqual(manifest["sync_package_bytes"], len("package"))
             self.assertEqual(manifest["env"]["HOK_TRAINING_RUN_ID"], "unit-run")
             self.assertEqual(manifest["env"]["HOK_REWARD_PROFILE"], "v1.2")
+            self.assertIn("--launch-manifest logs/v1.2/launch_manifest.json", manifest["commands"]["report"])
 
             json_path = Path(temp_dir) / "launch.json"
             md_path = Path(temp_dir) / "launch.md"
