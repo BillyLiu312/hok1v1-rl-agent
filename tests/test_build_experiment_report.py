@@ -5,10 +5,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from utils.build_experiment_report import build_report, filter_rows_for_checkpoint
+from utils.build_experiment_report import build_report, filter_rows_for_checkpoint, manifest_value
 
 
 class BuildExperimentReportTest(unittest.TestCase):
+    def test_manifest_value_preserves_zero(self):
+        self.assertEqual(manifest_value(0), 0)
+        self.assertEqual(manifest_value(0.0), 0.0)
+        self.assertEqual(manifest_value(None), "")
+
     def test_filter_rows_for_checkpoint_matches_exact_step(self):
         rows = [
             {"checkpoint_step": 15000, "matchup": "199_vs_133"},

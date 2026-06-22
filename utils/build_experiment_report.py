@@ -217,6 +217,10 @@ def count_status(rows: list[dict], status: str) -> int:
     return sum(1 for row in rows if row.get("status") == status)
 
 
+def manifest_value(value):
+    return "" if value is None else value
+
+
 def write_manifest(
     path: Path,
     artifacts: dict,
@@ -253,15 +257,17 @@ def write_manifest(
         best = checkpoint_rows[0]
         lines.append(f"- recommended_checkpoint: {best.get('checkpoint_step')}")
         lines.append(f"- checkpoint_score: {best.get('score'):.4g}")
-        lines.append(f"- recommended_matchup_groups: {best.get('matchup_groups') or ''}")
-        lines.append(f"- recommended_matchup_rows: {best.get('matchup_rows') or ''}")
-        lines.append(f"- recommended_win_rate: {best.get('matchup_avg_win_rate') or best.get('common_ai_win_rate') or ''}")
-        lines.append(f"- recommended_min_win_rate: {best.get('matchup_min_win_rate') or ''}")
-        lines.append(f"- recommended_death: {best.get('matchup_avg_death') or best.get('common_ai_death') or ''}")
+        lines.append(f"- recommended_matchup_groups: {manifest_value(best.get('matchup_groups'))}")
+        lines.append(f"- recommended_matchup_rows: {manifest_value(best.get('matchup_rows'))}")
+        win_rate = best.get("matchup_avg_win_rate") if best.get("matchup_avg_win_rate") is not None else best.get("common_ai_win_rate")
+        death = best.get("matchup_avg_death") if best.get("matchup_avg_death") is not None else best.get("common_ai_death")
+        lines.append(f"- recommended_win_rate: {manifest_value(win_rate)}")
+        lines.append(f"- recommended_min_win_rate: {manifest_value(best.get('matchup_min_win_rate'))}")
+        lines.append(f"- recommended_death: {manifest_value(death)}")
         lines.append(
-            f"- recommended_push_window_tower_damage_share: {best.get('matchup_avg_push_window_tower_damage_share') or ''}"
+            f"- recommended_push_window_tower_damage_share: {manifest_value(best.get('matchup_avg_push_window_tower_damage_share'))}"
         )
-        lines.append(f"- recommended_unsafe_dive_death_corr: {best.get('matchup_avg_unsafe_dive_death_corr') or ''}")
+        lines.append(f"- recommended_unsafe_dive_death_corr: {manifest_value(best.get('matchup_avg_unsafe_dive_death_corr'))}")
     lines.extend(["", "## Artifacts", ""])
     for name, artifact_path in sorted(artifacts.items()):
         lines.append(f"- {name}: `{artifact_path.as_posix()}`")
