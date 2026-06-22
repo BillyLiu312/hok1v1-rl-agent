@@ -15,6 +15,8 @@ V1_1_BEST_ENEMY_TOWER_HP = 1401.0
 V1_1_LATE_DEATH = 3.09
 MIN_EXPECTED_MATCHUPS = 9
 MIN_MATCHUP_WIN_RATE_GAP = 0.25
+MIN_PUSH_WINDOW_TOWER_DAMAGE_SHARE = 0.10
+MAX_UNSAFE_DIVE_DEATH_CORR = 0.30
 
 
 def read_csv_rows(path: Path) -> list[dict]:
@@ -92,6 +94,8 @@ def evaluate_candidate(candidate: dict, matchup_rows: list[dict] | None = None) 
     enemy_tower_hp = get_metric(candidate, "matchup_avg_enemy_tower_hp", "common_ai_enemy_tower_hp")
     matchup_groups = to_int(candidate.get("matchup_groups"), 0) or 0
     min_win_rate = to_float(candidate.get("matchup_min_win_rate"))
+    push_window_tower_damage_share = to_float(candidate.get("matchup_avg_push_window_tower_damage_share"))
+    unsafe_dive_death_corr = to_float(candidate.get("matchup_avg_unsafe_dive_death_corr"))
 
     if win_rate is None:
         gates.append(gate("MISSING", "common_ai_win_rate", "", f"> {V1_1_BEST_WIN_RATE}", "Win rate is unavailable."))
@@ -145,6 +149,59 @@ def evaluate_candidate(candidate: dict, matchup_rows: list[dict] | None = None) 
         gates.append(gate("PASS", "avg_death", death, f"< {V1_1_LATE_DEATH}", "Death is below v1.1 late-training level."))
     else:
         gates.append(gate("FAIL", "avg_death", death, f"< {V1_1_LATE_DEATH}", "Death remains too high."))
+
+    if push_window_tower_damage_share is None:
+        gates.append(
+            gate(
+                "MISSING",
+                "push_window_evidence",
+                "",
+                f">= {MIN_PUSH_WINDOW_TOWER_DAMAGE_SHARE}",
+                "Missing push-window tower damage share; cannot verify the v1.2 tactical-window hypothesis.",
+            )
+        )
+    elif push_window_tower_damage_share >= MIN_PUSH_WINDOW_TOWER_DAMAGE_SHARE:
+        gates.append(
+            gate(
+                "PASS",
+                "push_window_evidence",
+                push_window_tower_damage_share,
+                f">= {MIN_PUSH_WINDOW_TOWER_DAMAGE_SHARE}",
+                "A measurable share of tower damage happens inside detected push windows.",
+            )
+        )
+    else:
+        gates.append(
+            gate(
+                "WARN",
+                "push_window_evidence",
+                push_window_tower_damage_share,
+                f">= {MIN_PUSH_WINDOW_TOWER_DAMAGE_SHARE}",
+                "Push-window tower damage share is low; inspect whether the window detector or policy is too conservative.",
+            )
+        )
+
+    if unsafe_dive_death_corr is None:
+        gates.append(
+            gate(
+                "WARN",
+                "unsafe_dive_risk",
+                "",
+                f"<= {MAX_UNSAFE_DIVE_DEATH_CORR}",
+                "Missing unsafe-dive/death correlation; keep death and dive diagnostics in the evidence package.",
+            )
+        )
+    else:
+        status = "PASS" if unsafe_dive_death_corr <= MAX_UNSAFE_DIVE_DEATH_CORR else "WARN"
+        gates.append(
+            gate(
+                status,
+                "unsafe_dive_risk",
+                unsafe_dive_death_corr,
+                f"<= {MAX_UNSAFE_DIVE_DEATH_CORR}",
+                "Unsafe-dive frames should not strongly correlate with deaths.",
+            )
+        )
 
     checkpoint_step = candidate.get("checkpoint_step")
     if checkpoint_step not in ("", None):

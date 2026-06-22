@@ -23,6 +23,8 @@ class EvaluateV12CandidateTest(unittest.TestCase):
             "matchup_avg_death": 2.0,
             "matchup_avg_enemy_tower_hp": 900,
             "matchup_groups": 9,
+            "matchup_avg_push_window_tower_damage_share": 0.45,
+            "matchup_avg_unsafe_dive_death_corr": 0.1,
         }
         matchup_rows = [{"matchup": f"{hero}_vs_{opponent}"} for hero in (112, 133, 199) for opponent in (112, 133, 199)]
 
@@ -43,7 +45,26 @@ class EvaluateV12CandidateTest(unittest.TestCase):
         self.assertEqual(statuses["common_ai_win_rate"], "FAIL")
         self.assertEqual(statuses["matchup_coverage"], "MISSING")
         self.assertEqual(statuses["avg_death"], "FAIL")
+        self.assertEqual(statuses["push_window_evidence"], "MISSING")
+        self.assertEqual(statuses["unsafe_dive_risk"], "WARN")
         self.assertEqual(overall_status(rows), "FAIL")
+
+    def test_candidate_warns_on_unsafe_dive_correlation(self):
+        candidate = {
+            "checkpoint_step": 20000,
+            "matchup_avg_win_rate": 0.88,
+            "matchup_min_win_rate": 0.75,
+            "matchup_avg_death": 2.0,
+            "matchup_avg_enemy_tower_hp": 900,
+            "matchup_groups": 9,
+            "matchup_avg_push_window_tower_damage_share": 0.08,
+            "matchup_avg_unsafe_dive_death_corr": 0.6,
+        }
+
+        rows = evaluate_candidate(candidate)
+        statuses = {row["gate"]: row["status"] for row in rows}
+        self.assertEqual(statuses["push_window_evidence"], "WARN")
+        self.assertEqual(statuses["unsafe_dive_risk"], "WARN")
 
     def test_read_write_and_find_candidate(self):
         with tempfile.TemporaryDirectory() as temp_dir:
