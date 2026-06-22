@@ -27,6 +27,7 @@ from utils.evaluation_matrix import write_csv as write_eval_csv
 from utils.evaluation_matrix import write_markdown as write_eval_markdown
 from utils.evaluation_config_export import export_configs
 from utils.evaluate_v1_2_candidate import evaluate_candidate
+from utils.evaluate_v1_2_candidate import overall_status as candidate_gate_status
 from utils.evaluate_v1_2_candidate import write_csv as write_candidate_gate_csv
 from utils.evaluate_v1_2_candidate import write_markdown as write_candidate_gate_markdown
 from utils.select_checkpoint import attach_matchup_metrics, collect_candidates, rank_candidates
@@ -180,22 +181,51 @@ def build_report(
     artifacts["summoner_skill_grid_md"] = skill_md
 
     manifest = output_dir / "manifest.md"
-    write_manifest(manifest, artifacts, training_rows, checkpoint_rows, eval_rows)
+    write_manifest(manifest, artifacts, training_rows, checkpoint_rows, candidate_gate_rows, eval_rows)
     artifacts["manifest"] = manifest
     return artifacts
 
 
-def write_manifest(path: Path, artifacts: dict, training_rows: list[dict], checkpoint_rows: list[dict], eval_rows: list[dict]):
+def count_status(rows: list[dict], status: str) -> int:
+    return sum(1 for row in rows if row.get("status") == status)
+
+
+def write_manifest(
+    path: Path,
+    artifacts: dict,
+    training_rows: list[dict],
+    checkpoint_rows: list[dict],
+    candidate_gate_rows: list[dict],
+    eval_rows: list[dict],
+):
+    checkpoint_count = len({row["checkpoint_step"] for row in eval_rows})
+    matchup_count = len({row["matchup"] for row in eval_rows})
+    skill_pairs = len({(row["blue_select_skill"], row["red_select_skill"]) for row in eval_rows})
     lines = [
         "# v1.2 Experiment Evidence Package",
         "",
         f"- training_rows: {len(training_rows)}",
         f"- evaluation_rows: {len(eval_rows)}",
+        f"- evaluation_checkpoints: {checkpoint_count}",
+        f"- evaluation_matchups: {matchup_count}",
+        f"- evaluation_skill_pairs: {skill_pairs}",
+        f"- candidate_gate_status: {candidate_gate_status(candidate_gate_rows)}",
+        f"- candidate_gate_pass: {count_status(candidate_gate_rows, 'PASS')}",
+        f"- candidate_gate_warn: {count_status(candidate_gate_rows, 'WARN')}",
+        f"- candidate_gate_fail: {count_status(candidate_gate_rows, 'FAIL')}",
+        f"- candidate_gate_missing: {count_status(candidate_gate_rows, 'MISSING')}",
     ]
     if checkpoint_rows:
         best = checkpoint_rows[0]
         lines.append(f"- recommended_checkpoint: {best.get('checkpoint_step')}")
         lines.append(f"- checkpoint_score: {best.get('score'):.4g}")
+        lines.append(f"- recommended_win_rate: {best.get('matchup_avg_win_rate') or best.get('common_ai_win_rate') or ''}")
+        lines.append(f"- recommended_min_win_rate: {best.get('matchup_min_win_rate') or ''}")
+        lines.append(f"- recommended_death: {best.get('matchup_avg_death') or best.get('common_ai_death') or ''}")
+        lines.append(
+            f"- recommended_push_window_tower_damage_share: {best.get('matchup_avg_push_window_tower_damage_share') or ''}"
+        )
+        lines.append(f"- recommended_unsafe_dive_death_corr: {best.get('matchup_avg_unsafe_dive_death_corr') or ''}")
     lines.extend(["", "## Artifacts", ""])
     for name, artifact_path in sorted(artifacts.items()):
         lines.append(f"- {name}: `{artifact_path.as_posix()}`")

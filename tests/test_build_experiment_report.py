@@ -46,6 +46,8 @@ class BuildExperimentReportTest(unittest.TestCase):
             manifest = artifacts["manifest"].read_text(encoding="utf-8")
             self.assertIn("recommended_checkpoint: 15000", manifest)
             self.assertIn("evaluation_rows: 2", manifest)
+            self.assertIn("evaluation_skill_pairs: 1", manifest)
+            self.assertIn("candidate_gate_status: FAIL", manifest)
             self.assertIn("checkpoint_ranking_csv", manifest)
             self.assertIn("v1.2_candidate_gate_csv", manifest)
 
@@ -129,6 +131,7 @@ class BuildExperimentReportTest(unittest.TestCase):
             manifest = artifacts["manifest"].read_text(encoding="utf-8")
             self.assertIn("checkpoint_matrix_csv", manifest)
             self.assertIn("summoner_skill_results_csv", manifest)
+            self.assertIn("recommended_push_window_tower_damage_share", manifest)
 
     def test_build_report_can_expand_skill_grid_matrix(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -165,6 +168,7 @@ class BuildExperimentReportTest(unittest.TestCase):
 
             manifest = artifacts["manifest"].read_text(encoding="utf-8")
             self.assertIn("evaluation_rows: 8", manifest)
+            self.assertIn("evaluation_skill_pairs: 4", manifest)
             self.assertIn("80107", artifacts["evaluation_matrix_csv"].read_text(encoding="utf-8"))
             self.assertIn("80110", artifacts["summoner_skill_grid_csv"].read_text(encoding="utf-8"))
 
