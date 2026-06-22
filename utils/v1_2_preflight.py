@@ -18,6 +18,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from agent_ppo.conf.conf import Config, GameConfig
 from utils.offline_sync import preset_include_patterns, repo_root, v1_2_readiness
+from utils.v1_2_experiment_plan import build_manifest as build_experiment_plan_manifest
 
 
 TRAIN_ENV_CONF = Path("agent_ppo/conf/train_env_conf.toml")
@@ -159,12 +160,68 @@ def check_sync_preset(root: Path) -> list[dict]:
     ]
 
 
+def check_experiment_plan() -> list[dict]:
+    manifest = build_experiment_plan_manifest()
+    ablation_names = [item.get("name") for item in manifest.get("ablations", [])]
+    reward_profiles = [item.get("reward_profile") for item in manifest.get("ablations", [])]
+    matrix = manifest.get("matrix", {})
+    commands = [item.get("report_command", "") for item in manifest.get("ablations", [])]
+    success_metrics = [item.get("metric") for item in manifest.get("success_metrics", [])]
+    expected_ablations = ["v1.2", "no_window_reward", "no_terminal_reward", "death_only_risk"]
+    rows = [
+        row(
+            "PASS" if ablation_names == expected_ablations else "FAIL",
+            "experiment_plan_ablations",
+            ",".join(ablation_names),
+            ",".join(expected_ablations),
+            "Default v1.2 experiment plan should keep the planned reward ablations.",
+        ),
+        row(
+            "PASS" if reward_profiles == expected_ablations else "FAIL",
+            "experiment_plan_reward_profiles",
+            ",".join(reward_profiles),
+            ",".join(expected_ablations),
+            "Each ablation should map cleanly to one reward profile.",
+        ),
+        row(
+            "PASS" if matrix.get("matchups") == 9 else "FAIL",
+            "experiment_plan_matchups",
+            matrix.get("matchups"),
+            "9",
+            "The default fixed matrix should cover the full 3x3 hero matchup set.",
+        ),
+        row(
+            "PASS" if matrix.get("skill_pairs") == 9 else "FAIL",
+            "experiment_plan_skill_pairs",
+            matrix.get("skill_pairs"),
+            "9",
+            "The default skill grid should evaluate all 3x3 candidate skill pairs.",
+        ),
+        row(
+            "PASS" if len(success_metrics) >= 7 else "FAIL",
+            "experiment_plan_success_metrics",
+            len(success_metrics),
+            ">=7",
+            "The plan should preserve the v1.2 acceptance and research-story metrics.",
+        ),
+        row(
+            "PASS" if all("--experiment-plan" in command and "--experiment-name" in command for command in commands) else "FAIL",
+            "experiment_plan_report_bindings",
+            "present" if all("--experiment-plan" in command and "--experiment-name" in command for command in commands) else "missing",
+            "--experiment-plan and --experiment-name",
+            "Generated report commands should bind each report to the experiment plan.",
+        ),
+    ]
+    return rows
+
+
 def collect_rows() -> list[dict]:
     root = repo_root()
     rows = []
     rows.extend(check_train_env_conf(root / TRAIN_ENV_CONF))
     rows.extend(check_ppo_config())
     rows.extend(check_reward_profile())
+    rows.extend(check_experiment_plan())
     rows.extend(check_required_tools(root))
     rows.extend(check_sync_preset(root))
     return rows
