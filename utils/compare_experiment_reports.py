@@ -133,6 +133,7 @@ def summarize_report(report_dir: Path) -> dict:
         "reward_win_result": to_float(ranking.get("reward_win_result"), ""),
         "avg_push_window_active_frames": to_float(ranking.get("matchup_avg_push_window_active_frames"), ""),
         "avg_unsafe_dive_active_frames": to_float(ranking.get("matchup_avg_unsafe_dive_active_frames"), ""),
+        "avg_unsafe_dive_severity": to_float(ranking.get("matchup_avg_unsafe_dive_severity"), ""),
         "avg_push_window_tower_damage_share": to_float(ranking.get("matchup_avg_push_window_tower_damage_share"), ""),
         "avg_unsafe_dive_death_corr": to_float(ranking.get("matchup_avg_unsafe_dive_death_corr"), ""),
     }
@@ -146,6 +147,7 @@ DELTA_METRICS = [
     "min_self_tower_hp_p10",
     "avg_timeout_rate",
     "avg_enemy_tower_hp",
+    "avg_unsafe_dive_severity",
     "avg_push_window_tower_damage_share",
     "avg_unsafe_dive_death_corr",
 ]
@@ -249,6 +251,8 @@ def research_story_verdict(row: dict, baseline_label: str) -> str:
     self_tower_tail_worse = is_worse_delta(row.get("min_self_tower_hp_p10_delta_vs_baseline"), higher_is_better=True)
     timeout_better = is_better_delta(row.get("avg_timeout_rate_delta_vs_baseline"), higher_is_better=False)
     timeout_worse = is_worse_delta(row.get("avg_timeout_rate_delta_vs_baseline"), higher_is_better=False)
+    unsafe_severity_better = is_better_delta(row.get("avg_unsafe_dive_severity_delta_vs_baseline"), higher_is_better=False)
+    unsafe_severity_worse = is_worse_delta(row.get("avg_unsafe_dive_severity_delta_vs_baseline"), higher_is_better=False)
     tower_better = is_better_delta(row.get("avg_enemy_tower_hp_delta_vs_baseline"), higher_is_better=False)
     tower_worse = is_worse_delta(row.get("avg_enemy_tower_hp_delta_vs_baseline"), higher_is_better=False)
     push_share_better = is_better_delta(row.get("avg_push_window_tower_damage_share_delta_vs_baseline"), higher_is_better=True)
@@ -268,6 +272,8 @@ def research_story_verdict(row: dict, baseline_label: str) -> str:
         self_tower_tail_worse,
         timeout_better,
         timeout_worse,
+        unsafe_severity_better,
+        unsafe_severity_worse,
         tower_better,
         tower_worse,
         push_share_better,
@@ -293,8 +299,8 @@ def research_story_verdict(row: dict, baseline_label: str) -> str:
         return "mixed_terminal_evidence"
 
     if profile == "death_only_risk" or "death" in name or "risk" in name:
-        risk_better = any_true([death_better, death_tail_better, self_tower_tail_better, timeout_better])
-        risk_worse = any_true([death_worse, death_tail_worse, self_tower_tail_worse, timeout_worse])
+        risk_better = any_true([death_better, death_tail_better, self_tower_tail_better, timeout_better, unsafe_severity_better])
+        risk_worse = any_true([death_worse, death_tail_worse, self_tower_tail_worse, timeout_worse, unsafe_severity_worse])
         if risk_better and any_true([win_worse, min_win_worse, tower_worse, push_share_worse]):
             return "death_risk_reduces_deaths_but_hurts_objective"
         if risk_better and any_true([win_better, tower_better]) and not any_true([win_worse, tower_worse]):
@@ -303,9 +309,9 @@ def research_story_verdict(row: dict, baseline_label: str) -> str:
             return "challenges_death_only_risk"
         return "mixed_risk_evidence"
 
-    if any_true([win_worse, death_worse, tower_worse, push_share_worse, unsafe_corr_worse]):
+    if any_true([win_worse, death_worse, tower_worse, push_share_worse, unsafe_corr_worse, unsafe_severity_worse]):
         return "supports_full_v1_2_recipe"
-    if any_true([win_better, death_better, tower_better, push_share_better, unsafe_corr_better]):
+    if any_true([win_better, death_better, tower_better, push_share_better, unsafe_corr_better, unsafe_severity_better]):
         return "ablation_may_improve_recipe"
     return "mixed_research_evidence"
 
@@ -403,6 +409,8 @@ def write_csv(rows: list[dict], output_path: Path):
         "reward_win_result",
         "avg_push_window_active_frames",
         "avg_unsafe_dive_active_frames",
+        "avg_unsafe_dive_severity",
+        "avg_unsafe_dive_severity_delta_vs_baseline",
         "avg_push_window_tower_damage_share",
         "avg_push_window_tower_damage_share_delta_vs_baseline",
         "avg_unsafe_dive_death_corr",
@@ -451,6 +459,8 @@ def write_markdown(rows: list[dict], output_path: Path, title="v1.2 Experiment C
         "reward_win_result",
         "avg_push_window_active_frames",
         "avg_unsafe_dive_active_frames",
+        "avg_unsafe_dive_severity",
+        "avg_unsafe_dive_severity_delta_vs_baseline",
         "avg_push_window_tower_damage_share",
         "avg_push_window_tower_damage_share_delta_vs_baseline",
         "avg_unsafe_dive_death_corr",

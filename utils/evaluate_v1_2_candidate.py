@@ -18,6 +18,7 @@ MIN_EPISODES_PER_MATCHUP = 20
 MIN_MATCHUP_WIN_RATE_GAP = 0.25
 MIN_PUSH_WINDOW_TOWER_DAMAGE_SHARE = 0.10
 MAX_UNSAFE_DIVE_DEATH_CORR = 0.30
+MAX_UNSAFE_DIVE_SEVERITY = 1.0
 MAX_DEATH_P90 = 4.0
 MIN_SELF_TOWER_HP_P10 = 1000.0
 MAX_TIMEOUT_RATE = 0.15
@@ -100,6 +101,7 @@ def evaluate_candidate(candidate: dict, matchup_rows: list[dict] | None = None) 
     min_win_rate = to_float(candidate.get("matchup_min_win_rate"))
     push_window_tower_damage_share = to_float(candidate.get("matchup_avg_push_window_tower_damage_share"))
     unsafe_dive_death_corr = to_float(candidate.get("matchup_avg_unsafe_dive_death_corr"))
+    unsafe_dive_severity = to_float(candidate.get("matchup_avg_unsafe_dive_severity"))
     death_p90 = to_float(candidate.get("matchup_max_death_p90"))
     self_tower_hp_p10 = to_float(candidate.get("matchup_min_self_tower_hp_p10"))
     timeout_rate = to_float(candidate.get("matchup_avg_timeout_rate"))
@@ -273,6 +275,28 @@ def evaluate_candidate(candidate: dict, matchup_rows: list[dict] | None = None) 
                 unsafe_dive_death_corr,
                 f"<= {MAX_UNSAFE_DIVE_DEATH_CORR}",
                 "Unsafe-dive frames should not strongly correlate with deaths.",
+            )
+        )
+
+    if unsafe_dive_severity is None:
+        gates.append(
+            gate(
+                "WARN",
+                "unsafe_dive_severity",
+                "",
+                f"<= {MAX_UNSAFE_DIVE_SEVERITY}",
+                "Missing unsafe-dive severity; keep layered risk diagnostics in the evidence package.",
+            )
+        )
+    else:
+        status = "PASS" if unsafe_dive_severity <= MAX_UNSAFE_DIVE_SEVERITY else "WARN"
+        gates.append(
+            gate(
+                status,
+                "unsafe_dive_severity",
+                unsafe_dive_severity,
+                f"<= {MAX_UNSAFE_DIVE_SEVERITY}",
+                "Layered unsafe-dive severity should stay bounded across fixed matchups.",
             )
         )
 

@@ -138,6 +138,7 @@ class PpoOptimizationTest(unittest.TestCase):
             "forward",
             "push_window_tower_damage",
             "unsafe_dive",
+            "unsafe_dive_severity",
             "push_window_active",
             "unsafe_dive_active",
             "win_result",
@@ -165,6 +166,8 @@ class PpoOptimizationTest(unittest.TestCase):
 
         self.assertEqual(reward["push_window_active"], 0.0)
         self.assertEqual(reward["unsafe_dive_active"], 1.0)
+        self.assertEqual(reward["unsafe_dive"], -1.0)
+        self.assertEqual(reward["unsafe_dive_severity"], -1.5)
 
     def test_terminal_reward_uses_win_and_timeout(self):
         manager = GameRewardManager(1001)
@@ -198,17 +201,23 @@ class PpoOptimizationTest(unittest.TestCase):
         self.assertEqual(GameConfig.REWARD_WEIGHT_DICT["win_result"], 20.0)
         self.assertEqual(GameConfig.REWARD_WEIGHT_DICT["push_window_tower_damage"], 2.0)
         self.assertEqual(GameConfig.REWARD_WEIGHT_DICT["unsafe_dive"], 2.0)
+        self.assertEqual(GameConfig.REWARD_WEIGHT_DICT["unsafe_dive_severity"], 1.0)
 
     def test_reward_profiles_support_ablation_weights(self):
         no_window = build_reward_weight_dict(profile="no_window_reward")
         self.assertEqual(no_window["push_window_tower_damage"], 0.0)
         self.assertEqual(no_window["unsafe_dive"], 0.0)
+        self.assertEqual(no_window["unsafe_dive_severity"], 0.0)
         self.assertEqual(no_window["win_result"], 20.0)
 
         no_terminal = build_reward_weight_dict(profile="no_terminal_reward")
         self.assertEqual(no_terminal["win_result"], 0.0)
         self.assertEqual(no_terminal["timeout_tower_gap"], 0.0)
         self.assertEqual(no_terminal["push_window_tower_damage"], 2.0)
+
+        death_only = build_reward_weight_dict(profile="death_only_risk")
+        self.assertEqual(death_only["unsafe_dive"], 0.0)
+        self.assertEqual(death_only["unsafe_dive_severity"], 1.0)
 
     def test_reward_weight_overrides_are_scoped_to_known_keys(self):
         overrides = parse_reward_weight_overrides("death:5,unknown:99,bad,push_window_tower_damage:x,money:0.25")

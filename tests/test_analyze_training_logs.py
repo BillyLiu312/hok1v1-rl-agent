@@ -50,6 +50,7 @@ class AnalyzeTrainingLogsTest(unittest.TestCase):
 - self_tower_hp_down: -0.1
 - push_window_tower_damage: 0.2
 - unsafe_dive: -1.0
+- unsafe_dive_severity: -1.5
 - push_window_active: 12
 - unsafe_dive_active: 3
 - win_result: 1
@@ -64,6 +65,7 @@ class AnalyzeTrainingLogsTest(unittest.TestCase):
             self.assertEqual(rows[0]["actual_train_global_step"], 98)
             self.assertEqual(rows[0]["common_ai_win_rate"], 0.5)
             self.assertEqual(rows[0]["reward_push_window_tower_damage"], 0.2)
+            self.assertEqual(rows[0]["reward_unsafe_dive_severity"], -1.5)
             self.assertEqual(rows[0]["reward_unsafe_dive_active"], 3)
             self.assertEqual(rows[0]["reward_win_result"], 1)
 

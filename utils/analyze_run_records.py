@@ -99,6 +99,15 @@ def list_get(values, index: int):
     return None
 
 
+def abs_or_none(value):
+    if value is None:
+        return None
+    try:
+        return abs(float(value))
+    except (TypeError, ValueError):
+        return value
+
+
 def summarize_episode(payload: dict) -> dict:
     monitor_index = int(payload.get("monitor_agent_index", payload.get("monitor_side", 0)) or 0)
     agent = get_agent(payload, monitor_index)
@@ -145,6 +154,7 @@ def summarize_episode(payload: dict) -> dict:
         "reward_self_tower_hp_down": reward_detail.get("self_tower_hp_down"),
         "reward_push_window_tower_damage": reward_detail.get("push_window_tower_damage"),
         "reward_unsafe_dive": reward_detail.get("unsafe_dive"),
+        "reward_unsafe_dive_severity": abs_or_none(reward_detail.get("unsafe_dive_severity")),
         "push_window_active_frames": reward_detail.get("push_window_active"),
         "unsafe_dive_active_frames": reward_detail.get("unsafe_dive_active"),
         "reward_win_result": reward_detail.get("win_result"),
@@ -217,6 +227,7 @@ def collect_rows(record_dir: Path) -> list[dict]:
                 "avg_reward_self_tower_hp_down": avg([item["reward_self_tower_hp_down"] for item in items]),
                 "avg_push_window_tower_damage": avg_push_window_tower_damage,
                 "avg_unsafe_dive": avg([item["reward_unsafe_dive"] for item in items]),
+                "avg_unsafe_dive_severity": avg([item["reward_unsafe_dive_severity"] for item in items]),
                 "avg_push_window_active_frames": avg([item["push_window_active_frames"] for item in items]),
                 "avg_unsafe_dive_active_frames": avg_unsafe_dive_active_frames,
                 "push_window_tower_damage_share": safe_ratio(avg_push_window_tower_damage, avg_enemy_tower_down),
@@ -268,6 +279,7 @@ def write_csv(rows: list[dict], output_path: Path):
         "avg_reward_self_tower_hp_down",
         "avg_push_window_tower_damage",
         "avg_unsafe_dive",
+        "avg_unsafe_dive_severity",
         "avg_push_window_active_frames",
         "avg_unsafe_dive_active_frames",
         "push_window_tower_damage_share",
@@ -301,6 +313,7 @@ def write_markdown(rows: list[dict], output_path: Path, title: str):
         "timeout_rate",
         "avg_push_window_tower_damage",
         "avg_unsafe_dive",
+        "avg_unsafe_dive_severity",
         "push_window_tower_damage_share",
         "unsafe_dive_death_corr",
         "avg_push_window_active_frames",

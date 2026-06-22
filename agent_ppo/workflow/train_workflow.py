@@ -378,6 +378,7 @@ class EpisodeRunner:
                             "forward",
                             "push_window_tower_damage",
                             "unsafe_dive",
+                            "unsafe_dive_severity",
                             "push_window_active",
                             "unsafe_dive_active",
                             "win_result",

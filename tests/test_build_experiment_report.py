@@ -279,6 +279,7 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertIn("recommended_death_p90", manifest)
             self.assertIn("recommended_self_tower_hp_p10", manifest)
             self.assertIn("recommended_timeout_rate", manifest)
+            self.assertIn("recommended_unsafe_dive_severity", manifest)
             candidate_gate = artifacts["v1.2_candidate_gate_csv"].read_text(encoding="utf-8")
             self.assertIn("raw_matchup_rows,1", candidate_gate)
             self.assertIn("death_tail_risk", candidate_gate)

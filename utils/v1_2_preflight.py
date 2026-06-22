@@ -117,6 +117,7 @@ def check_reward_profile() -> list[dict]:
         "death": 4.0,
         "push_window_tower_damage": 2.0,
         "unsafe_dive": 2.0,
+        "unsafe_dive_severity": 1.0,
         "push_window_active": 0.0,
         "unsafe_dive_active": 0.0,
     }
@@ -216,6 +217,7 @@ def check_evidence_chain_fields(root: Path) -> list[dict]:
             "matchup_min_episodes",
             "death_tail_risk",
             "timeout_rate",
+            "unsafe_dive_severity",
         ],
         "agent_ppo/workflow/train_workflow.py": [
             "_extract_evaluation_metadata",

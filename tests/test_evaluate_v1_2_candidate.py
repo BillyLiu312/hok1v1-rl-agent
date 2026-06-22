@@ -25,6 +25,7 @@ class EvaluateV12CandidateTest(unittest.TestCase):
             "matchup_groups": 9,
             "matchup_avg_push_window_tower_damage_share": 0.45,
             "matchup_avg_unsafe_dive_death_corr": 0.1,
+            "matchup_avg_unsafe_dive_severity": 0.2,
             "matchup_max_death_p90": 3.0,
             "matchup_min_self_tower_hp_p10": 3000,
             "matchup_avg_timeout_rate": 0.05,
@@ -57,6 +58,7 @@ class EvaluateV12CandidateTest(unittest.TestCase):
         self.assertEqual(statuses["self_tower_tail_risk"], "WARN")
         self.assertEqual(statuses["timeout_rate"], "WARN")
         self.assertEqual(statuses["unsafe_dive_risk"], "WARN")
+        self.assertEqual(statuses["unsafe_dive_severity"], "WARN")
         self.assertEqual(overall_status(rows), "FAIL")
 
     def test_candidate_warns_on_unsafe_dive_correlation(self):
@@ -69,6 +71,7 @@ class EvaluateV12CandidateTest(unittest.TestCase):
             "matchup_groups": 9,
             "matchup_avg_push_window_tower_damage_share": 0.08,
             "matchup_avg_unsafe_dive_death_corr": 0.6,
+            "matchup_avg_unsafe_dive_severity": 1.3,
             "matchup_max_death_p90": 5.0,
             "matchup_min_self_tower_hp_p10": 500,
             "matchup_avg_timeout_rate": 0.25,
@@ -78,6 +81,7 @@ class EvaluateV12CandidateTest(unittest.TestCase):
         statuses = {row["gate"]: row["status"] for row in rows}
         self.assertEqual(statuses["push_window_evidence"], "WARN")
         self.assertEqual(statuses["unsafe_dive_risk"], "WARN")
+        self.assertEqual(statuses["unsafe_dive_severity"], "WARN")
         self.assertEqual(statuses["death_tail_risk"], "WARN")
         self.assertEqual(statuses["self_tower_tail_risk"], "WARN")
         self.assertEqual(statuses["timeout_rate"], "WARN")
@@ -92,6 +96,7 @@ class EvaluateV12CandidateTest(unittest.TestCase):
             "matchup_groups": 9,
             "matchup_avg_push_window_tower_damage_share": 0.45,
             "matchup_avg_unsafe_dive_death_corr": 0.1,
+            "matchup_avg_unsafe_dive_severity": 0.2,
             "matchup_max_death_p90": 3.0,
             "matchup_min_self_tower_hp_p10": 3000,
             "matchup_avg_timeout_rate": 0.05,

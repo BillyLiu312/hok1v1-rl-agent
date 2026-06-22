@@ -21,6 +21,7 @@ def make_report(
     enemy_tower_hp: float = 900,
     push_window_share: float = 0.75,
     unsafe_dive_corr: float = 0.1,
+    unsafe_dive_severity: float = 0.2,
 ):
     report_dir = root / name
     report_dir.mkdir()
@@ -37,8 +38,8 @@ def make_report(
     (report_dir / "checkpoint_ranking.csv").write_text(
         "\n".join(
             [
-                "checkpoint_step,score,matchup_groups,matchup_rows,matchup_filter_eval_only,matchup_filter_opponent_agent,matchup_eval_ids,matchup_repeat_indices,matchup_avg_win_rate,matchup_min_win_rate,matchup_avg_death,matchup_max_death_p90,matchup_min_self_tower_hp_p10,matchup_avg_timeout_rate,matchup_avg_enemy_tower_hp,reward_push_window_tower_damage,reward_unsafe_dive,reward_win_result,matchup_avg_push_window_active_frames,matchup_avg_unsafe_dive_active_frames,matchup_avg_push_window_tower_damage_share,matchup_avg_unsafe_dive_death_corr",
-                f"15000,100,9,18,True,common_ai,1,1,{win_rate},{min_win_rate},{death},{death_p90},{self_tower_hp_p10},{timeout_rate},{enemy_tower_hp},0.4,-0.5,1,12,1,{push_window_share},{unsafe_dive_corr}",
+                "checkpoint_step,score,matchup_groups,matchup_rows,matchup_filter_eval_only,matchup_filter_opponent_agent,matchup_eval_ids,matchup_repeat_indices,matchup_avg_win_rate,matchup_min_win_rate,matchup_avg_death,matchup_max_death_p90,matchup_min_self_tower_hp_p10,matchup_avg_timeout_rate,matchup_avg_enemy_tower_hp,reward_push_window_tower_damage,reward_unsafe_dive,reward_win_result,matchup_avg_push_window_active_frames,matchup_avg_unsafe_dive_active_frames,matchup_avg_unsafe_dive_severity,matchup_avg_push_window_tower_damage_share,matchup_avg_unsafe_dive_death_corr",
+                f"15000,100,9,18,True,common_ai,1,1,{win_rate},{min_win_rate},{death},{death_p90},{self_tower_hp_p10},{timeout_rate},{enemy_tower_hp},0.4,-0.5,1,12,1,{unsafe_dive_severity},{push_window_share},{unsafe_dive_corr}",
             ]
         )
         + "\n",
@@ -117,6 +118,7 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertEqual(rows[0]["max_death_p90"], 3.0)
             self.assertEqual(rows[0]["min_self_tower_hp_p10"], 3000.0)
             self.assertEqual(rows[0]["avg_timeout_rate"], 0.05)
+            self.assertEqual(rows[0]["avg_unsafe_dive_severity"], 0.2)
             self.assertEqual(rows[1]["reward_profile"], "no_window_reward")
             self.assertEqual(rows[1]["gate_status"], "WARN")
             self.assertEqual(rows[1]["baseline_experiment"], "v1.2")
@@ -143,6 +145,7 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertIn("max_death_p90_delta_vs_baseline", csv_path.read_text(encoding="utf-8"))
             self.assertIn("min_self_tower_hp_p10_delta_vs_baseline", csv_path.read_text(encoding="utf-8"))
             self.assertIn("avg_timeout_rate_delta_vs_baseline", csv_path.read_text(encoding="utf-8"))
+            self.assertIn("avg_unsafe_dive_severity_delta_vs_baseline", csv_path.read_text(encoding="utf-8"))
             self.assertIn("reward_profile", csv_path.read_text(encoding="utf-8"))
             self.assertIn("v1.2-run", md_path.read_text(encoding="utf-8"))
             self.assertIn("## Interpretation Summary", md_path.read_text(encoding="utf-8"))

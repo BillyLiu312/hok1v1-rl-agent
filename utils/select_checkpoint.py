@@ -164,6 +164,8 @@ def attach_matchup_metrics(
         push_window_tower_damage = [value for value in push_window_tower_damage if value is not None]
         unsafe_dive = [to_float(row.get("avg_unsafe_dive")) for row in rows]
         unsafe_dive = [value for value in unsafe_dive if value is not None]
+        unsafe_dive_severity = [to_float(row.get("avg_unsafe_dive_severity")) for row in rows]
+        unsafe_dive_severity = [value for value in unsafe_dive_severity if value is not None]
         push_window_active_frames = [to_float(row.get("avg_push_window_active_frames")) for row in rows]
         push_window_active_frames = [value for value in push_window_active_frames if value is not None]
         unsafe_dive_active_frames = [to_float(row.get("avg_unsafe_dive_active_frames")) for row in rows]
@@ -195,6 +197,7 @@ def attach_matchup_metrics(
                 "matchup_max_timeout_rate": max(timeout_rate) if timeout_rate else None,
                 "matchup_avg_push_window_tower_damage": avg(push_window_tower_damage),
                 "matchup_avg_unsafe_dive": avg(unsafe_dive),
+                "matchup_avg_unsafe_dive_severity": avg(unsafe_dive_severity),
                 "matchup_avg_push_window_active_frames": avg(push_window_active_frames),
                 "matchup_avg_unsafe_dive_active_frames": avg(unsafe_dive_active_frames),
                 "matchup_avg_push_window_tower_damage_share": avg(push_window_tower_damage_share),
@@ -233,6 +236,9 @@ def compute_score(candidate: dict) -> float:
     unsafe_dive_active_frames = candidate.get("matchup_avg_unsafe_dive_active_frames")
     if unsafe_dive_active_frames is not None:
         score -= unsafe_dive_active_frames * 0.05
+    unsafe_dive_severity = candidate.get("matchup_avg_unsafe_dive_severity")
+    if unsafe_dive_severity is not None:
+        score -= unsafe_dive_severity * 0.5
     death_p90 = candidate.get("matchup_max_death_p90")
     if death_p90 is not None:
         score -= death_p90 * 1.5
@@ -330,6 +336,7 @@ def write_csv(rows: list[dict], output_path: Path):
         "matchup_max_timeout_rate",
         "matchup_avg_push_window_tower_damage",
         "matchup_avg_unsafe_dive",
+        "matchup_avg_unsafe_dive_severity",
         "matchup_avg_push_window_active_frames",
         "matchup_avg_unsafe_dive_active_frames",
         "matchup_avg_push_window_tower_damage_share",
@@ -363,6 +370,7 @@ def write_markdown(rows: list[dict], output_path: Path, title: str):
         "matchup_max_death_p90",
         "matchup_min_self_tower_hp_p10",
         "matchup_avg_timeout_rate",
+        "matchup_avg_unsafe_dive_severity",
         "matchup_avg_push_window_active_frames",
         "matchup_avg_unsafe_dive_active_frames",
         "matchup_avg_push_window_tower_damage_share",

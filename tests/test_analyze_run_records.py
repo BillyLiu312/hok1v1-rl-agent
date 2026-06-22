@@ -32,6 +32,7 @@ class AnalyzeRunRecordsTest(unittest.TestCase):
                             "self_tower_hp_down": -0.1,
                             "push_window_tower_damage": 0.2,
                             "unsafe_dive": -1.0,
+                            "unsafe_dive_severity": -1.5,
                             "push_window_active": 12.0,
                             "unsafe_dive_active": 3.0,
                             "win_result": 1.0,
@@ -82,6 +83,7 @@ class AnalyzeRunRecordsTest(unittest.TestCase):
             self.assertEqual(rows[0]["frame_p90"], 20000)
             self.assertAlmostEqual(rows[0]["avg_push_window_tower_damage"], 0.15)
             self.assertEqual(rows[0]["avg_unsafe_dive"], -1.0)
+            self.assertEqual(rows[0]["avg_unsafe_dive_severity"], 1.5)
             self.assertEqual(rows[0]["avg_push_window_active_frames"], 12.0)
             self.assertEqual(rows[0]["avg_unsafe_dive_active_frames"], 6.0)
             self.assertAlmostEqual(rows[0]["push_window_tower_damage_share"], 0.75)
@@ -98,6 +100,7 @@ class AnalyzeRunRecordsTest(unittest.TestCase):
             self.assertIn("avg_push_window_tower_damage", markdown)
             self.assertIn("push_window_tower_damage_share", markdown)
             self.assertIn("unsafe_dive_death_corr", markdown)
+            self.assertIn("avg_unsafe_dive_severity", markdown)
             self.assertIn("avg_unsafe_dive_active_frames", markdown)
             self.assertIn("death_p90", markdown)
             self.assertIn("timeout_rate", markdown)

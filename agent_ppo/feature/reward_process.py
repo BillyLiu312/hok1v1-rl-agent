@@ -92,10 +92,12 @@ class GameRewardManager:
                 )
             elif reward_name == "unsafe_dive":
                 reward_struct.cur_frame_value = self._unsafe_dive(main_hero, enemy_hero, enemy_tower, frame_data, camp)
+            elif reward_name == "unsafe_dive_severity":
+                reward_struct.cur_frame_value = self._unsafe_dive_severity(main_hero, enemy_hero, enemy_tower, frame_data, camp)
             elif reward_name == "push_window_active":
                 reward_struct.cur_frame_value = 1.0 if self._has_push_window(main_hero, enemy_hero, enemy_tower, frame_data, camp) else 0.0
             elif reward_name == "unsafe_dive_active":
-                reward_struct.cur_frame_value = self._unsafe_dive(main_hero, enemy_hero, enemy_tower, frame_data, camp)
+                reward_struct.cur_frame_value = 1.0 if self._unsafe_dive(main_hero, enemy_hero, enemy_tower, frame_data, camp) > 0 else 0.0
             elif reward_name in ("win_result", "timeout_tower_gap"):
                 reward_struct.cur_frame_value = 0.0
 
@@ -152,6 +154,8 @@ class GameRewardManager:
             elif reward_name == "push_window_tower_damage":
                 reward_struct.value = main_value.cur_frame_value - main_value.last_frame_value
             elif reward_name == "unsafe_dive":
+                reward_struct.value = -1.0 * main_value.cur_frame_value
+            elif reward_name == "unsafe_dive_severity":
                 reward_struct.value = -1.0 * main_value.cur_frame_value
             elif reward_name in ("push_window_active", "unsafe_dive_active"):
                 reward_struct.value = main_value.cur_frame_value
@@ -212,6 +216,9 @@ class GameRewardManager:
         return 1.0 - self._hp_rate(enemy_tower)
 
     def _unsafe_dive(self, main_hero, enemy_hero, enemy_tower, frame_data, camp):
+        return 1.0 if self._unsafe_dive_severity(main_hero, enemy_hero, enemy_tower, frame_data, camp) > 0 else 0.0
+
+    def _unsafe_dive_severity(self, main_hero, enemy_hero, enemy_tower, frame_data, camp):
         if main_hero is None or enemy_tower is None or main_hero.get("hp", 0) <= 0:
             return 0.0
         low_hp = self._hp_rate(main_hero) < 0.35
@@ -219,7 +226,16 @@ class GameRewardManager:
         in_tower_range = self._distance(main_hero, enemy_tower) <= TOWER_WINDOW_DISTANCE
         enemy_threat = enemy_hero is not None and enemy_hero.get("hp", 0) > 0 and self._distance(main_hero, enemy_hero) <= HERO_THREAT_DISTANCE
         tower_targets_hero = enemy_tower.get("attack_target") == main_hero.get("runtime_id")
-        return 1.0 if in_tower_range and no_wave and (low_hp or tower_targets_hero or enemy_threat) else 0.0
+        if not in_tower_range or not no_wave:
+            return 0.0
+        severity = 0.0
+        if low_hp:
+            severity += 0.5
+        if tower_targets_hero:
+            severity += 0.5
+        if enemy_threat:
+            severity += 0.5
+        return min(severity, 1.5)
 
     def _has_push_window(self, main_hero, enemy_hero, enemy_tower, frame_data, camp):
         if main_hero is None or enemy_tower is None or main_hero.get("hp", 0) <= 0:

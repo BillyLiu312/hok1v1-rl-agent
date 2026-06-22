@@ -23,6 +23,7 @@ BASE_REWARD_WEIGHT_DICT = {
     "forward": 0.05,
     "push_window_tower_damage": 2.0,
     "unsafe_dive": 2.0,
+    "unsafe_dive_severity": 1.0,
     "push_window_active": 0.0,
     "unsafe_dive_active": 0.0,
     "win_result": 20.0,
@@ -35,6 +36,7 @@ REWARD_PROFILE_OVERRIDES = {
     "no_window_reward": {
         "push_window_tower_damage": 0.0,
         "unsafe_dive": 0.0,
+        "unsafe_dive_severity": 0.0,
     },
     "no_terminal_reward": {
         "win_result": 0.0,
@@ -43,6 +45,7 @@ REWARD_PROFILE_OVERRIDES = {
     "death_only_risk": {
         "push_window_tower_damage": 0.0,
         "unsafe_dive": 0.0,
+        "unsafe_dive_severity": 1.0,
         "self_tower_hp_down": 0.0,
         "death": 4.0,
     },

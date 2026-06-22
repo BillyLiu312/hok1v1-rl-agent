@@ -387,6 +387,7 @@ def write_manifest(
         lines.append(
             f"- recommended_push_window_tower_damage_share: {manifest_value(best.get('matchup_avg_push_window_tower_damage_share'))}"
         )
+        lines.append(f"- recommended_unsafe_dive_severity: {manifest_value(best.get('matchup_avg_unsafe_dive_severity'))}")
         lines.append(f"- recommended_unsafe_dive_death_corr: {manifest_value(best.get('matchup_avg_unsafe_dive_death_corr'))}")
     lines.extend(["", "## Artifacts", ""])
     for name, artifact_path in sorted(artifacts.items()):

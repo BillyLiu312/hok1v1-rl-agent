@@ -51,6 +51,7 @@ FIELDS = [
     ("reward_self_tower_hp_down", "Reward Detail Metrics", "self_tower_hp_down"),
     ("reward_push_window_tower_damage", "Reward Detail Metrics", "push_window_tower_damage"),
     ("reward_unsafe_dive", "Reward Detail Metrics", "unsafe_dive"),
+    ("reward_unsafe_dive_severity", "Reward Detail Metrics", "unsafe_dive_severity"),
     ("reward_push_window_active", "Reward Detail Metrics", "push_window_active"),
     ("reward_unsafe_dive_active", "Reward Detail Metrics", "unsafe_dive_active"),
     ("reward_win_result", "Reward Detail Metrics", "win_result"),
