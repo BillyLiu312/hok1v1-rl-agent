@@ -50,6 +50,7 @@ V1_2_REQUIRED_FILES = [
     "utils/summoner_skill_grid.py",
     "utils/summoner_skill_results.py",
     "utils/training_recorder.py",
+    "utils/v1_2_preflight.py",
     "docs/README.md",
     "docs/v1.1-training-analysis.md",
     "docs/v1.2-implementation-plan.md",
