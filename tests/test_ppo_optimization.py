@@ -9,7 +9,7 @@ from agent_ppo.conf.summoner_skill import (
     MATCHUP_SUMMONER_SKILL_OVERRIDES,
     select_summoner_skill,
 )
-from agent_ppo.feature.feature_process import FeatureProcess
+from agent_ppo.feature.feature_process import FeatureProcess, V1_2_REQUIRED_FEATURES, feature_index_map, feature_schema
 from agent_ppo.feature.reward_process import GameRewardManager
 
 
@@ -108,6 +108,20 @@ class PpoOptimizationTest(unittest.TestCase):
         self.assertEqual(len(feature), Config.FEATURE_DIM)
         self.assertGreaterEqual(min(feature), 0.0)
         self.assertLessEqual(max(feature), 1.0)
+
+    def test_feature_schema_matches_vector_layout(self):
+        schema = feature_schema()
+        index_map = feature_index_map()
+        self.assertEqual(len(schema), Config.FEATURE_DIM)
+        self.assertEqual(len(index_map), Config.FEATURE_DIM)
+        self.assertEqual(index_map["main.hero_id_112"], 0)
+        self.assertEqual(index_map["enemy_tower.distance"], 47 + 11 + 6)
+        self.assertEqual(index_map["push_window.main_lane_near_enemy_tower_count"], Config.FEATURE_DIM - 4)
+
+    def test_v1_2_required_feature_schema_entries_are_present(self):
+        schema = set(feature_schema())
+        for feature_name in V1_2_REQUIRED_FEATURES:
+            self.assertIn(feature_name, schema)
 
     def test_reward_contains_all_configured_items(self):
         reward = GameRewardManager(1001).result(make_frame_state())

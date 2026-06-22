@@ -17,6 +17,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from agent_ppo.conf.conf import Config, GameConfig
+from agent_ppo.feature.feature_process import V1_2_REQUIRED_FEATURES, feature_schema
 from utils.offline_sync import preset_include_patterns, repo_root, v1_2_readiness
 from utils.v1_2_experiment_plan import build_manifest as build_experiment_plan_manifest
 
@@ -139,6 +140,34 @@ def check_reward_profile() -> list[dict]:
     return rows
 
 
+def check_feature_schema() -> list[dict]:
+    schema = feature_schema()
+    missing = [name for name in V1_2_REQUIRED_FEATURES if name not in schema]
+    return [
+        row(
+            "PASS" if len(schema) == Config.FEATURE_DIM else "FAIL",
+            "feature_schema_length",
+            len(schema),
+            str(Config.FEATURE_DIM),
+            "Feature schema should document every model input dimension.",
+        ),
+        row(
+            "PASS" if len(schema) == len(set(schema)) else "FAIL",
+            "feature_schema_unique",
+            len(schema) - len(set(schema)),
+            "0 duplicates",
+            "Feature names should be unique so evidence can map metrics to inputs.",
+        ),
+        row(
+            "PASS" if not missing else "FAIL",
+            "feature_schema_v1.2_required",
+            ",".join(missing) if missing else "present",
+            "all required v1.2 tactical features",
+            "Push-window, unsafe-dive, economy, damage and revive-time inputs should be auditable before training.",
+        ),
+    ]
+
+
 def check_required_tools(root: Path) -> list[dict]:
     rows = []
     for path in REQUIRED_TOOLS:
@@ -259,6 +288,7 @@ def collect_rows() -> list[dict]:
     rows.extend(check_train_env_conf(root / TRAIN_ENV_CONF))
     rows.extend(check_ppo_config())
     rows.extend(check_reward_profile())
+    rows.extend(check_feature_schema())
     rows.extend(check_experiment_plan())
     rows.extend(check_launch_manifest_commands(root))
     rows.extend(check_required_tools(root))
