@@ -28,6 +28,7 @@ MARKER_END = "-----END OFFLINE SYNC PACKAGE-----"
 FORMAT_VERSION = 1
 
 V1_2_REQUIRED_FILES = [
+    "agent_ppo/bootstrap.py",
     "agent_ppo/conf/conf.py",
     "agent_ppo/conf/evaluation_config.py",
     "agent_ppo/conf/monitor_builder.py",
@@ -67,6 +68,7 @@ V1_2_REQUIRED_FILES = [
 
 PRESET_INCLUDE_PATTERNS = {
     "v1.2": [
+        "agent_ppo/bootstrap.py",
         "agent_ppo/conf/**",
         "agent_ppo/feature/**",
         "agent_ppo/workflow/**",

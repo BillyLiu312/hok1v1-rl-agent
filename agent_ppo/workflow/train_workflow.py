@@ -11,6 +11,10 @@ Author: Tencent AI Arena Authors
 import os
 import time
 import random
+from agent_ppo.bootstrap import ensure_project_root_on_path
+
+ensure_project_root_on_path()
+
 from agent_ppo.feature.definition import (
     sample_process,
     build_frame,

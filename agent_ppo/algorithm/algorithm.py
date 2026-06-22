@@ -12,6 +12,10 @@ import torch
 import numpy as np
 import os
 import time
+from agent_ppo.bootstrap import ensure_project_root_on_path
+
+ensure_project_root_on_path()
+
 from agent_ppo.conf.conf import Config
 from utils.training_recorder import TrainingRecorder
 
