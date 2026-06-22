@@ -85,15 +85,17 @@ class SelectCheckpointTest(unittest.TestCase):
             rows = rank_candidates(candidates)
             self.assertEqual(rows[0]["checkpoint_step"], 200)
             self.assertEqual(rows[0]["matchup_groups"], 1)
-            self.assertEqual(rows[0]["matchup_rows"], 2)
+            self.assertEqual(rows[0]["matchup_rows"], 1)
+            self.assertTrue(rows[0]["matchup_filter_eval_only"])
+            self.assertEqual(rows[0]["matchup_filter_opponent_agent"], "common_ai")
             self.assertEqual(rows[0]["reward_push_window_tower_damage"], 0.4)
             self.assertEqual(rows[0]["reward_win_result"], 1)
-            self.assertEqual(rows[0]["matchup_min_win_rate"], 0.8)
-            self.assertAlmostEqual(rows[0]["matchup_avg_push_window_tower_damage"], 0.3)
-            self.assertEqual(rows[0]["matchup_avg_push_window_active_frames"], 11)
-            self.assertEqual(rows[0]["matchup_avg_unsafe_dive_active_frames"], 3)
-            self.assertEqual(rows[0]["matchup_avg_push_window_tower_damage_share"], 0.625)
-            self.assertAlmostEqual(rows[0]["matchup_avg_unsafe_dive_death_corr"], 0.15)
+            self.assertEqual(rows[0]["matchup_min_win_rate"], 0.9)
+            self.assertAlmostEqual(rows[0]["matchup_avg_push_window_tower_damage"], 0.4)
+            self.assertEqual(rows[0]["matchup_avg_push_window_active_frames"], 12)
+            self.assertEqual(rows[0]["matchup_avg_unsafe_dive_active_frames"], 2)
+            self.assertEqual(rows[0]["matchup_avg_push_window_tower_damage_share"], 0.75)
+            self.assertAlmostEqual(rows[0]["matchup_avg_unsafe_dive_death_corr"], 0.1)
 
             csv_path = log_dir / "ranking.csv"
             md_path = log_dir / "ranking.md"
@@ -101,6 +103,11 @@ class SelectCheckpointTest(unittest.TestCase):
             write_markdown(rows, md_path, "Ranking")
             self.assertIn("reward_push_window_tower_damage", csv_path.read_text(encoding="utf-8"))
             self.assertIn("reward_win_result", md_path.read_text(encoding="utf-8"))
+
+            attach_matchup_metrics(candidates, matchup_csv, eval_only=False, opponent_agent=None)
+            unfiltered_rows = rank_candidates(candidates)
+            self.assertEqual(unfiltered_rows[0]["matchup_rows"], 2)
+            self.assertIsNone(unfiltered_rows[0]["matchup_filter_opponent_agent"])
 
     def test_matchup_actual_step_maps_to_target_step(self):
         with tempfile.TemporaryDirectory() as temp_dir:

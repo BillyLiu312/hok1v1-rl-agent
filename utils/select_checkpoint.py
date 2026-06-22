@@ -47,6 +47,10 @@ def read_csv_rows(path: Path) -> list[dict]:
         return list(csv.DictReader(handle))
 
 
+def is_truthy(value) -> bool:
+    return str(value).strip().lower() in ("true", "1", "yes")
+
+
 def normalize_training_row(row: dict) -> dict:
     step = to_int(row.get("step"))
     actual_step = to_int(row.get("actual_train_global_step"))
@@ -86,7 +90,12 @@ def collect_candidates(log_dir: Path | None = None, training_csv: Path | None = 
     return candidates
 
 
-def attach_matchup_metrics(candidates: dict[int, dict], matchup_csv: Path | None):
+def attach_matchup_metrics(
+    candidates: dict[int, dict],
+    matchup_csv: Path | None,
+    eval_only=True,
+    opponent_agent="common_ai",
+):
     if not matchup_csv:
         return
 
@@ -99,6 +108,10 @@ def attach_matchup_metrics(candidates: dict[int, dict], matchup_csv: Path | None
 
     grouped = defaultdict(list)
     for row in read_csv_rows(matchup_csv):
+        if eval_only and not is_truthy(row.get("is_eval")):
+            continue
+        if opponent_agent and str(row.get("opponent_agent")) != str(opponent_agent):
+            continue
         raw_step = to_int(row.get("checkpoint_step"))
         if raw_step is None:
             continue
@@ -133,6 +146,8 @@ def attach_matchup_metrics(candidates: dict[int, dict], matchup_csv: Path | None
             {
                 "matchup_groups": len(unique_matchups),
                 "matchup_rows": len(rows),
+                "matchup_filter_eval_only": eval_only,
+                "matchup_filter_opponent_agent": opponent_agent,
                 "matchup_avg_win_rate": avg(win_rates),
                 "matchup_min_win_rate": min(win_rates) if win_rates else None,
                 "matchup_avg_death": avg(deaths),
@@ -242,6 +257,8 @@ def write_csv(rows: list[dict], output_path: Path):
         "reward_timeout_tower_gap",
         "matchup_groups",
         "matchup_rows",
+        "matchup_filter_eval_only",
+        "matchup_filter_opponent_agent",
         "matchup_avg_win_rate",
         "matchup_min_win_rate",
         "matchup_avg_death",
@@ -304,6 +321,8 @@ def parse_args():
     source.add_argument("--log-dir", type=Path, help="Directory containing step-*.md training records")
     source.add_argument("--training-csv", type=Path, help="CSV produced by utils/analyze_training_logs.py")
     parser.add_argument("--matchup-csv", type=Path, default=None, help="CSV produced by utils/analyze_run_records.py")
+    parser.add_argument("--matchup-opponent-agent", default="common_ai", help="Only use matchup rows from this opponent agent; empty string disables filtering")
+    parser.add_argument("--include-training-matchups", action="store_true", help="Include non-eval matchup rows in checkpoint ranking")
     parser.add_argument("--csv", type=Path, default=Path("logs/checkpoint_ranking.csv"), help="CSV output path")
     parser.add_argument("--md", type=Path, default=Path("logs/checkpoint_ranking.md"), help="Markdown output path")
     return parser.parse_args()
@@ -312,7 +331,12 @@ def parse_args():
 def main():
     args = parse_args()
     candidates = collect_candidates(log_dir=args.log_dir, training_csv=args.training_csv)
-    attach_matchup_metrics(candidates, args.matchup_csv)
+    attach_matchup_metrics(
+        candidates,
+        args.matchup_csv,
+        eval_only=not args.include_training_matchups,
+        opponent_agent=args.matchup_opponent_agent or None,
+    )
     rows = rank_candidates(candidates)
     write_csv(rows, args.csv)
     write_markdown(rows, args.md, "Checkpoint Ranking")

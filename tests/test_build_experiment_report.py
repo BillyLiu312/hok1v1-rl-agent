@@ -181,7 +181,7 @@ class BuildExperimentReportTest(unittest.TestCase):
                     "monitor_hero_id": 199,
                     "opponent_hero_id": 133,
                     "is_eval": True,
-                    "opponent_agent": "17057",
+                    "opponent_agent": "common_ai",
                     "checkpoint": {"actual_train_global_step": 15039},
                     "usr_conf": {
                         "lineups": {
