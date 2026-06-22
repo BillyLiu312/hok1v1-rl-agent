@@ -48,6 +48,9 @@ from utils.summoner_skill_results import write_recommendation_csv as write_skill
 from utils.summoner_skill_results import write_recommendation_markdown as write_skill_recommendation_markdown
 
 
+DEFAULT_OUTPUT_DIR = Path("logs/v1.2/report-v1.2")
+
+
 def build_report(
     log_dir: Path,
     output_dir: Path,
@@ -340,7 +343,7 @@ def parse_args():
     parser.add_argument("--launch-manifest", type=Path, default=Path("logs/v1.2/launch_manifest.json"), help="JSON from utils/v1_2_launch_manifest.py")
     parser.add_argument("--experiment-plan", type=Path, default=Path("logs/v1.2/experiment_plan.json"), help="JSON from utils/v1_2_experiment_plan.py")
     parser.add_argument("--experiment-name", default=None, help="Ablation name in the experiment plan")
-    parser.add_argument("--output-dir", type=Path, default=Path("logs/v1.2/report"), help="Output directory")
+    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help="Output directory")
     parser.add_argument("--checkpoints", default="15000,17057", help="Comma-separated checkpoint steps for eval matrix")
     parser.add_argument("--heroes", default="112,133,199", help="Comma-separated hero IDs")
     parser.add_argument("--repeats", type=int, default=20, help="Repeats per eval matrix group")

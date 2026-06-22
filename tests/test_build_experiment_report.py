@@ -5,10 +5,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from utils.build_experiment_report import build_report, filter_rows_for_checkpoint, manifest_value, resolve_experiment_metadata
+from utils.build_experiment_report import DEFAULT_OUTPUT_DIR, build_report, filter_rows_for_checkpoint, manifest_value, resolve_experiment_metadata
 
 
 class BuildExperimentReportTest(unittest.TestCase):
+    def test_default_output_dir_matches_v1_2_report_convention(self):
+        self.assertEqual(DEFAULT_OUTPUT_DIR.as_posix(), "logs/v1.2/report-v1.2")
+
     def test_manifest_value_preserves_zero(self):
         self.assertEqual(manifest_value(0), 0)
         self.assertEqual(manifest_value(0.0), 0.0)
