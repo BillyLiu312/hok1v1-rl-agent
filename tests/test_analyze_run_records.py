@@ -113,6 +113,41 @@ class AnalyzeRunRecordsTest(unittest.TestCase):
             self.assertEqual(rows[0]["matchup"], "133_vs_199")
             self.assertEqual(rows[0]["avg_reward_sum"], "")
 
+    def test_collect_uses_evaluation_checkpoint_when_snapshot_is_missing(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            record_dir = Path(temp_dir)
+            event = {
+                "stream": "episode_end",
+                "payload": {
+                    "monitor_agent_index": 0,
+                    "monitor_hero_id": 112,
+                    "opponent_hero_id": 133,
+                    "is_eval": True,
+                    "opponent_agent": "common_ai",
+                    "evaluation": {"eval_id": 9, "checkpoint_step": 17057, "repeat_index": 1},
+                    "frame_no": 10000,
+                    "reward_sum": [1.0, -1.0],
+                    "agents": [
+                        {
+                            "win": 1,
+                            "hero": {"config_id": 112, "dead_cnt": 0},
+                            "enemy_hero": {"config_id": 133},
+                            "tower": {"hp": 8000},
+                            "enemy_tower": {"hp": 1000},
+                        },
+                        {},
+                    ],
+                },
+            }
+            (record_dir / "episode_end-unit-1.jsonl").write_text(json.dumps(event) + "\n", encoding="utf-8")
+
+            rows = collect_rows(record_dir)
+
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["checkpoint_step"], 17057)
+            self.assertEqual(rows[0]["evaluation_checkpoint_step"], 17057)
+            self.assertEqual(rows[0]["eval_ids"], "9")
+
 
 if __name__ == "__main__":
     unittest.main()

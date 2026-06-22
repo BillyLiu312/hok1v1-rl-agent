@@ -94,6 +94,7 @@ def summarize_episode(payload: dict) -> dict:
         or checkpoint.get("checkpoint")
         or payload.get("checkpoint_step")
         or payload.get("model_id")
+        or evaluation.get("checkpoint_step")
     )
 
     return {
