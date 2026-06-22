@@ -13,9 +13,6 @@ output/
 sync_package*.txt
 .offline_sync_backups/
 
-# Local validation scratch tests
-tests/
-
 # Model checkpoints and training artifacts
 *.pt
 *.pth
