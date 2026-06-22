@@ -7,112 +7,164 @@
 Author: Tencent AI Arena Authors
 """
 
-from agent_ppo.feature.feature_process.feature_normalizer import FeatureNormalizer
-import configparser
-import os
+
+import math
+
+
+HERO_IDS = [112, 133, 199]
+MAX_POSITION = 60000.0
+MAX_DISTANCE = 120000.0
+MAX_LEVEL = 15.0
+MAX_MONEY = 20000.0
+MAX_EXP = 2000.0
+MAX_ATTACK = 2000.0
+MAX_DEFENSE = 2000.0
+MAX_MOVE_SPEED = 2000.0
+MAX_ATTACK_SPEED = 3000.0
+MAX_KDA = 20.0
+MAX_COOLDOWN = 60000.0
+MAX_SKILL_SLOTS = 4
+
+
+def _clip(value, min_value=0.0, max_value=1.0):
+    return max(min_value, min(max_value, value))
+
+
+def _safe_div(value, denom):
+    if denom <= 0:
+        return 0.0
+    return value / denom
 
 
 class HeroProcess:
     def __init__(self, camp):
-        self.normalizer = FeatureNormalizer()
         self.main_camp = camp
-        self.main_camp_hero_dict = {}
-        self.enemy_camp_hero_dict = {}
         self.transform_camp2_to_camp1 = camp == 2
-        self.get_hero_config()
-        self.map_feature_to_norm = self.normalizer.parse_config(self.hero_feature_config)
-        self.view_dist = 15000
-        self.one_unit_feature_num = 3
-        self.unit_buff_num = 1
 
-    def get_hero_config(self):
-        self.config = configparser.ConfigParser()
-        self.config.optionxform = str
-        current_dir = os.path.dirname(__file__)
-        config_path = os.path.join(current_dir, "hero_feature_config.ini")
-        self.config.read(config_path)
-
-        # Get normalized configuration
-        # 获取归一化的配置
-        self.hero_feature_config = []
-        for feature, config in self.config["feature_config"].items():
-            self.hero_feature_config.append(f"{feature}:{config}")
-
-        # Get feature function configuration
-        # 获取特征函数的配置
-        self.feature_func_map = {}
-        for feature, func_name in self.config["feature_functions"].items():
-            if hasattr(self, func_name):
-                self.feature_func_map[feature] = getattr(self, func_name)
-            else:
-                raise ValueError(f"Unsupported function: {func_name}")
+    def reset(self, camp):
+        self.__init__(camp)
 
     def process_vec_hero(self, frame_state):
-        self.generate_hero_info_list(frame_state)
+        main_hero, enemy_hero = self._get_heroes(frame_state)
+        feature = []
+        feature.extend(self._main_hero_feature(main_hero))
+        feature.extend(self._enemy_hero_feature(main_hero, enemy_hero))
+        feature.extend(self._skill_feature(main_hero))
+        return feature
 
-        # Generate hero features for our camp
-        # 生成我方阵营的英雄特征
-        main_camp_hero_vector_feature = self.generate_one_type_hero_feature(self.main_camp_hero_dict, "main_camp")
-
-        return main_camp_hero_vector_feature
-
-    def generate_hero_info_list(self, frame_state):
-        self.main_camp_hero_dict.clear()
-        self.enemy_camp_hero_dict.clear()
+    def _get_heroes(self, frame_state):
+        main_hero, enemy_hero = None, None
         for hero in frame_state["hero_states"]:
             if hero["camp"] == self.main_camp:
-                self.main_camp_hero_dict[hero["config_id"]] = hero
-                self.main_hero_info = hero
+                main_hero = hero
             else:
-                self.enemy_camp_hero_dict[hero["config_id"]] = hero
+                enemy_hero = hero
+        return main_hero, enemy_hero
 
-    def generate_one_type_hero_feature(self, one_type_hero_info, camp):
-        vector_feature = []
-        num_heros_considered = 0
-        for hero in one_type_hero_info.values():
-            if num_heros_considered >= self.unit_buff_num:
-                break
+    def _main_hero_feature(self, hero):
+        if hero is None:
+            return [0.0] * 18
 
-            # Generate each specific feature through feature_func_map
-            # 通过 feature_func_map 生成每个具体特征
-            for feature_name, feature_func in self.feature_func_map.items():
-                value = []
-                self.feature_func_map[feature_name](hero, value, feature_name)
-                # Normalize the specific features
-                # 对具体特征进行正则化
-                if feature_name not in self.map_feature_to_norm:
-                    assert False
-                for k in value:
-                    norm_func, *params = self.map_feature_to_norm[feature_name]
-                    normalized_value = norm_func(k, *params)
-                    if isinstance(normalized_value, list):
-                        vector_feature.extend(normalized_value)
-                    else:
-                        vector_feature.append(normalized_value)
-            num_heros_considered += 1
+        return (
+            self._hero_id_one_hot(hero.get("config_id"))
+            + [
+                self._is_alive(hero),
+                self._hp_rate(hero),
+                self._ep_rate(hero),
+                _clip(hero.get("level", 0) / MAX_LEVEL),
+                _clip(hero.get("exp", 0) / MAX_EXP),
+                _clip(hero.get("money", 0) / MAX_MONEY),
+                _clip(hero.get("money_cnt", 0) / MAX_MONEY),
+                _clip(hero.get("phy_atk", 0) / MAX_ATTACK),
+                _clip(hero.get("phy_def", 0) / MAX_DEFENSE),
+                _clip(hero.get("mov_spd", 0) / MAX_MOVE_SPEED),
+                _clip(hero.get("atk_spd", 0) / MAX_ATTACK_SPEED),
+            ]
+            + self._normal_position(hero.get("location", {}))
+            + [
+                _clip(hero.get("kill_cnt", 0) / MAX_KDA),
+                _clip(hero.get("dead_cnt", 0) / MAX_KDA),
+            ]
+        )
 
-        if num_heros_considered < self.unit_buff_num:
-            self.no_hero_feature(vector_feature, num_heros_considered)
-        return vector_feature
+    def _enemy_hero_feature(self, main_hero, enemy_hero):
+        if enemy_hero is None:
+            return [0.0] * 13
 
-    def no_hero_feature(self, vector_feature, num_heros_considered):
-        for _ in range((self.unit_buff_num - num_heros_considered) * self.one_unit_feature_num):
-            vector_feature.append(0)
+        return (
+            self._hero_id_one_hot(enemy_hero.get("config_id"))
+            + [
+                1.0,
+                self._is_alive(enemy_hero),
+                self._hp_rate(enemy_hero),
+                _clip(enemy_hero.get("level", 0) / MAX_LEVEL),
+                _clip(enemy_hero.get("money_cnt", 0) / MAX_MONEY),
+            ]
+            + self._relative_position(main_hero, enemy_hero)
+            + [
+                self._distance(main_hero, enemy_hero),
+                _clip(enemy_hero.get("kill_cnt", 0) / MAX_KDA),
+                _clip(enemy_hero.get("dead_cnt", 0) / MAX_KDA),
+            ]
+        )
 
-    def is_alive(self, hero, vector_feature, feature_name):
-        value = 0.0
-        if hero["hp"] > 0:
-            value = 1.0
-        vector_feature.append(value)
+    def _skill_feature(self, hero):
+        if hero is None:
+            return [0.0] * (MAX_SKILL_SLOTS * 2)
 
-    def get_location_x(self, hero, vector_feature, feature_name):
-        value = hero["location"]["x"]
-        if self.transform_camp2_to_camp1 and value != 100000:
-            value = 0 - value
-        vector_feature.append(value)
+        slot_states = hero.get("skill_state", {}).get("slot_states", [])[:MAX_SKILL_SLOTS]
+        feature = []
+        for slot in slot_states:
+            cooldown = slot.get("cooldown", 0)
+            cooldown_max = slot.get("cooldown_max", 0)
+            cooldown_rate = _safe_div(cooldown, cooldown_max)
+            feature.extend([1.0 if slot.get("usable", False) else 0.0, _clip(cooldown_rate)])
+        while len(feature) < MAX_SKILL_SLOTS * 2:
+            feature.extend([0.0, 1.0])
+        return feature
 
-    def get_location_z(self, hero, vector_feature, feature_name):
-        value = hero["location"]["z"]
-        if self.transform_camp2_to_camp1 and value != 100000:
-            value = 0 - value
-        vector_feature.append(value)
+    def _hero_id_one_hot(self, hero_id):
+        return [1.0 if hero_id == value else 0.0 for value in HERO_IDS]
+
+    def _is_alive(self, hero):
+        return 1.0 if hero.get("hp", 0) > 0 else 0.0
+
+    def _hp_rate(self, hero):
+        return _clip(_safe_div(hero.get("hp", 0), hero.get("max_hp", 0)))
+
+    def _ep_rate(self, hero):
+        return _clip(_safe_div(hero.get("ep", 0), hero.get("max_ep", 0)))
+
+    def _normal_position(self, location):
+        x = location.get("x", 100000)
+        z = location.get("z", 100000)
+        if self.transform_camp2_to_camp1 and x != 100000:
+            x = -x
+        if self.transform_camp2_to_camp1 and z != 100000:
+            z = -z
+        return [_clip((x + MAX_POSITION) / (2 * MAX_POSITION)), _clip((z + MAX_POSITION) / (2 * MAX_POSITION))]
+
+    def _relative_position(self, main_hero, target_hero):
+        if main_hero is None or target_hero is None:
+            return [0.5, 0.5]
+
+        main_location = main_hero.get("location", {})
+        target_location = target_hero.get("location", {})
+        x_diff = target_location.get("x", 0) - main_location.get("x", 0)
+        z_diff = target_location.get("z", 0) - main_location.get("z", 0)
+        if self.transform_camp2_to_camp1:
+            x_diff = -x_diff
+            z_diff = -z_diff
+        return [_clip((x_diff + 30000.0) / 60000.0), _clip((z_diff + 30000.0) / 60000.0)]
+
+    def _distance(self, main_hero, target_hero):
+        if main_hero is None or target_hero is None:
+            return 1.0
+
+        main_location = main_hero.get("location", {})
+        target_location = target_hero.get("location", {})
+        dist = math.dist(
+            (main_location.get("x", 0), main_location.get("z", 0)),
+            (target_location.get("x", 0), target_location.get("z", 0)),
+        )
+        return _clip(dist / MAX_DISTANCE)

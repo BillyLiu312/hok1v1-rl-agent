@@ -168,6 +168,7 @@ class EpisodeRunner:
             self.episode_cnt += 1
             frame_no = 0
             reward_sum_list = [0] * self.agent_num
+            reward_detail_sum_list = [dict() for _ in range(self.agent_num)]
             is_train_test = os.environ.get("is_train_test", "False").lower() == "true"
             self.logger.info(f"Episode {self.episode_cnt} start, usr_conf is {usr_conf}")
 
@@ -178,6 +179,7 @@ class EpisodeRunner:
                     reward = agent.reward_manager.result(observation[str(i)]["frame_state"])
                     observation[str(i)]["reward"] = reward
                     reward_sum_list[i] += reward["reward_sum"]
+                    self._accumulate_reward_detail(reward_detail_sum_list[i], reward)
 
             while True:
                 # Initialize the default actions. If the agent does not make a decision, env.step uses the default action.
@@ -220,6 +222,7 @@ class EpisodeRunner:
                         reward = agent.reward_manager.result(observation[str(i)]["frame_state"])
                         observation[str(i)]["reward"] = reward
                         reward_sum_list[i] += reward["reward_sum"]
+                        self._accumulate_reward_detail(reward_detail_sum_list[i], reward)
 
                 # Normal end or timeout exit, run train_test will exit early
                 # 正常结束或超时退出，运行train_test时会提前退出
@@ -240,6 +243,19 @@ class EpisodeRunner:
                     now = time.time()
                     if now - self.last_report_monitor_time >= 60:
                         monitor_data = {"episode_cnt": self.episode_cnt}
+                        reward_detail = reward_detail_sum_list[monitor_side]
+                        for key in (
+                            "tower_hp_point",
+                            "tower_destroy",
+                            "hp_point",
+                            "money",
+                            "exp",
+                            "kill",
+                            "death",
+                            "forward",
+                        ):
+                            if key in reward_detail:
+                                monitor_data[f"reward_{key}"] = round(reward_detail[key], 4)
                         if self.monitor:
                             if is_eval:
                                 monitor_data["reward"] = round(reward_sum_list[monitor_side], 2)
@@ -302,3 +318,9 @@ class EpisodeRunner:
             # Reset agent
             # 重置agent
             agent.reset(observation[str(i)])
+
+    def _accumulate_reward_detail(self, reward_detail, reward):
+        for key, value in reward.items():
+            if key == "reward_sum":
+                continue
+            reward_detail[key] = reward_detail.get(key, 0.0) + value

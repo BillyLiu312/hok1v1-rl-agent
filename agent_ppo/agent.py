@@ -13,34 +13,17 @@ import torch
 torch.set_num_threads(1)
 torch.set_num_interop_threads(1)
 
-import os
-import random
 from agent_ppo.model.model import Model
 from agent_ppo.feature.definition import *
 import numpy as np
 from kaiwudrl.interface.agent import BaseAgent
 
 from agent_ppo.conf.conf import Config
+from agent_ppo.conf.summoner_skill import SUMMONER_SKILL_MAP, select_summoner_skill
 from agent_ppo.feature.reward_process import GameRewardManager
 from torch.optim.lr_scheduler import LambdaLR
 from agent_ppo.algorithm.algorithm import Algorithm
 from agent_ppo.feature.feature_process import FeatureProcess
-
-
-# Available summoner skills / 可选召唤师技能
-SUMMONER_SKILL_MAP = {
-    80102: "治疗",
-    80109: "疾跑",
-    80104: "惩击",
-    80108: "终结",
-    80110: "狂暴",
-    80105: "干扰",
-    80103: "晕眩",
-    80107: "净化",
-    80121: "弱化",
-    80115: "闪现",
-}
-SUMMONER_SKILL_IDS = list(SUMMONER_SKILL_MAP.keys())
 
 
 class Agent(BaseAgent):
@@ -100,10 +83,11 @@ class Agent(BaseAgent):
         # Select summoner skill for each hero based on hero lineup of both camps
         # 根据双方阵营英雄阵容，为己方每个英雄选择召唤师技能
         my_heroes = config_data.get("my_heroes", [])
+        opponent_heroes = config_data.get("opponent_heroes", [])
+        opponent_hero = opponent_heroes[0] if opponent_heroes else None
         select_skills = {}
         for hero_id in my_heroes:
-            skill_id = random.choice(SUMMONER_SKILL_IDS)
-            select_skills[hero_id] = skill_id
+            select_skills[hero_id] = select_summoner_skill(hero_id, opponent_hero)
         return select_skills
 
     def reset(self, observation):

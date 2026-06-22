@@ -35,6 +35,44 @@ def build_monitor():
         )
         .end_panel()
         .add_panel(
+            name="奖励分解",
+            name_en="reward_detail",
+            type="line",
+        )
+        .add_metric(
+            metrics_name="tower_hp",
+            expr="round(avg(reward_tower_hp_point{}), 0.01)",
+        )
+        .add_metric(
+            metrics_name="tower_destroy",
+            expr="round(avg(reward_tower_destroy{}), 0.01)",
+        )
+        .add_metric(
+            metrics_name="hp",
+            expr="round(avg(reward_hp_point{}), 0.01)",
+        )
+        .add_metric(
+            metrics_name="money",
+            expr="round(avg(reward_money{}), 0.01)",
+        )
+        .add_metric(
+            metrics_name="exp",
+            expr="round(avg(reward_exp{}), 0.01)",
+        )
+        .add_metric(
+            metrics_name="kill",
+            expr="round(avg(reward_kill{}), 0.01)",
+        )
+        .add_metric(
+            metrics_name="death",
+            expr="round(avg(reward_death{}), 0.01)",
+        )
+        .add_metric(
+            metrics_name="forward",
+            expr="round(avg(reward_forward{}), 0.01)",
+        )
+        .end_panel()
+        .add_panel(
             name="总损失",
             name_en="total_loss",
             type="line",

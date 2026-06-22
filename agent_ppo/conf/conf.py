@@ -12,8 +12,14 @@ class GameConfig:
     # Set the weight of each reward item and use it in reward_manager
     # 设置各个回报项的权重，在reward_manager中使用
     REWARD_WEIGHT_DICT = {
-        "tower_hp_point": 5.0,
-        "forward": 0.01,
+        "tower_hp_point": 8.0,
+        "tower_destroy": 20.0,
+        "hp_point": 1.0,
+        "money": 0.5,
+        "exp": 0.5,
+        "kill": 2.0,
+        "death": 3.0,
+        "forward": 0.05,
     }
     # Time decay factor, used in reward_manager
     # 时间衰减因子，在reward_manager中使用
@@ -26,17 +32,19 @@ class GameConfig:
 # Dimension configuration, used when building the model
 # 维度配置，构建模型时使用
 class DimConfig:
-    DIM_OF_FEATURE = [10]
+    DIM_OF_FEATURE = [63]
 
 
 # Configuration related to model and algorithms used
 # 模型和算法使用的相关配置
 class Config:
+    FEATURE_DIM = DimConfig.DIM_OF_FEATURE[0]
+    LEGAL_ACTION_DIM = 85
     NETWORK_NAME = "network"
     LSTM_TIME_STEPS = 16
     LSTM_UNIT_SIZE = 512
     DATA_SPLIT_SHAPE = [
-        10 + 85,
+        FEATURE_DIM + LEGAL_ACTION_DIM,
         1,
         1,
         1,
@@ -61,7 +69,7 @@ class Config:
         LSTM_UNIT_SIZE,
         LSTM_UNIT_SIZE,
     ]
-    SERI_VEC_SPLIT_SHAPE = [(10,), (85,)]
+    SERI_VEC_SPLIT_SHAPE = [(FEATURE_DIM,), (LEGAL_ACTION_DIM,)]
     INIT_LEARNING_RATE_START = 1e-3
     TARGET_LR = 1e-4
     TARGET_STEP = 5000
@@ -84,7 +92,7 @@ class Config:
     TARGET_EMBED_DIM = 32
 
     data_shapes = [
-        [(10 + 85) * 16],
+        [(FEATURE_DIM + LEGAL_ACTION_DIM) * 16],
         [16],
         [16],
         [16],
