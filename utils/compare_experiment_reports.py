@@ -128,8 +128,44 @@ def summarize_report(report_dir: Path) -> dict:
     }
 
 
+DELTA_METRICS = [
+    "avg_win_rate",
+    "min_win_rate",
+    "avg_death",
+    "avg_enemy_tower_hp",
+    "avg_push_window_tower_damage_share",
+    "avg_unsafe_dive_death_corr",
+]
+
+
+def find_baseline_row(rows: list[dict]) -> dict:
+    for row in rows:
+        if row.get("experiment_name") == "v1.2":
+            return row
+    for row in rows:
+        if row.get("reward_profile") == "v1.2":
+            return row
+    return first_row(rows)
+
+
+def attach_baseline_deltas(rows: list[dict]) -> list[dict]:
+    baseline = find_baseline_row(rows)
+    baseline_label = first_non_empty(baseline.get("experiment_name"), baseline.get("report"))
+    for row in rows:
+        row["baseline_experiment"] = baseline_label
+        for metric in DELTA_METRICS:
+            row[f"{metric}_delta_vs_baseline"] = metric_delta(row.get(metric), baseline.get(metric))
+    return rows
+
+
+def metric_delta(value, baseline_value):
+    if value in ("", None) or baseline_value in ("", None):
+        return ""
+    return value - baseline_value
+
+
 def collect_rows(report_dirs: list[Path]) -> list[dict]:
-    return [summarize_report(report_dir) for report_dir in report_dirs]
+    return attach_baseline_deltas([summarize_report(report_dir) for report_dir in report_dirs])
 
 
 def write_csv(rows: list[dict], output_path: Path):
@@ -144,6 +180,7 @@ def write_csv(rows: list[dict], output_path: Path):
         "experiment_plan_stage",
         "experiment_name",
         "experiment_hypothesis",
+        "baseline_experiment",
         "reward_profile",
         "reward_weight_overrides",
         "opponent_schedule",
@@ -158,16 +195,22 @@ def write_csv(rows: list[dict], output_path: Path):
         "matchup_groups",
         "matchup_rows",
         "avg_win_rate",
+        "avg_win_rate_delta_vs_baseline",
         "min_win_rate",
+        "min_win_rate_delta_vs_baseline",
         "avg_death",
+        "avg_death_delta_vs_baseline",
         "avg_enemy_tower_hp",
+        "avg_enemy_tower_hp_delta_vs_baseline",
         "reward_push_window_tower_damage",
         "reward_unsafe_dive",
         "reward_win_result",
         "avg_push_window_active_frames",
         "avg_unsafe_dive_active_frames",
         "avg_push_window_tower_damage_share",
+        "avg_push_window_tower_damage_share_delta_vs_baseline",
         "avg_unsafe_dive_death_corr",
+        "avg_unsafe_dive_death_corr_delta_vs_baseline",
     ]
     with output_path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
@@ -184,20 +227,26 @@ def write_markdown(rows: list[dict], output_path: Path, title="v1.2 Experiment C
         "launch_preflight_status",
         "reward_profile",
         "experiment_hypothesis",
+        "baseline_experiment",
         "recommended_checkpoint",
         "gate_status",
         "evaluation_matchups",
         "avg_win_rate",
+        "avg_win_rate_delta_vs_baseline",
         "min_win_rate",
         "avg_death",
+        "avg_death_delta_vs_baseline",
         "avg_enemy_tower_hp",
+        "avg_enemy_tower_hp_delta_vs_baseline",
         "reward_push_window_tower_damage",
         "reward_unsafe_dive",
         "reward_win_result",
         "avg_push_window_active_frames",
         "avg_unsafe_dive_active_frames",
         "avg_push_window_tower_damage_share",
+        "avg_push_window_tower_damage_share_delta_vs_baseline",
         "avg_unsafe_dive_death_corr",
+        "avg_unsafe_dive_death_corr_delta_vs_baseline",
     ]
     lines = [f"# {title}", "", f"- reports: {len(rows)}", ""]
     lines.extend(["| " + " | ".join(columns) + " |", "| " + " | ".join(["---"] * len(columns)) + " |"])
