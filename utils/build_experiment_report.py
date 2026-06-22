@@ -384,9 +384,16 @@ def write_manifest(
         lines.append(f"- recommended_matchup_rows: {manifest_value(best.get('matchup_rows'))}")
         win_rate = best.get("matchup_avg_win_rate") if best.get("matchup_avg_win_rate") is not None else best.get("common_ai_win_rate")
         death = best.get("matchup_avg_death") if best.get("matchup_avg_death") is not None else best.get("common_ai_death")
+        hurt_to_hero = best.get("common_ai_hurt_to_hero")
+        hurt_by_hero = best.get("common_ai_hurt_by_hero")
         lines.append(f"- recommended_win_rate: {manifest_value(win_rate)}")
         lines.append(f"- recommended_min_win_rate: {manifest_value(best.get('matchup_min_win_rate'))}")
         lines.append(f"- recommended_death: {manifest_value(death)}")
+        lines.append(f"- recommended_hurt_to_hero: {manifest_value(hurt_to_hero)}")
+        lines.append(f"- recommended_hurt_by_hero: {manifest_value(hurt_by_hero)}")
+        lines.append(
+            f"- recommended_hero_damage_balance: {manifest_value(hurt_to_hero - hurt_by_hero if hurt_to_hero is not None and hurt_by_hero is not None else None)}"
+        )
         lines.append(f"- recommended_death_p90: {manifest_value(best.get('matchup_max_death_p90'))}")
         lines.append(f"- recommended_self_tower_hp_p10: {manifest_value(best.get('matchup_min_self_tower_hp_p10'))}")
         lines.append(f"- recommended_timeout_rate: {manifest_value(best.get('matchup_avg_timeout_rate'))}")

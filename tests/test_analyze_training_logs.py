@@ -34,10 +34,14 @@ class AnalyzeTrainingLogsTest(unittest.TestCase):
 - kill: 1
 - death: 2
 - money_per_frame: 0.4
+- hurt_to_hero: 1.2
+- hurt_by_hero: 0.7
 
 ## Environment Metrics: Selfplay
 
 - win_rate: 0.25
+- hurt_to_hero: 0.4
+- hurt_by_hero: 0.6
 
 ## Algorithm Metrics
 
@@ -64,6 +68,10 @@ class AnalyzeTrainingLogsTest(unittest.TestCase):
             self.assertEqual(rows[0]["step"], 100)
             self.assertEqual(rows[0]["actual_train_global_step"], 98)
             self.assertEqual(rows[0]["common_ai_win_rate"], 0.5)
+            self.assertEqual(rows[0]["common_ai_hurt_to_hero"], 1.2)
+            self.assertEqual(rows[0]["common_ai_hurt_by_hero"], 0.7)
+            self.assertEqual(rows[0]["selfplay_hurt_to_hero"], 0.4)
+            self.assertEqual(rows[0]["selfplay_hurt_by_hero"], 0.6)
             self.assertEqual(rows[0]["reward_push_window_tower_damage"], 0.2)
             self.assertEqual(rows[0]["reward_unsafe_dive_severity"], -1.5)
             self.assertEqual(rows[0]["reward_unsafe_dive_active"], 3)
@@ -77,9 +85,11 @@ class AnalyzeTrainingLogsTest(unittest.TestCase):
             with csv_path.open(encoding="utf-8") as handle:
                 csv_rows = list(csv.DictReader(handle))
             self.assertEqual(csv_rows[0]["step"], "100")
+            self.assertIn("common_ai_hurt_to_hero", csv_rows[0])
             self.assertIn("reward_push_window_tower_damage", csv_rows[0])
             markdown = md_path.read_text(encoding="utf-8")
             self.assertIn("best_common_ai_win_rate: 0.5", markdown)
+            self.assertIn("common_ai_hurt_to_hero", markdown)
             self.assertIn("reward_push_window_tower_damage", markdown)
 
 

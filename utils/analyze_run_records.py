@@ -44,6 +44,15 @@ def safe_ratio(numerator, denominator):
     return numerator / denominator
 
 
+def per_frame(value, frame_no):
+    if value in ("", None) or frame_no in ("", None, 0):
+        return None
+    try:
+        return float(value) / float(frame_no)
+    except (TypeError, ValueError, ZeroDivisionError):
+        return None
+
+
 def first_non_empty(values):
     for value in values:
         if value not in ("", None):
@@ -148,6 +157,8 @@ def summarize_episode(payload: dict) -> dict:
         "enemy_tower_hp": enemy_tower.get("hp"),
         "kill": hero.get("kill_cnt"),
         "death": hero.get("dead_cnt"),
+        "hurt_to_hero": per_frame(hero.get("total_hurt_to_hero"), payload.get("frame_no")),
+        "hurt_by_hero": per_frame(hero.get("total_be_hurt_by_hero"), payload.get("frame_no")),
         "money_cnt": hero.get("money_cnt"),
         "reward_sum": list_get(payload.get("reward_sum"), monitor_index),
         "reward_enemy_tower_hp_down": reward_detail.get("enemy_tower_hp_down"),
@@ -220,6 +231,8 @@ def collect_rows(record_dir: Path) -> list[dict]:
                 "avg_enemy_tower_hp": avg([item["enemy_tower_hp"] for item in items]),
                 "avg_kill": avg([item["kill"] for item in items]),
                 "avg_death": avg([item["death"] for item in items]),
+                "avg_hurt_to_hero": avg([item["hurt_to_hero"] for item in items]),
+                "avg_hurt_by_hero": avg([item["hurt_by_hero"] for item in items]),
                 "death_p90": quantile([item["death"] for item in items], 0.90),
                 "avg_money_cnt": avg([item["money_cnt"] for item in items]),
                 "avg_reward_sum": avg([item["reward_sum"] for item in items]),
@@ -272,6 +285,8 @@ def write_csv(rows: list[dict], output_path: Path):
         "avg_enemy_tower_hp",
         "avg_kill",
         "avg_death",
+        "avg_hurt_to_hero",
+        "avg_hurt_by_hero",
         "death_p90",
         "avg_money_cnt",
         "avg_reward_sum",
@@ -309,6 +324,8 @@ def write_markdown(rows: list[dict], output_path: Path, title: str):
         "avg_self_tower_hp",
         "self_tower_hp_p10",
         "avg_death",
+        "avg_hurt_to_hero",
+        "avg_hurt_by_hero",
         "death_p90",
         "timeout_rate",
         "avg_push_window_tower_damage",

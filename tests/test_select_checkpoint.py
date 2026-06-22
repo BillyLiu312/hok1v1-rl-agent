@@ -58,9 +58,9 @@ class SelectCheckpointTest(unittest.TestCase):
             training_csv.write_text(
                 "\n".join(
                     [
-                        "source_file,step,common_ai_win_rate,common_ai_enemy_tower_hp,common_ai_self_tower_hp,common_ai_death,reward_push_window_tower_damage,reward_unsafe_dive,reward_win_result,reward_timeout_tower_gap",
-                        "a,100,0.8,1000,7000,2,0.1,-1,0,0",
-                        "b,200,0.7,900,7000,2,0.4,-0.5,1,0",
+                        "source_file,step,common_ai_win_rate,common_ai_enemy_tower_hp,common_ai_self_tower_hp,common_ai_death,common_ai_hurt_to_hero,common_ai_hurt_by_hero,reward_push_window_tower_damage,reward_unsafe_dive,reward_win_result,reward_timeout_tower_gap",
+                        "a,100,0.8,1000,7000,2,0.6,0.8,0.1,-1,0,0",
+                        "b,200,0.7,900,7000,2,1.5,0.5,0.4,-0.5,1,0",
                     ]
                 )
                 + "\n",
@@ -92,6 +92,8 @@ class SelectCheckpointTest(unittest.TestCase):
             self.assertEqual(rows[0]["matchup_repeat_indices"], "1")
             self.assertEqual(rows[0]["matchup_evaluation_checkpoint_step"], "200")
             self.assertEqual(rows[0]["reward_push_window_tower_damage"], 0.4)
+            self.assertEqual(rows[0]["common_ai_hurt_to_hero"], 1.5)
+            self.assertEqual(rows[0]["common_ai_hurt_by_hero"], 0.5)
             self.assertEqual(rows[0]["reward_win_result"], 1)
             self.assertEqual(rows[0]["matchup_min_win_rate"], 0.9)
             self.assertEqual(rows[0]["matchup_max_death_p90"], 2)
@@ -109,9 +111,11 @@ class SelectCheckpointTest(unittest.TestCase):
             write_csv(rows, csv_path)
             write_markdown(rows, md_path, "Ranking")
             self.assertIn("reward_push_window_tower_damage", csv_path.read_text(encoding="utf-8"))
+            self.assertIn("common_ai_hurt_to_hero", csv_path.read_text(encoding="utf-8"))
             self.assertIn("matchup_max_death_p90", csv_path.read_text(encoding="utf-8"))
             self.assertIn("matchup_eval_ids", csv_path.read_text(encoding="utf-8"))
             self.assertIn("reward_win_result", md_path.read_text(encoding="utf-8"))
+            self.assertIn("common_ai_hurt_to_hero", md_path.read_text(encoding="utf-8"))
             self.assertIn("matchup_avg_timeout_rate", md_path.read_text(encoding="utf-8"))
             self.assertIn("matchup_avg_unsafe_dive_severity", md_path.read_text(encoding="utf-8"))
             self.assertIn("matchup_repeat_indices", md_path.read_text(encoding="utf-8"))

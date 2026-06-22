@@ -240,6 +240,14 @@ def check_evidence_chain_fields(root: Path) -> list[dict]:
             "eval_ids",
             "repeat_indices",
             "evaluation_checkpoint_step",
+            "avg_hurt_to_hero",
+            "avg_hurt_by_hero",
+        ],
+        "utils/analyze_training_logs.py": [
+            "common_ai_hurt_to_hero",
+            "common_ai_hurt_by_hero",
+            "selfplay_hurt_to_hero",
+            "selfplay_hurt_by_hero",
         ],
     }
     rows = []

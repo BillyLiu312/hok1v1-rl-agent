@@ -86,7 +86,11 @@ def normalize_training_row(row: dict) -> dict:
         "common_ai_self_tower_hp": to_float(row.get("common_ai_self_tower_hp")),
         "common_ai_death": to_float(row.get("common_ai_death")),
         "common_ai_frame": to_float(row.get("common_ai_frame")),
+        "common_ai_hurt_to_hero": to_float(row.get("common_ai_hurt_to_hero")),
+        "common_ai_hurt_by_hero": to_float(row.get("common_ai_hurt_by_hero")),
         "selfplay_win_rate": to_float(row.get("selfplay_win_rate")),
+        "selfplay_hurt_to_hero": to_float(row.get("selfplay_hurt_to_hero")),
+        "selfplay_hurt_by_hero": to_float(row.get("selfplay_hurt_by_hero")),
         "reward": to_float(row.get("reward")),
         "reward_push_window_tower_damage": to_float(row.get("reward_push_window_tower_damage")),
         "reward_unsafe_dive": to_float(row.get("reward_unsafe_dive")),
@@ -284,6 +288,10 @@ def recommendation_reason(row: dict) -> str:
     enemy_tower_hp = metric(row, "matchup_avg_enemy_tower_hp", "common_ai_enemy_tower_hp")
     if enemy_tower_hp is not None:
         parts.append(f"enemy_tower_hp={fmt(enemy_tower_hp)}")
+    hurt_to_hero = row.get("common_ai_hurt_to_hero")
+    hurt_by_hero = row.get("common_ai_hurt_by_hero")
+    if hurt_to_hero is not None and hurt_by_hero is not None:
+        parts.append(f"hero_damage_balance={fmt(hurt_to_hero - hurt_by_hero)}")
     groups = row.get("matchup_groups")
     if groups:
         parts.append(f"matchup_groups={groups}")
@@ -310,7 +318,11 @@ def write_csv(rows: list[dict], output_path: Path):
         "common_ai_self_tower_hp",
         "common_ai_death",
         "common_ai_frame",
+        "common_ai_hurt_to_hero",
+        "common_ai_hurt_by_hero",
         "selfplay_win_rate",
+        "selfplay_hurt_to_hero",
+        "selfplay_hurt_by_hero",
         "reward",
         "reward_push_window_tower_damage",
         "reward_unsafe_dive",
@@ -357,6 +369,8 @@ def write_markdown(rows: list[dict], output_path: Path, title: str):
         "common_ai_win_rate",
         "common_ai_enemy_tower_hp",
         "common_ai_death",
+        "common_ai_hurt_to_hero",
+        "common_ai_hurt_by_hero",
         "reward_push_window_tower_damage",
         "reward_unsafe_dive",
         "reward_win_result",

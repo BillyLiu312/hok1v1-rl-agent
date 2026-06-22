@@ -82,6 +82,8 @@ class BuildExperimentReportTest(unittest.TestCase):
 - enemy_tower_hp: 1400.59
 - self_tower_hp: 7745.34
 - death: 2.72
+- hurt_to_hero: 1.88
+- hurt_by_hero: 1.21
 """,
                 encoding="utf-8",
             )
@@ -230,7 +232,14 @@ class BuildExperimentReportTest(unittest.TestCase):
                     "agents": [
                         {
                             "win": 1,
-                            "hero": {"config_id": 199, "kill_cnt": 2, "dead_cnt": 1, "money_cnt": 5000},
+                            "hero": {
+                                "config_id": 199,
+                                "kill_cnt": 2,
+                                "dead_cnt": 1,
+                                "money_cnt": 5000,
+                                "total_hurt_to_hero": 12000,
+                                "total_be_hurt_by_hero": 6000,
+                            },
                             "enemy_hero": {"config_id": 133},
                             "tower": {"hp": 8000},
                             "enemy_tower": {"hp": 0},
@@ -242,6 +251,8 @@ class BuildExperimentReportTest(unittest.TestCase):
             event_2 = json.loads(json.dumps(event))
             event_2["payload"]["frame_no"] = 20000
             event_2["payload"]["agents"][0]["hero"]["dead_cnt"] = 3
+            event_2["payload"]["agents"][0]["hero"]["total_hurt_to_hero"] = 10000
+            event_2["payload"]["agents"][0]["hero"]["total_be_hurt_by_hero"] = 20000
             event_2["payload"]["agents"][0]["tower"]["hp"] = 500
             other_checkpoint_event = json.loads(json.dumps(event))
             other_checkpoint_event["payload"]["monitor_hero_id"] = 112
@@ -290,6 +301,9 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertIn("summoner_skill_policy_gate_csv", manifest)
             self.assertIn("summoner_skill_policy_patch_py", manifest)
             self.assertIn("recommended_matchup_rows", manifest)
+            self.assertIn("recommended_hurt_to_hero", manifest)
+            self.assertIn("recommended_hurt_by_hero", manifest)
+            self.assertIn("recommended_hero_damage_balance", manifest)
             self.assertIn("recommended_push_window_tower_damage_share", manifest)
             self.assertIn("recommended_death_p90", manifest)
             self.assertIn("recommended_self_tower_hp_p10", manifest)
