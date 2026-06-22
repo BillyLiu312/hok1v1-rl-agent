@@ -139,6 +139,8 @@ class BuildExperimentReportTest(unittest.TestCase):
                         "best_win_rate": 0.85,
                         "best_win_enemy_tower_hp": 1200,
                         "late_death": 2.5,
+                        "best_win_hero_damage_balance": 0.67,
+                        "source_log_dir": "logs/v1.1",
                     }
                 ),
                 encoding="utf-8",
@@ -177,8 +179,14 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertIn("experiment_main_hypothesis: Push-window modeling improves tower pressure without extra deaths.", manifest)
             self.assertIn("experiment_success_metric_count: 2", manifest)
             self.assertIn("experiment_success_metrics: avg_win_rate,avg_death", manifest)
+            self.assertIn("baseline_source: logs/v1.1", manifest)
+            self.assertIn("baseline_best_win_rate: 0.85", manifest)
+            self.assertIn("baseline_best_enemy_tower_hp: 1200.0", manifest)
+            self.assertIn("baseline_late_death: 2.5", manifest)
+            self.assertIn("baseline_best_hero_damage_balance: 0.67", manifest)
             self.assertIn("checkpoint_ranking_csv", manifest)
             self.assertIn("v1.2_candidate_gate_csv", manifest)
+            self.assertIn("baseline_json", manifest)
             self.assertIn("evaluation_toml_metadata_csv", manifest)
             self.assertIn("evaluation_toml_metadata_jsonl", manifest)
             gate_md = artifacts["v1.2_candidate_gate_md"].read_text(encoding="utf-8")

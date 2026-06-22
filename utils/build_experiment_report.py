@@ -79,6 +79,9 @@ def build_report(
     artifacts = {}
     launch_metadata = read_launch_manifest(launch_manifest)
     experiment_metadata = resolve_experiment_metadata(read_json_file(experiment_plan), experiment_name)
+    baseline_metadata = read_candidate_baseline(baseline_json)
+    if baseline_json and baseline_json.exists():
+        artifacts["baseline_json"] = baseline_json
 
     training_rows = collect_training_rows(log_dir)
     training_csv = output_dir / "training_summary.csv"
@@ -194,7 +197,7 @@ def build_report(
     candidate_gate_rows = evaluate_candidate(
         candidate,
         matchup_rows=candidate_matchup_rows,
-        baseline=read_candidate_baseline(baseline_json),
+        baseline=baseline_metadata,
     )
     candidate_gate_csv = output_dir / "v1.2_candidate_gate.csv"
     candidate_gate_md = output_dir / "v1.2_candidate_gate.md"
@@ -246,6 +249,7 @@ def build_report(
         eval_rows,
         launch_metadata,
         experiment_metadata,
+        baseline_metadata,
     )
     artifacts["manifest"] = manifest
     return artifacts
@@ -335,6 +339,7 @@ def write_manifest(
     eval_rows: list[dict],
     launch_metadata: dict | None = None,
     experiment_metadata: dict | None = None,
+    baseline_metadata: dict | None = None,
 ):
     checkpoint_count = len({row["checkpoint_step"] for row in eval_rows})
     matchup_count = len({row["matchup"] for row in eval_rows})
@@ -376,6 +381,14 @@ def write_manifest(
         success_metrics = experiment_metadata.get("success_metrics", [])
         lines.append(f"- experiment_success_metric_count: {len(success_metrics)}")
         lines.append(f"- experiment_success_metrics: {','.join(success_metrics)}")
+    if baseline_metadata:
+        lines.append(f"- baseline_source: {baseline_metadata.get('source', '')}")
+        lines.append(f"- baseline_best_win_rate: {manifest_value(baseline_metadata.get('best_win_rate'))}")
+        lines.append(f"- baseline_best_enemy_tower_hp: {manifest_value(baseline_metadata.get('best_win_enemy_tower_hp'))}")
+        lines.append(f"- baseline_late_death: {manifest_value(baseline_metadata.get('late_death'))}")
+        lines.append(
+            f"- baseline_best_hero_damage_balance: {manifest_value(baseline_metadata.get('best_win_hero_damage_balance'))}"
+        )
     if checkpoint_rows:
         best = checkpoint_rows[0]
         lines.append(f"- recommended_checkpoint: {best.get('checkpoint_step')}")

@@ -187,6 +187,7 @@ def check_evidence_chain_fields(root: Path) -> list[dict]:
             "candidate_gate_matchup_filter",
             "filter_fixed_eval_rows_for_checkpoint",
             "read_candidate_baseline",
+            "baseline_best_hero_damage_balance",
             "summoner_skill_policy_patch",
             "summoner_skill_policy_gate",
             "recommended_death_p90",
