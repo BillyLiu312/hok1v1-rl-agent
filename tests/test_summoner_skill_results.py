@@ -5,7 +5,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from utils.summoner_skill_results import collect_rows, write_csv, write_markdown
+from utils.summoner_skill_results import (
+    collect_rows,
+    recommend_skill_rows,
+    write_csv,
+    write_markdown,
+    write_recommendation_csv,
+    write_recommendation_markdown,
+)
 
 
 def make_event(skill_id, win):
@@ -70,6 +77,48 @@ class SummonerSkillResultsTest(unittest.TestCase):
             write_markdown(rows, md_path, "Skill Results")
             self.assertIn("monitor_skill_name", csv_path.read_text(encoding="utf-8"))
             self.assertIn("199_vs_133", md_path.read_text(encoding="utf-8"))
+
+    def test_recommend_skill_rows_compares_against_current_policy(self):
+        rows = [
+            {
+                "matchup": "199_vs_133",
+                "monitor_skill": 80107,
+                "monitor_skill_name": "净化",
+                "is_current_policy_skill": True,
+                "is_eval": True,
+                "opponent_agent": "common_ai",
+                "episodes": 20,
+                "win_rate": 0.55,
+                "avg_death": 2,
+                "avg_enemy_tower_hp": 2000,
+            },
+            {
+                "matchup": "199_vs_133",
+                "monitor_skill": 80110,
+                "monitor_skill_name": "狂暴",
+                "is_current_policy_skill": False,
+                "is_eval": True,
+                "opponent_agent": "common_ai",
+                "episodes": 20,
+                "win_rate": 0.7,
+                "avg_death": 3,
+                "avg_enemy_tower_hp": 1000,
+            },
+        ]
+
+        recommendations = recommend_skill_rows(rows)
+        self.assertEqual(len(recommendations), 1)
+        self.assertEqual(recommendations[0]["recommended_skill"], 80110)
+        self.assertEqual(recommendations[0]["current_policy_skill"], 80107)
+        self.assertTrue(recommendations[0]["needs_policy_update"])
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            csv_path = Path(temp_dir) / "recommend.csv"
+            md_path = Path(temp_dir) / "recommend.md"
+            write_recommendation_csv(recommendations, csv_path)
+            write_recommendation_markdown(recommendations, md_path, "Recommendations")
+            self.assertIn("recommended_skill_name", csv_path.read_text(encoding="utf-8"))
+            self.assertIn("needs_policy_update", md_path.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

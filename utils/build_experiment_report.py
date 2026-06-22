@@ -33,8 +33,11 @@ from utils.summoner_skill_grid import build_rows as build_skill_rows
 from utils.summoner_skill_grid import write_csv as write_skill_csv
 from utils.summoner_skill_grid import write_markdown as write_skill_markdown
 from utils.summoner_skill_results import collect_rows as collect_skill_result_rows
+from utils.summoner_skill_results import recommend_skill_rows
 from utils.summoner_skill_results import write_csv as write_skill_result_csv
 from utils.summoner_skill_results import write_markdown as write_skill_result_markdown
+from utils.summoner_skill_results import write_recommendation_csv as write_skill_recommendation_csv
+from utils.summoner_skill_results import write_recommendation_markdown as write_skill_recommendation_markdown
 
 
 def build_report(
@@ -97,6 +100,18 @@ def build_report(
         )
         artifacts["summoner_skill_results_csv"] = skill_result_csv
         artifacts["summoner_skill_results_md"] = skill_result_md
+
+        skill_recommendation_rows = recommend_skill_rows(skill_result_rows)
+        skill_recommendation_csv = output_dir / "summoner_skill_recommendations.csv"
+        skill_recommendation_md = output_dir / "summoner_skill_recommendations.md"
+        write_skill_recommendation_csv(skill_recommendation_rows, skill_recommendation_csv)
+        write_skill_recommendation_markdown(
+            skill_recommendation_rows,
+            skill_recommendation_md,
+            f"Summoner Skill Recommendations: {record_dir.as_posix()}",
+        )
+        artifacts["summoner_skill_recommendations_csv"] = skill_recommendation_csv
+        artifacts["summoner_skill_recommendations_md"] = skill_recommendation_md
 
     candidates = collect_candidates(training_csv=training_csv)
     attach_matchup_metrics(candidates, matchup_csv)

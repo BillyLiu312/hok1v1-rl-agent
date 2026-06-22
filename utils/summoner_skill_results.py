@@ -110,6 +110,75 @@ def collect_rows(record_dir: Path) -> list[dict]:
     return rows
 
 
+def to_float(value, default=None):
+    if value in ("", None):
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def recommendation_score(row: dict) -> float:
+    win_rate = to_float(row.get("win_rate"), 0.0) or 0.0
+    avg_death = to_float(row.get("avg_death"), 0.0) or 0.0
+    avg_enemy_tower_hp = to_float(row.get("avg_enemy_tower_hp"), 10000.0) or 10000.0
+    episodes = to_float(row.get("episodes"), 0.0) or 0.0
+    return win_rate * 100.0 - avg_death * 2.0 - avg_enemy_tower_hp / 1000.0 + min(episodes, 20.0) * 0.1
+
+
+def recommend_skill_rows(rows: list[dict], min_episodes=1) -> list[dict]:
+    grouped = defaultdict(list)
+    for row in rows:
+        if row.get("monitor_skill") in ("", None):
+            continue
+        if to_float(row.get("episodes"), 0.0) < min_episodes:
+            continue
+        key = (
+            row.get("matchup"),
+            row.get("is_eval"),
+            row.get("opponent_agent"),
+        )
+        grouped[key].append(row)
+
+    recommendations = []
+    for (matchup, is_eval, opponent_agent), items in sorted(grouped.items(), key=lambda item: tuple(str(value) for value in item[0])):
+        ranked = sorted(
+            items,
+            key=lambda item: (
+                recommendation_score(item),
+                to_float(item.get("episodes"), 0.0) or 0.0,
+                str(item.get("monitor_skill")),
+            ),
+            reverse=True,
+        )
+        best = ranked[0]
+        current_items = [item for item in items if item.get("is_current_policy_skill") is True]
+        current = current_items[0] if current_items else None
+        current_skill = current.get("monitor_skill") if current else ""
+        current_win_rate = current.get("win_rate") if current else ""
+
+        recommendations.append(
+            {
+                "matchup": matchup,
+                "is_eval": is_eval,
+                "opponent_agent": opponent_agent,
+                "recommended_skill": best.get("monitor_skill"),
+                "recommended_skill_name": best.get("monitor_skill_name"),
+                "recommended_win_rate": best.get("win_rate"),
+                "recommended_avg_death": best.get("avg_death"),
+                "recommended_avg_enemy_tower_hp": best.get("avg_enemy_tower_hp"),
+                "recommended_episodes": best.get("episodes"),
+                "current_policy_skill": current_skill,
+                "current_policy_skill_name": current.get("monitor_skill_name") if current else "",
+                "current_policy_win_rate": current_win_rate,
+                "recommendation_score": recommendation_score(best),
+                "needs_policy_update": best.get("monitor_skill") != current_skill if current_skill != "" else "",
+            }
+        )
+    return recommendations
+
+
 def fmt(value):
     if value == "":
         return ""
@@ -163,11 +232,57 @@ def write_markdown(rows: list[dict], output_path: Path, title: str):
     output_path.write_text("\n".join(lines), encoding="utf-8")
 
 
+def write_recommendation_csv(rows: list[dict], output_path: Path):
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = [
+        "matchup",
+        "is_eval",
+        "opponent_agent",
+        "recommended_skill",
+        "recommended_skill_name",
+        "recommended_win_rate",
+        "recommended_avg_death",
+        "recommended_avg_enemy_tower_hp",
+        "recommended_episodes",
+        "current_policy_skill",
+        "current_policy_skill_name",
+        "current_policy_win_rate",
+        "recommendation_score",
+        "needs_policy_update",
+    ]
+    with output_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def write_recommendation_markdown(rows: list[dict], output_path: Path, title: str):
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    columns = [
+        "matchup",
+        "recommended_skill",
+        "recommended_skill_name",
+        "recommended_win_rate",
+        "current_policy_skill",
+        "current_policy_win_rate",
+        "needs_policy_update",
+    ]
+    lines = [f"# {title}", "", f"- recommendations: {len(rows)}", ""]
+    lines.extend(["| " + " | ".join(columns) + " |", "| " + " | ".join(["---"] * len(columns)) + " |"])
+    for row in rows:
+        lines.append("| " + " | ".join(fmt(row.get(column, "")) for column in columns) + " |")
+    lines.append("")
+    output_path.write_text("\n".join(lines), encoding="utf-8")
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Aggregate summoner skill outcomes from run records.")
     parser.add_argument("record_dir", type=Path, help="Directory containing episode_end-*.jsonl files")
     parser.add_argument("--csv", type=Path, default=None, help="CSV output path")
     parser.add_argument("--md", type=Path, default=None, help="Markdown output path")
+    parser.add_argument("--recommend-csv", type=Path, default=None, help="Recommended matchup-conditioned skills CSV")
+    parser.add_argument("--recommend-md", type=Path, default=None, help="Recommended matchup-conditioned skills Markdown")
+    parser.add_argument("--min-episodes", type=int, default=1, help="Minimum episodes for a skill group to be considered")
     return parser.parse_args()
 
 
@@ -178,7 +293,19 @@ def main():
     md_path = args.md or args.record_dir / "summoner_skill_results.md"
     write_csv(rows, csv_path)
     write_markdown(rows, md_path, f"Summoner Skill Results: {args.record_dir.as_posix()}")
-    print(f"wrote {len(rows)} summoner skill groups to {csv_path} and {md_path}")
+    recommendation_rows = recommend_skill_rows(rows, min_episodes=args.min_episodes)
+    recommend_csv = args.recommend_csv or args.record_dir / "summoner_skill_recommendations.csv"
+    recommend_md = args.recommend_md or args.record_dir / "summoner_skill_recommendations.md"
+    write_recommendation_csv(recommendation_rows, recommend_csv)
+    write_recommendation_markdown(
+        recommendation_rows,
+        recommend_md,
+        f"Summoner Skill Recommendations: {args.record_dir.as_posix()}",
+    )
+    print(
+        f"wrote {len(rows)} summoner skill groups to {csv_path} and {md_path}; "
+        f"{len(recommendation_rows)} recommendations to {recommend_csv} and {recommend_md}"
+    )
 
 
 if __name__ == "__main__":
