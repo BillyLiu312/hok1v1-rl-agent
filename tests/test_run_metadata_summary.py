@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from utils.run_metadata_summary import collect_rows, write_csv, write_markdown
+from utils.run_metadata_summary import canonical_reward_weight_dict, collect_rows, write_csv, write_markdown
 
 
 class RunMetadataSummaryTest(unittest.TestCase):
@@ -22,6 +22,11 @@ class RunMetadataSummaryTest(unittest.TestCase):
                     "extra": {
                         "reward_profile": "v1.2",
                         "reward_weight_overrides": "",
+                        "reward_weight_dict": {
+                            "win_result": 20.0,
+                            "death": 4.0,
+                            "push_window_tower_damage": 2.0,
+                        },
                         "opponent_schedule": "common_ai:4,historical:4,selfplay:2",
                         "model_pool_count": 2,
                         "model_pool": ["15000", "17057"],
@@ -51,6 +56,8 @@ class RunMetadataSummaryTest(unittest.TestCase):
             self.assertEqual(len(rows), 1)
             self.assertEqual(rows[0]["run_id"], "v1.2-a-001")
             self.assertEqual(rows[0]["reward_profile"], "v1.2")
+            self.assertEqual(rows[0]["reward_weight_dict"], "death=4.0,push_window_tower_damage=2.0,win_result=20.0")
+            self.assertEqual(len(rows[0]["reward_weight_dict_sha"]), 12)
             self.assertEqual(rows[0]["model_pool_count"], 2)
             self.assertEqual(rows[0]["model_pool"], "15000,17057")
             self.assertEqual(rows[0]["train_env_conf_sha"], "a" * 12)
@@ -62,7 +69,17 @@ class RunMetadataSummaryTest(unittest.TestCase):
             write_csv(rows, csv_path)
             write_markdown(rows, md_path, "Metadata")
             self.assertIn("reward_profile", csv_path.read_text(encoding="utf-8"))
-            self.assertIn("v1.2-a-001", md_path.read_text(encoding="utf-8"))
+            self.assertIn("reward_weight_dict", csv_path.read_text(encoding="utf-8"))
+            md_text = md_path.read_text(encoding="utf-8")
+            self.assertIn("v1.2-a-001", md_text)
+            self.assertIn("reward_weight_dict_sha", md_text)
+
+    def test_canonical_reward_weight_dict_is_deterministic(self):
+        first = canonical_reward_weight_dict({"win_result": 20.0, "death": 4.0})
+        second = canonical_reward_weight_dict({"death": 4.0, "win_result": 20.0})
+        self.assertEqual(first, second)
+        self.assertEqual(first[0], "death=4.0,win_result=20.0")
+        self.assertEqual(len(first[1]), 12)
 
 
 if __name__ == "__main__":

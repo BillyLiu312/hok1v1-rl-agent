@@ -257,6 +257,11 @@ def check_evidence_chain_fields(root: Path) -> list[dict]:
             "selfplay_hurt_to_hero",
             "selfplay_hurt_by_hero",
         ],
+        "utils/run_metadata_summary.py": [
+            "reward_weight_dict",
+            "reward_weight_dict_sha",
+            "canonical_reward_weight_dict",
+        ],
     }
     rows = []
     for path, fields in required_fields.items():

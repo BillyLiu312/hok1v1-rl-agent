@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 from pathlib import Path
 
@@ -23,6 +24,15 @@ def short_sha(value):
     return value[:12] if value else ""
 
 
+def canonical_reward_weight_dict(value) -> tuple[str, str]:
+    if not isinstance(value, dict) or not value:
+        return "", ""
+    normalized = {str(key): value[key] for key in sorted(value)}
+    payload = json.dumps(normalized, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    summary = ",".join(f"{key}={normalized[key]}" for key in sorted(normalized))
+    return summary, hashlib.sha256(payload.encode("utf-8")).hexdigest()[:12]
+
+
 def summarize_event(event: dict) -> dict:
     payload = event.get("payload", {})
     extra = payload.get("extra", {})
@@ -33,6 +43,7 @@ def summarize_event(event: dict) -> dict:
         if item.get("path") and item.get("sha256")
     }
     missing_files = [item.get("path") for item in files if item.get("exists") is False]
+    reward_weight_dict, reward_weight_dict_sha = canonical_reward_weight_dict(extra.get("reward_weight_dict"))
 
     return {
         "time": event.get("time"),
@@ -41,6 +52,8 @@ def summarize_event(event: dict) -> dict:
         "name": payload.get("name"),
         "reward_profile": extra.get("reward_profile", ""),
         "reward_weight_overrides": extra.get("reward_weight_overrides", ""),
+        "reward_weight_dict": reward_weight_dict,
+        "reward_weight_dict_sha": reward_weight_dict_sha,
         "opponent_schedule": extra.get("opponent_schedule", ""),
         "model_pool_count": extra.get("model_pool_count", ""),
         "model_pool": ",".join(str(item) for item in extra.get("model_pool", [])),
@@ -66,6 +79,8 @@ def write_csv(rows: list[dict], output_path: Path):
         "name",
         "reward_profile",
         "reward_weight_overrides",
+        "reward_weight_dict",
+        "reward_weight_dict_sha",
         "opponent_schedule",
         "model_pool_count",
         "model_pool",
@@ -93,6 +108,7 @@ def write_markdown(rows: list[dict], output_path: Path, title: str):
         "name",
         "reward_profile",
         "reward_weight_overrides",
+        "reward_weight_dict_sha",
         "opponent_schedule",
         "model_pool_count",
         "train_env_conf_sha",
