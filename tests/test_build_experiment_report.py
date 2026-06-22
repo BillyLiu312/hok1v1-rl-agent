@@ -130,6 +130,44 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertIn("checkpoint_matrix_csv", manifest)
             self.assertIn("summoner_skill_results_csv", manifest)
 
+    def test_build_report_can_expand_skill_grid_matrix(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            log_dir = root / "logs"
+            output_dir = root / "report"
+            log_dir.mkdir()
+            (log_dir / "step-15000.md").write_text(
+                """# Training Record
+
+## Sampling
+
+- target_step: 15000
+
+## Environment Metrics: Common AI
+
+- win_rate: 0.84
+- enemy_tower_hp: 1400.59
+- self_tower_hp: 7745.34
+- death: 2.72
+""",
+                encoding="utf-8",
+            )
+
+            artifacts = build_report(
+                log_dir=log_dir,
+                output_dir=output_dir,
+                checkpoints=[15000],
+                heroes=[199],
+                repeats=1,
+                include_skill_grid=True,
+                skills=[80107, 80110],
+            )
+
+            manifest = artifacts["manifest"].read_text(encoding="utf-8")
+            self.assertIn("evaluation_rows: 8", manifest)
+            self.assertIn("80107", artifacts["evaluation_matrix_csv"].read_text(encoding="utf-8"))
+            self.assertIn("80110", artifacts["summoner_skill_grid_csv"].read_text(encoding="utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()

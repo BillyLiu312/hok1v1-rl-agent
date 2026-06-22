@@ -53,6 +53,8 @@ def build_report(
     checkpoints=None,
     heroes=None,
     repeats=20,
+    include_skill_grid=False,
+    skills=None,
 ):
     output_dir.mkdir(parents=True, exist_ok=True)
     artifacts = {}
@@ -151,7 +153,13 @@ def build_report(
     artifacts["v1.2_candidate_gate_csv"] = candidate_gate_csv
     artifacts["v1.2_candidate_gate_md"] = candidate_gate_md
 
-    eval_rows = build_eval_rows(checkpoints=checkpoints, hero_ids=heroes, repeats=repeats)
+    eval_rows = build_eval_rows(
+        checkpoints=checkpoints,
+        hero_ids=heroes,
+        repeats=repeats,
+        include_skill_grid=include_skill_grid,
+        candidate_skills=skills,
+    )
     eval_csv = output_dir / "evaluation_matrix.csv"
     eval_md = output_dir / "evaluation_matrix.md"
     write_eval_csv(eval_rows, eval_csv)
@@ -163,7 +171,7 @@ def build_report(
     artifacts["evaluation_usr_conf_jsonl"] = eval_config_artifacts["jsonl"]
     artifacts["evaluation_config_manifest"] = eval_config_artifacts["manifest"]
 
-    skill_rows = build_skill_rows(hero_ids=heroes)
+    skill_rows = build_skill_rows(hero_ids=heroes, candidate_skills=skills)
     skill_csv = output_dir / "summoner_skill_grid.csv"
     skill_md = output_dir / "summoner_skill_grid.md"
     write_skill_csv(skill_rows, skill_csv)
@@ -203,6 +211,8 @@ def parse_args():
     parser.add_argument("--checkpoints", default="15000,17057", help="Comma-separated checkpoint steps for eval matrix")
     parser.add_argument("--heroes", default="112,133,199", help="Comma-separated hero IDs")
     parser.add_argument("--repeats", type=int, default=20, help="Repeats per eval matrix group")
+    parser.add_argument("--skill-grid", action="store_true", help="Expand all candidate summoner skills in evaluation_matrix")
+    parser.add_argument("--skills", default="80107,80110,80115", help="Comma-separated summoner skill IDs for skill grids")
     return parser.parse_args()
 
 
@@ -215,6 +225,8 @@ def main():
         checkpoints=parse_ids(args.checkpoints),
         heroes=parse_ids(args.heroes),
         repeats=args.repeats,
+        include_skill_grid=args.skill_grid,
+        skills=parse_ids(args.skills),
     )
     print(f"wrote v1.2 experiment package to {args.output_dir}")
     print(f"manifest: {artifacts['manifest']}")
