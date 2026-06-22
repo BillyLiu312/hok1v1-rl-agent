@@ -148,6 +148,15 @@ class PpoOptimizationTest(unittest.TestCase):
         self.assertEqual(MATCHUP_SUMMONER_SKILL_OVERRIDES[(199, 133)], 80107)
         self.assertEqual(select_summoner_skill(199, 133), 80107)
 
+    def test_v1_2_conservative_ppo_hyperparameters(self):
+        self.assertEqual(Config.INIT_LEARNING_RATE_START, 5e-4)
+        self.assertEqual(Config.TARGET_LR, 1e-4)
+        self.assertEqual(Config.GAMMA, 0.995)
+        self.assertEqual(Config.BETA_START, 0.025)
+        self.assertEqual(Config.CLIP_PARAM, 0.2)
+        self.assertTrue(Config.USE_GRAD_CLIP)
+        self.assertEqual(Config.GRAD_CLIP_RANGE, 0.5)
+
 
 if __name__ == "__main__":
     unittest.main()

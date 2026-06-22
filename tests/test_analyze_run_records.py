@@ -20,8 +20,20 @@ class AnalyzeRunRecordsTest(unittest.TestCase):
                     "opponent_hero_id": 133,
                     "is_eval": True,
                     "opponent_agent": "common_ai",
+                    "checkpoint": {"actual_train_global_step": 15000},
                     "frame_no": 12000,
                     "reward_sum": [10.0, -10.0],
+                    "reward_detail": [
+                        {
+                            "enemy_tower_hp_down": 0.3,
+                            "self_tower_hp_down": -0.1,
+                            "push_window_tower_damage": 0.2,
+                            "unsafe_dive": -1.0,
+                            "win_result": 1.0,
+                            "timeout_tower_gap": 0.0,
+                        },
+                        {},
+                    ],
                     "agents": [
                         {
                             "win": 1,
@@ -38,15 +50,44 @@ class AnalyzeRunRecordsTest(unittest.TestCase):
 
             rows = collect_rows(record_dir)
             self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["checkpoint_step"], 15000)
             self.assertEqual(rows[0]["matchup"], "199_vs_133")
             self.assertEqual(rows[0]["win_rate"], 1.0)
             self.assertEqual(rows[0]["avg_enemy_tower_hp"], 0)
+            self.assertEqual(rows[0]["avg_push_window_tower_damage"], 0.2)
+            self.assertEqual(rows[0]["avg_unsafe_dive"], -1.0)
 
             csv_path = record_dir / "summary.csv"
             md_path = record_dir / "summary.md"
             write_csv(rows, csv_path)
             write_markdown(rows, md_path, "Run Summary")
-            self.assertIn("199_vs_133", md_path.read_text(encoding="utf-8"))
+            markdown = md_path.read_text(encoding="utf-8")
+            self.assertIn("199_vs_133", markdown)
+            self.assertIn("avg_push_window_tower_damage", markdown)
+
+    def test_collect_handles_missing_reward_sum_for_monitor_side(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            record_dir = Path(temp_dir)
+            event = {
+                "stream": "episode_end",
+                "payload": {
+                    "monitor_agent_index": 1,
+                    "monitor_hero_id": 133,
+                    "opponent_hero_id": 199,
+                    "is_eval": True,
+                    "opponent_agent": "common_ai",
+                    "checkpoint": {"actual_train_global_step": 15000},
+                    "frame_no": 10000,
+                    "reward_sum": [10.0],
+                    "agents": [{}, {"win": 0, "hero": {"config_id": 133}, "enemy_hero": {"config_id": 199}}],
+                },
+            }
+            (record_dir / "episode_end-unit-1.jsonl").write_text(json.dumps(event) + "\n", encoding="utf-8")
+
+            rows = collect_rows(record_dir)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["matchup"], "133_vs_199")
+            self.assertEqual(rows[0]["avg_reward_sum"], "")
 
 
 if __name__ == "__main__":

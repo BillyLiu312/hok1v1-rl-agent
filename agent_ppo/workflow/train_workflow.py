@@ -19,6 +19,7 @@ from agent_ppo.feature.definition import (
     lineup_iterator_roundrobin_camp_heroes,
 )
 from agent_ppo.conf.conf import GameConfig
+from agent_ppo.conf.evaluation_config import camp_has_preset_skills
 from agent_ppo.conf.opponent_schedule import apply_opponent_agent, load_model_pool, select_curriculum_opponent
 from utils.training_recorder import TrainingRecorder
 from tools.env_conf_manager import EnvConfManager
@@ -109,6 +110,7 @@ class EpisodeRunner:
         self.episode_cnt = 0
         self.last_report_monitor_time = 0
         self.current_opponent_agent = None
+        self.latest_training_metrics = {}
 
     def _call_init_config(self, usr_conf):
         """Call init_config on both agents to get summoner skill selections,
@@ -140,6 +142,10 @@ class EpisodeRunner:
                 "opponent_heroes": opponent_hero_ids,
             }
 
+            if camp_has_preset_skills(usr_conf, camp_key):
+                self.logger.info(f"Agent[{agent_idx}] init_config skipped: camp={camp_key} preset skills found")
+                continue
+
             select_skills = agent.init_config(config_data)
             EnvConfManager.inject_select_skills(usr_conf, camp_key, select_skills)
             self.logger.info(
@@ -154,6 +160,7 @@ class EpisodeRunner:
             # 获取训练中的指标
             training_metrics = get_training_metrics()
             if training_metrics:
+                self.latest_training_metrics = training_metrics
                 self.training_recorder.record(
                     "metrics",
                     {
@@ -222,6 +229,7 @@ class EpisodeRunner:
                     "monitor_side": monitor_side,
                     "configured_opponent_agent": configured_opponent_agent,
                     "opponent_agent": current_opponent_agent,
+                    "checkpoint": self._extract_checkpoint_snapshot(),
                     "usr_conf": usr_conf,
                 },
             )
@@ -453,6 +461,7 @@ class EpisodeRunner:
             "monitor_hero_id": self._first_or_none(blue_hero_ids if monitor_side == 0 else red_hero_ids),
             "opponent_hero_id": self._first_or_none(red_hero_ids if monitor_side == 0 else blue_hero_ids),
             "opponent_agent": self.current_opponent_agent or self.env_conf_manager.get_opponent_agent(),
+            "checkpoint": self._extract_checkpoint_snapshot(),
             "usr_conf": usr_conf,
             "frame_no": frame_no,
             "terminated": terminated,
@@ -475,6 +484,30 @@ class EpisodeRunner:
             model_pool=load_model_pool(),
             rng=random,
         )
+
+    def _extract_checkpoint_snapshot(self):
+        metrics = self.latest_training_metrics or {}
+        candidate_sources = [metrics]
+        env_metrics = metrics.get("env")
+        if isinstance(env_metrics, dict):
+            candidate_sources.append(env_metrics)
+
+        snapshot = {}
+        for source in candidate_sources:
+            if not isinstance(source, dict):
+                continue
+            for key in (
+                "train_global_step",
+                "actual_train_global_step",
+                "global_step",
+                "model_id",
+                "checkpoint",
+            ):
+                if key in source:
+                    snapshot[key] = source[key]
+        if snapshot:
+            snapshot["episode_cnt"] = self.episode_cnt
+        return snapshot
 
     def _summarize_observation(self, agent_index, agent_observation):
         frame_state = agent_observation.get("frame_state", {})

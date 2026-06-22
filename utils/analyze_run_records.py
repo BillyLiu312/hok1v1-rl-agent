@@ -32,6 +32,19 @@ def get_agent(payload: dict, index: int):
     return {}
 
 
+def get_reward_detail(payload: dict, index: int):
+    reward_detail = payload.get("reward_detail", [])
+    if 0 <= index < len(reward_detail):
+        return reward_detail[index]
+    return {}
+
+
+def list_get(values, index: int):
+    if isinstance(values, list) and 0 <= index < len(values):
+        return values[index]
+    return None
+
+
 def summarize_episode(payload: dict) -> dict:
     monitor_index = int(payload.get("monitor_agent_index", payload.get("monitor_side", 0)) or 0)
     agent = get_agent(payload, monitor_index)
@@ -39,10 +52,22 @@ def summarize_episode(payload: dict) -> dict:
     enemy_hero = agent.get("enemy_hero") or {}
     tower = agent.get("tower") or {}
     enemy_tower = agent.get("enemy_tower") or {}
+    reward_detail = get_reward_detail(payload, monitor_index)
     monitor_hero_id = payload.get("monitor_hero_id") or hero.get("config_id")
     opponent_hero_id = payload.get("opponent_hero_id") or enemy_hero.get("config_id")
+    checkpoint = payload.get("checkpoint") or {}
+    checkpoint_step = (
+        checkpoint.get("actual_train_global_step")
+        or checkpoint.get("train_global_step")
+        or checkpoint.get("global_step")
+        or checkpoint.get("model_id")
+        or checkpoint.get("checkpoint")
+        or payload.get("checkpoint_step")
+        or payload.get("model_id")
+    )
 
     return {
+        "checkpoint_step": checkpoint_step,
         "matchup": f"{monitor_hero_id}_vs_{opponent_hero_id}",
         "is_eval": payload.get("is_eval"),
         "opponent_agent": payload.get("opponent_agent"),
@@ -53,7 +78,13 @@ def summarize_episode(payload: dict) -> dict:
         "kill": hero.get("kill_cnt"),
         "death": hero.get("dead_cnt"),
         "money_cnt": hero.get("money_cnt"),
-        "reward_sum": payload.get("reward_sum", [None])[monitor_index],
+        "reward_sum": list_get(payload.get("reward_sum"), monitor_index),
+        "reward_enemy_tower_hp_down": reward_detail.get("enemy_tower_hp_down"),
+        "reward_self_tower_hp_down": reward_detail.get("self_tower_hp_down"),
+        "reward_push_window_tower_damage": reward_detail.get("push_window_tower_damage"),
+        "reward_unsafe_dive": reward_detail.get("unsafe_dive"),
+        "reward_win_result": reward_detail.get("win_result"),
+        "reward_timeout_tower_gap": reward_detail.get("timeout_tower_gap"),
     }
 
 
@@ -61,13 +92,29 @@ def collect_rows(record_dir: Path) -> list[dict]:
     episodes = [summarize_episode(event.get("payload", {})) for event in iter_events(record_dir, "episode_end")]
     groups = defaultdict(list)
     for episode in episodes:
-        key = (episode["matchup"], episode["is_eval"], episode["opponent_agent"])
+        key = (
+            episode["checkpoint_step"],
+            episode["matchup"],
+            episode["is_eval"],
+            episode["opponent_agent"],
+        )
         groups[key].append(episode)
 
     rows = []
-    for (matchup, is_eval, opponent_agent), items in sorted(groups.items()):
+    def group_sort_key(item):
+        checkpoint_step, matchup, is_eval, opponent_agent = item[0]
+        return (
+            checkpoint_step is None,
+            str(checkpoint_step),
+            str(matchup),
+            str(is_eval),
+            str(opponent_agent),
+        )
+
+    for (checkpoint_step, matchup, is_eval, opponent_agent), items in sorted(groups.items(), key=group_sort_key):
         rows.append(
             {
+                "checkpoint_step": checkpoint_step,
                 "matchup": matchup,
                 "is_eval": is_eval,
                 "opponent_agent": opponent_agent,
@@ -80,6 +127,12 @@ def collect_rows(record_dir: Path) -> list[dict]:
                 "avg_death": avg([item["death"] for item in items]),
                 "avg_money_cnt": avg([item["money_cnt"] for item in items]),
                 "avg_reward_sum": avg([item["reward_sum"] for item in items]),
+                "avg_reward_enemy_tower_hp_down": avg([item["reward_enemy_tower_hp_down"] for item in items]),
+                "avg_reward_self_tower_hp_down": avg([item["reward_self_tower_hp_down"] for item in items]),
+                "avg_push_window_tower_damage": avg([item["reward_push_window_tower_damage"] for item in items]),
+                "avg_unsafe_dive": avg([item["reward_unsafe_dive"] for item in items]),
+                "avg_win_result": avg([item["reward_win_result"] for item in items]),
+                "avg_timeout_tower_gap": avg([item["reward_timeout_tower_gap"] for item in items]),
             }
         )
     return rows
@@ -96,6 +149,7 @@ def fmt(value):
 def write_csv(rows: list[dict], output_path: Path):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [
+        "checkpoint_step",
         "matchup",
         "is_eval",
         "opponent_agent",
@@ -108,6 +162,12 @@ def write_csv(rows: list[dict], output_path: Path):
         "avg_death",
         "avg_money_cnt",
         "avg_reward_sum",
+        "avg_reward_enemy_tower_hp_down",
+        "avg_reward_self_tower_hp_down",
+        "avg_push_window_tower_damage",
+        "avg_unsafe_dive",
+        "avg_win_result",
+        "avg_timeout_tower_gap",
     ]
     with output_path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
@@ -118,6 +178,7 @@ def write_csv(rows: list[dict], output_path: Path):
 def write_markdown(rows: list[dict], output_path: Path, title: str):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     columns = [
+        "checkpoint_step",
         "matchup",
         "is_eval",
         "opponent_agent",
@@ -126,6 +187,8 @@ def write_markdown(rows: list[dict], output_path: Path, title: str):
         "avg_enemy_tower_hp",
         "avg_self_tower_hp",
         "avg_death",
+        "avg_push_window_tower_damage",
+        "avg_unsafe_dive",
         "avg_frame",
     ]
     lines = [f"# {title}", "", f"- groups: {len(rows)}", ""]

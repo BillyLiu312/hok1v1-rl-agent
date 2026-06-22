@@ -21,7 +21,9 @@ auto_switch_monitor_side = true
 # 2. common_ai：与基于规则的common_ai对战
 # 3. curriculum：按课程混合 common_ai、selfplay 和 kaiwu.json 中的历史模型
 # 4. 自定义的模型id：与指定的模型对战，需要先将模型上传至模型管理，并且将模型ID配置在kaiwu.json中，然后在此处进行引用
-opponent_agent = "selfplay"
+# v1.2-a defaults to common_ai to isolate reward/feature changes before selfplay drift.
+# v1.2-a 默认先打 common_ai，确认奖励/特征收益后再切 curriculum 或 selfplay。
+opponent_agent = "common_ai"
 
 # Evaluation interval (unit: games). Type: integer, value range: integer >= 2, default: 10
 # 评估间隔(单位局)，类型整型，取值范围为大于等于2的整数，默认值10

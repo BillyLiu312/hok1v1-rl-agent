@@ -11,6 +11,18 @@
 5. [胜率优化管线](optimization-pipeline.md)
 6. [v1.1 训练分析](v1.1-training-analysis.md)
 7. [v1.2 实施计划](v1.2-implementation-plan.md)
+8. [v1.2 Runbook](v1.2-runbook.md)
+
+## v1.2 本地工具
+
+- `utils/analyze_training_logs.py`：汇总 `logs/v*/step-*.md` 为训练摘要。
+- `utils/evaluation_matrix.py`：生成 checkpoint x matchup x 换边 x 召唤师技能的固定评估清单。
+- `utils/evaluation_config_export.py`：把评估矩阵导出为 `usr_conf` JSONL 和 TOML 配置片段。
+- `utils/analyze_run_records.py`：聚合训练账本中的 episode/matchup/reward 分解。
+- `utils/select_checkpoint.py`：根据训练摘要和矩阵评估结果排序 checkpoint。
+- `utils/checkpoint_matrix.py`：生成 checkpoint-vs-opponent 胜率矩阵和 Elo 排名。
+- `utils/summoner_skill_results.py`：按 matchup 和召唤师技能选择聚合胜率、死亡和推塔指标。
+- `utils/build_experiment_report.py`：一键生成 v1.2 训练摘要、评估矩阵、召唤师技能网格和 checkpoint 排名证据包。
 
 ## 腾讯开悟强化学习框架
 
