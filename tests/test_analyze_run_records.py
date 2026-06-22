@@ -21,6 +21,7 @@ class AnalyzeRunRecordsTest(unittest.TestCase):
                     "is_eval": True,
                     "opponent_agent": "common_ai",
                     "checkpoint": {"actual_train_global_step": 15000},
+                    "evaluation": {"eval_id": 7, "checkpoint_step": 15000, "repeat_index": 1},
                     "frame_no": 12000,
                     "reward_sum": [10.0, -10.0],
                     "reward_detail": [
@@ -50,6 +51,8 @@ class AnalyzeRunRecordsTest(unittest.TestCase):
             }
             event_2 = json.loads(json.dumps(event))
             event_2["payload"]["agents"][0]["hero"]["dead_cnt"] = 3
+            event_2["payload"]["evaluation"]["eval_id"] = 8
+            event_2["payload"]["evaluation"]["repeat_index"] = 2
             event_2["payload"]["reward_detail"][0]["enemy_tower_hp_down"] = 0.1
             event_2["payload"]["reward_detail"][0]["push_window_tower_damage"] = 0.1
             event_2["payload"]["reward_detail"][0]["unsafe_dive_active"] = 9.0
@@ -61,6 +64,9 @@ class AnalyzeRunRecordsTest(unittest.TestCase):
             rows = collect_rows(record_dir)
             self.assertEqual(len(rows), 1)
             self.assertEqual(rows[0]["checkpoint_step"], 15000)
+            self.assertEqual(rows[0]["eval_ids"], "7,8")
+            self.assertEqual(rows[0]["evaluation_checkpoint_step"], 15000)
+            self.assertEqual(rows[0]["repeat_indices"], "1,2")
             self.assertEqual(rows[0]["matchup"], "199_vs_133")
             self.assertEqual(rows[0]["win_rate"], 1.0)
             self.assertEqual(rows[0]["avg_enemy_tower_hp"], 0)
@@ -77,6 +83,7 @@ class AnalyzeRunRecordsTest(unittest.TestCase):
             write_markdown(rows, md_path, "Run Summary")
             markdown = md_path.read_text(encoding="utf-8")
             self.assertIn("199_vs_133", markdown)
+            self.assertIn("eval_ids", markdown)
             self.assertIn("avg_push_window_tower_damage", markdown)
             self.assertIn("push_window_tower_damage_share", markdown)
             self.assertIn("unsafe_dive_death_corr", markdown)

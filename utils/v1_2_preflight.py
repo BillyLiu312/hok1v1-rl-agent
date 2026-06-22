@@ -196,6 +196,18 @@ def check_evidence_chain_fields(root: Path) -> list[dict]:
         "utils/evaluate_v1_2_candidate.py": [
             "matchup_min_episodes",
         ],
+        "agent_ppo/workflow/train_workflow.py": [
+            "_extract_evaluation_metadata",
+            '"evaluation": self._extract_evaluation_metadata(usr_conf)',
+        ],
+        "utils/evaluation_config_export.py": [
+            '"evaluation": build_eval_metadata(row)',
+        ],
+        "utils/analyze_run_records.py": [
+            "eval_ids",
+            "repeat_indices",
+            "evaluation_checkpoint_step",
+        ],
     }
     rows = []
     for path, fields in required_fields.items():

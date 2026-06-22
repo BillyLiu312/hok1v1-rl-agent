@@ -473,6 +473,7 @@ class EpisodeRunner:
             "opponent_hero_id": self._first_or_none(red_hero_ids if monitor_side == 0 else blue_hero_ids),
             "opponent_agent": self.current_opponent_agent or self.env_conf_manager.get_opponent_agent(),
             "checkpoint": self._extract_checkpoint_snapshot(),
+            "evaluation": self._extract_evaluation_metadata(usr_conf),
             "usr_conf": usr_conf,
             "frame_no": frame_no,
             "terminated": terminated,
@@ -487,6 +488,10 @@ class EpisodeRunner:
 
     def _first_or_none(self, values):
         return values[0] if values else None
+
+    def _extract_evaluation_metadata(self, usr_conf):
+        evaluation = usr_conf.get("evaluation")
+        return evaluation if isinstance(evaluation, dict) else {}
 
     def _select_episode_opponent(self, configured_opponent_agent, is_eval):
         if is_eval or configured_opponent_agent != "curriculum":

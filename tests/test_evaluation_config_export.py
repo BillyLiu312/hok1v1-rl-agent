@@ -19,7 +19,8 @@ class EvaluationConfigExportTest(unittest.TestCase):
         self.assertEqual(usr_conf["episode"]["opponent_agent"], "common_ai")
         self.assertEqual(usr_conf["lineups"]["blue_camp"][0]["hero_id"], 112)
         self.assertEqual(usr_conf["lineups"]["blue_camp"][0]["select_skill"], 80115)
-        self.assertNotIn("evaluation", usr_conf)
+        self.assertEqual(usr_conf["evaluation"]["eval_id"], row["eval_id"])
+        self.assertEqual(usr_conf["evaluation"]["repeat_index"], row["repeat_index"])
 
     def test_render_toml_contains_eval_config(self):
         row = build_rows(checkpoints=[15000], hero_ids=[112], repeats=1)[0]
@@ -49,7 +50,7 @@ class EvaluationConfigExportTest(unittest.TestCase):
             self.assertEqual(first_event["evaluation"]["checkpoint_step"], 15000)
             self.assertEqual(first_event["evaluation"]["blue_select_skill"], 80115)
             self.assertEqual(first_event["evaluation"]["red_select_skill"], 80115)
-            self.assertNotIn("evaluation", first_event["usr_conf"])
+            self.assertEqual(first_event["usr_conf"]["evaluation"], first_event["evaluation"])
             self.assertIn("toml_files: 1", artifacts["manifest"].read_text(encoding="utf-8"))
             self.assertIn("skill_pairs: 1", artifacts["manifest"].read_text(encoding="utf-8"))
 

@@ -45,6 +45,7 @@ def build_usr_conf(row: dict) -> dict:
                 }
             ],
         },
+        "evaluation": build_eval_metadata(row),
     }
     return usr_conf
 

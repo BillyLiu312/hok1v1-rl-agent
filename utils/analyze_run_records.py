@@ -33,6 +33,13 @@ def safe_ratio(numerator, denominator):
     return numerator / denominator
 
 
+def first_non_empty(values):
+    for value in values:
+        if value not in ("", None):
+            return value
+    return ""
+
+
 def pearson_corr(x_values, y_values):
     pairs = [(x, y) for x, y in zip(x_values, y_values) if x is not None and y is not None]
     if len(pairs) < 2:
@@ -75,6 +82,7 @@ def summarize_episode(payload: dict) -> dict:
     tower = agent.get("tower") or {}
     enemy_tower = agent.get("enemy_tower") or {}
     reward_detail = get_reward_detail(payload, monitor_index)
+    evaluation = payload.get("evaluation") or (payload.get("usr_conf", {}) or {}).get("evaluation") or {}
     monitor_hero_id = payload.get("monitor_hero_id") or hero.get("config_id")
     opponent_hero_id = payload.get("opponent_hero_id") or enemy_hero.get("config_id")
     checkpoint = payload.get("checkpoint") or {}
@@ -90,6 +98,9 @@ def summarize_episode(payload: dict) -> dict:
 
     return {
         "checkpoint_step": checkpoint_step,
+        "eval_id": evaluation.get("eval_id"),
+        "evaluation_checkpoint_step": evaluation.get("checkpoint_step"),
+        "repeat_index": evaluation.get("repeat_index"),
         "matchup": f"{monitor_hero_id}_vs_{opponent_hero_id}",
         "is_eval": payload.get("is_eval"),
         "opponent_agent": payload.get("opponent_agent"),
@@ -142,6 +153,17 @@ def collect_rows(record_dir: Path) -> list[dict]:
         rows.append(
             {
                 "checkpoint_step": checkpoint_step,
+                "eval_ids": ",".join(
+                    str(item["eval_id"])
+                    for item in items
+                    if item.get("eval_id") not in ("", None)
+                ),
+                "evaluation_checkpoint_step": first_non_empty([item["evaluation_checkpoint_step"] for item in items]),
+                "repeat_indices": ",".join(
+                    str(item["repeat_index"])
+                    for item in items
+                    if item.get("repeat_index") not in ("", None)
+                ),
                 "matchup": matchup,
                 "is_eval": is_eval,
                 "opponent_agent": opponent_agent,
@@ -184,6 +206,9 @@ def write_csv(rows: list[dict], output_path: Path):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [
         "checkpoint_step",
+        "eval_ids",
+        "evaluation_checkpoint_step",
+        "repeat_indices",
         "matchup",
         "is_eval",
         "opponent_agent",
@@ -217,6 +242,8 @@ def write_markdown(rows: list[dict], output_path: Path, title: str):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     columns = [
         "checkpoint_step",
+        "eval_ids",
+        "repeat_indices",
         "matchup",
         "is_eval",
         "opponent_agent",
