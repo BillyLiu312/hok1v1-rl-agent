@@ -183,21 +183,26 @@ def check_evidence_chain_fields(root: Path) -> list[dict]:
             "candidate_gate_matchup_filter",
             "filter_fixed_eval_rows_for_checkpoint",
             "summoner_skill_policy_patch",
+            "recommended_death_p90",
         ],
         "utils/compare_experiment_reports.py": [
             "research_story_verdict",
             "candidate_gate_matchup_filter",
             "matchup_filter_opponent_agent",
             "matchup_eval_ids",
+            "max_death_p90",
         ],
         "utils/select_checkpoint.py": [
             "matchup_filter_eval_only",
             "matchup_filter_opponent_agent",
             "matchup_eval_ids",
             "matchup_repeat_indices",
+            "matchup_max_death_p90",
         ],
         "utils/evaluate_v1_2_candidate.py": [
             "matchup_min_episodes",
+            "death_tail_risk",
+            "timeout_rate",
         ],
         "agent_ppo/workflow/train_workflow.py": [
             "_extract_evaluation_metadata",

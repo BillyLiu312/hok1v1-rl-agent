@@ -8,8 +8,11 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 from collections import defaultdict
 from pathlib import Path
+
+TIMEOUT_FRAME = 20000
 
 
 def iter_events(record_dir: Path, stream: str):
@@ -23,6 +26,14 @@ def iter_events(record_dir: Path, stream: str):
 def avg(values):
     values = [value for value in values if value is not None]
     return sum(values) / len(values) if values else ""
+
+
+def quantile(values, q):
+    values = sorted(value for value in values if value is not None)
+    if not values:
+        return ""
+    index = max(0, math.ceil(q * len(values)) - 1)
+    return values[min(index, len(values) - 1)]
 
 
 def safe_ratio(numerator, denominator):
@@ -107,6 +118,7 @@ def summarize_episode(payload: dict) -> dict:
         "opponent_agent": payload.get("opponent_agent"),
         "win": agent.get("win"),
         "frame_no": payload.get("frame_no"),
+        "is_timeout": 1 if (payload.get("frame_no") or 0) >= TIMEOUT_FRAME else 0,
         "self_tower_hp": tower.get("hp"),
         "enemy_tower_hp": enemy_tower.get("hp"),
         "kill": hero.get("kill_cnt"),
@@ -171,10 +183,14 @@ def collect_rows(record_dir: Path) -> list[dict]:
                 "episodes": len(items),
                 "win_rate": avg([item["win"] for item in items]),
                 "avg_frame": avg([item["frame_no"] for item in items]),
+                "frame_p90": quantile([item["frame_no"] for item in items], 0.90),
+                "timeout_rate": avg([item["is_timeout"] for item in items]),
                 "avg_self_tower_hp": avg([item["self_tower_hp"] for item in items]),
+                "self_tower_hp_p10": quantile([item["self_tower_hp"] for item in items], 0.10),
                 "avg_enemy_tower_hp": avg([item["enemy_tower_hp"] for item in items]),
                 "avg_kill": avg([item["kill"] for item in items]),
                 "avg_death": avg([item["death"] for item in items]),
+                "death_p90": quantile([item["death"] for item in items], 0.90),
                 "avg_money_cnt": avg([item["money_cnt"] for item in items]),
                 "avg_reward_sum": avg([item["reward_sum"] for item in items]),
                 "avg_reward_enemy_tower_hp_down": avg_enemy_tower_down,
@@ -216,10 +232,14 @@ def write_csv(rows: list[dict], output_path: Path):
         "episodes",
         "win_rate",
         "avg_frame",
+        "frame_p90",
+        "timeout_rate",
         "avg_self_tower_hp",
+        "self_tower_hp_p10",
         "avg_enemy_tower_hp",
         "avg_kill",
         "avg_death",
+        "death_p90",
         "avg_money_cnt",
         "avg_reward_sum",
         "avg_reward_enemy_tower_hp_down",
@@ -252,7 +272,10 @@ def write_markdown(rows: list[dict], output_path: Path, title: str):
         "win_rate",
         "avg_enemy_tower_hp",
         "avg_self_tower_hp",
+        "self_tower_hp_p10",
         "avg_death",
+        "death_p90",
+        "timeout_rate",
         "avg_push_window_tower_damage",
         "avg_unsafe_dive",
         "push_window_tower_damage_share",
@@ -260,6 +283,7 @@ def write_markdown(rows: list[dict], output_path: Path, title: str):
         "avg_push_window_active_frames",
         "avg_unsafe_dive_active_frames",
         "avg_frame",
+        "frame_p90",
     ]
     lines = [f"# {title}", "", f"- groups: {len(rows)}", ""]
     lines.extend(["| " + " | ".join(columns) + " |", "| " + " | ".join(["---"] * len(columns)) + " |"])

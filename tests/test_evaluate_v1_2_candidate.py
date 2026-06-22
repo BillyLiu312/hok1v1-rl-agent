@@ -25,6 +25,9 @@ class EvaluateV12CandidateTest(unittest.TestCase):
             "matchup_groups": 9,
             "matchup_avg_push_window_tower_damage_share": 0.45,
             "matchup_avg_unsafe_dive_death_corr": 0.1,
+            "matchup_max_death_p90": 3.0,
+            "matchup_min_self_tower_hp_p10": 3000,
+            "matchup_avg_timeout_rate": 0.05,
         }
         matchup_rows = [
             {"matchup": f"{hero}_vs_{opponent}", "episodes": 20}
@@ -50,6 +53,9 @@ class EvaluateV12CandidateTest(unittest.TestCase):
         self.assertEqual(statuses["matchup_coverage"], "MISSING")
         self.assertEqual(statuses["avg_death"], "FAIL")
         self.assertEqual(statuses["push_window_evidence"], "MISSING")
+        self.assertEqual(statuses["death_tail_risk"], "WARN")
+        self.assertEqual(statuses["self_tower_tail_risk"], "WARN")
+        self.assertEqual(statuses["timeout_rate"], "WARN")
         self.assertEqual(statuses["unsafe_dive_risk"], "WARN")
         self.assertEqual(overall_status(rows), "FAIL")
 
@@ -63,12 +69,18 @@ class EvaluateV12CandidateTest(unittest.TestCase):
             "matchup_groups": 9,
             "matchup_avg_push_window_tower_damage_share": 0.08,
             "matchup_avg_unsafe_dive_death_corr": 0.6,
+            "matchup_max_death_p90": 5.0,
+            "matchup_min_self_tower_hp_p10": 500,
+            "matchup_avg_timeout_rate": 0.25,
         }
 
         rows = evaluate_candidate(candidate)
         statuses = {row["gate"]: row["status"] for row in rows}
         self.assertEqual(statuses["push_window_evidence"], "WARN")
         self.assertEqual(statuses["unsafe_dive_risk"], "WARN")
+        self.assertEqual(statuses["death_tail_risk"], "WARN")
+        self.assertEqual(statuses["self_tower_tail_risk"], "WARN")
+        self.assertEqual(statuses["timeout_rate"], "WARN")
 
     def test_candidate_warns_when_matchup_episode_count_is_too_low(self):
         candidate = {
@@ -80,6 +92,9 @@ class EvaluateV12CandidateTest(unittest.TestCase):
             "matchup_groups": 9,
             "matchup_avg_push_window_tower_damage_share": 0.45,
             "matchup_avg_unsafe_dive_death_corr": 0.1,
+            "matchup_max_death_p90": 3.0,
+            "matchup_min_self_tower_hp_p10": 3000,
+            "matchup_avg_timeout_rate": 0.05,
         }
         matchup_rows = [
             {"matchup": f"{hero}_vs_{opponent}", "episodes": 20}

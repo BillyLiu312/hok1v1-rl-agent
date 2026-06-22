@@ -355,6 +355,9 @@ def write_manifest(
         lines.append(f"- recommended_win_rate: {manifest_value(win_rate)}")
         lines.append(f"- recommended_min_win_rate: {manifest_value(best.get('matchup_min_win_rate'))}")
         lines.append(f"- recommended_death: {manifest_value(death)}")
+        lines.append(f"- recommended_death_p90: {manifest_value(best.get('matchup_max_death_p90'))}")
+        lines.append(f"- recommended_self_tower_hp_p10: {manifest_value(best.get('matchup_min_self_tower_hp_p10'))}")
+        lines.append(f"- recommended_timeout_rate: {manifest_value(best.get('matchup_avg_timeout_rate'))}")
         lines.append(
             f"- recommended_push_window_tower_damage_share: {manifest_value(best.get('matchup_avg_push_window_tower_damage_share'))}"
         )

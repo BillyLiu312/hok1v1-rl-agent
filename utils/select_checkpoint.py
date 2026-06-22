@@ -148,10 +148,18 @@ def attach_matchup_metrics(
         win_rates = [value for value in win_rates if value is not None]
         deaths = [to_float(row.get("avg_death")) for row in rows]
         deaths = [value for value in deaths if value is not None]
+        death_p90 = [to_float(row.get("death_p90")) for row in rows]
+        death_p90 = [value for value in death_p90 if value is not None]
         enemy_tower_hp = [to_float(row.get("avg_enemy_tower_hp")) for row in rows]
         enemy_tower_hp = [value for value in enemy_tower_hp if value is not None]
         self_tower_hp = [to_float(row.get("avg_self_tower_hp")) for row in rows]
         self_tower_hp = [value for value in self_tower_hp if value is not None]
+        self_tower_hp_p10 = [to_float(row.get("self_tower_hp_p10")) for row in rows]
+        self_tower_hp_p10 = [value for value in self_tower_hp_p10 if value is not None]
+        frame_p90 = [to_float(row.get("frame_p90")) for row in rows]
+        frame_p90 = [value for value in frame_p90 if value is not None]
+        timeout_rate = [to_float(row.get("timeout_rate")) for row in rows]
+        timeout_rate = [value for value in timeout_rate if value is not None]
         push_window_tower_damage = [to_float(row.get("avg_push_window_tower_damage")) for row in rows]
         push_window_tower_damage = [value for value in push_window_tower_damage if value is not None]
         unsafe_dive = [to_float(row.get("avg_unsafe_dive")) for row in rows]
@@ -177,8 +185,14 @@ def attach_matchup_metrics(
                 "matchup_avg_win_rate": avg(win_rates),
                 "matchup_min_win_rate": min(win_rates) if win_rates else None,
                 "matchup_avg_death": avg(deaths),
+                "matchup_avg_death_p90": avg(death_p90),
+                "matchup_max_death_p90": max(death_p90) if death_p90 else None,
                 "matchup_avg_enemy_tower_hp": avg(enemy_tower_hp),
                 "matchup_avg_self_tower_hp": avg(self_tower_hp),
+                "matchup_min_self_tower_hp_p10": min(self_tower_hp_p10) if self_tower_hp_p10 else None,
+                "matchup_avg_frame_p90": avg(frame_p90),
+                "matchup_avg_timeout_rate": avg(timeout_rate),
+                "matchup_max_timeout_rate": max(timeout_rate) if timeout_rate else None,
                 "matchup_avg_push_window_tower_damage": avg(push_window_tower_damage),
                 "matchup_avg_unsafe_dive": avg(unsafe_dive),
                 "matchup_avg_push_window_active_frames": avg(push_window_active_frames),
@@ -219,6 +233,15 @@ def compute_score(candidate: dict) -> float:
     unsafe_dive_active_frames = candidate.get("matchup_avg_unsafe_dive_active_frames")
     if unsafe_dive_active_frames is not None:
         score -= unsafe_dive_active_frames * 0.05
+    death_p90 = candidate.get("matchup_max_death_p90")
+    if death_p90 is not None:
+        score -= death_p90 * 1.5
+    self_tower_hp_p10 = candidate.get("matchup_min_self_tower_hp_p10")
+    if self_tower_hp_p10 is not None:
+        score += self_tower_hp_p10 / 6000.0
+    timeout_rate = candidate.get("matchup_avg_timeout_rate")
+    if timeout_rate is not None:
+        score -= timeout_rate * 5.0
     push_window_tower_damage_share = candidate.get("matchup_avg_push_window_tower_damage_share")
     if push_window_tower_damage_share is not None:
         score += push_window_tower_damage_share * 2.0
@@ -249,12 +272,18 @@ def recommendation_reason(row: dict) -> str:
     death = metric(row, "matchup_avg_death", "common_ai_death")
     if death is not None:
         parts.append(f"death={fmt(death)}")
+    death_p90 = row.get("matchup_max_death_p90")
+    if death_p90 is not None:
+        parts.append(f"max_death_p90={fmt(death_p90)}")
     enemy_tower_hp = metric(row, "matchup_avg_enemy_tower_hp", "common_ai_enemy_tower_hp")
     if enemy_tower_hp is not None:
         parts.append(f"enemy_tower_hp={fmt(enemy_tower_hp)}")
     groups = row.get("matchup_groups")
     if groups:
         parts.append(f"matchup_groups={groups}")
+    timeout_rate = row.get("matchup_avg_timeout_rate")
+    if timeout_rate is not None:
+        parts.append(f"timeout_rate={fmt(timeout_rate)}")
     unsafe_dive_active_frames = row.get("matchup_avg_unsafe_dive_active_frames")
     if unsafe_dive_active_frames is not None:
         parts.append(f"unsafe_dive_active_frames={fmt(unsafe_dive_active_frames)}")
@@ -291,8 +320,14 @@ def write_csv(rows: list[dict], output_path: Path):
         "matchup_avg_win_rate",
         "matchup_min_win_rate",
         "matchup_avg_death",
+        "matchup_avg_death_p90",
+        "matchup_max_death_p90",
         "matchup_avg_enemy_tower_hp",
         "matchup_avg_self_tower_hp",
+        "matchup_min_self_tower_hp_p10",
+        "matchup_avg_frame_p90",
+        "matchup_avg_timeout_rate",
+        "matchup_max_timeout_rate",
         "matchup_avg_push_window_tower_damage",
         "matchup_avg_unsafe_dive",
         "matchup_avg_push_window_active_frames",
@@ -325,6 +360,9 @@ def write_markdown(rows: list[dict], output_path: Path, title: str):
         "matchup_avg_win_rate",
         "matchup_min_win_rate",
         "matchup_avg_death",
+        "matchup_max_death_p90",
+        "matchup_min_self_tower_hp_p10",
+        "matchup_avg_timeout_rate",
         "matchup_avg_push_window_active_frames",
         "matchup_avg_unsafe_dive_active_frames",
         "matchup_avg_push_window_tower_damage_share",

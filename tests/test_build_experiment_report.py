@@ -222,6 +222,10 @@ class BuildExperimentReportTest(unittest.TestCase):
                     ],
                 },
             }
+            event_2 = json.loads(json.dumps(event))
+            event_2["payload"]["frame_no"] = 20000
+            event_2["payload"]["agents"][0]["hero"]["dead_cnt"] = 3
+            event_2["payload"]["agents"][0]["tower"]["hp"] = 500
             other_checkpoint_event = json.loads(json.dumps(event))
             other_checkpoint_event["payload"]["monitor_hero_id"] = 112
             other_checkpoint_event["payload"]["opponent_hero_id"] = 112
@@ -229,7 +233,7 @@ class BuildExperimentReportTest(unittest.TestCase):
             other_checkpoint_event["payload"]["agents"][0]["hero"]["config_id"] = 112
             other_checkpoint_event["payload"]["agents"][0]["enemy_hero"]["config_id"] = 112
             (record_dir / "episode_end-unit-1.jsonl").write_text(
-                json.dumps(event) + "\n" + json.dumps(other_checkpoint_event) + "\n",
+                json.dumps(event) + "\n" + json.dumps(event_2) + "\n" + json.dumps(other_checkpoint_event) + "\n",
                 encoding="utf-8",
             )
 
@@ -262,8 +266,12 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertIn("summoner_skill_policy_patch_py", manifest)
             self.assertIn("recommended_matchup_rows", manifest)
             self.assertIn("recommended_push_window_tower_damage_share", manifest)
+            self.assertIn("recommended_death_p90", manifest)
+            self.assertIn("recommended_self_tower_hp_p10", manifest)
+            self.assertIn("recommended_timeout_rate", manifest)
             candidate_gate = artifacts["v1.2_candidate_gate_csv"].read_text(encoding="utf-8")
             self.assertIn("raw_matchup_rows,1", candidate_gate)
+            self.assertIn("death_tail_risk", candidate_gate)
 
     def test_build_report_can_expand_skill_grid_matrix(self):
         with tempfile.TemporaryDirectory() as temp_dir:

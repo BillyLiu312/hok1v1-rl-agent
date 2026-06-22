@@ -70,10 +70,10 @@ class SelectCheckpointTest(unittest.TestCase):
             matchup_csv.write_text(
                 "\n".join(
                     [
-                        "checkpoint_step,eval_ids,evaluation_checkpoint_step,repeat_indices,matchup,is_eval,opponent_agent,episodes,win_rate,avg_frame,avg_self_tower_hp,avg_enemy_tower_hp,avg_kill,avg_death,avg_money_cnt,avg_reward_sum,avg_push_window_tower_damage,avg_unsafe_dive,avg_push_window_active_frames,avg_unsafe_dive_active_frames,push_window_tower_damage_share,unsafe_dive_death_corr",
-                        "100,1,100,1,112_vs_112,True,common_ai,20,0.5,10000,6000,3000,1,4,5000,1,0.1,-2,3,20,0.2,0.8",
-                        "200,2,200,1,112_vs_112,True,common_ai,20,0.9,9000,8000,1000,2,1,6000,5,0.4,-0.5,12,2,0.75,0.1",
-                        "200,3,200,2,112_vs_112,True,17057,20,0.8,9500,7000,1200,2,2,5800,4,0.2,-0.7,10,4,0.5,0.2",
+                        "checkpoint_step,eval_ids,evaluation_checkpoint_step,repeat_indices,matchup,is_eval,opponent_agent,episodes,win_rate,avg_frame,frame_p90,timeout_rate,avg_self_tower_hp,self_tower_hp_p10,avg_enemy_tower_hp,avg_kill,avg_death,death_p90,avg_money_cnt,avg_reward_sum,avg_push_window_tower_damage,avg_unsafe_dive,avg_push_window_active_frames,avg_unsafe_dive_active_frames,push_window_tower_damage_share,unsafe_dive_death_corr",
+                        "100,1,100,1,112_vs_112,True,common_ai,20,0.5,10000,19000,0.2,6000,1000,3000,1,4,6,5000,1,0.1,-2,3,20,0.2,0.8",
+                        "200,2,200,1,112_vs_112,True,common_ai,20,0.9,9000,12000,0.0,8000,6000,1000,2,1,2,6000,5,0.4,-0.5,12,2,0.75,0.1",
+                        "200,3,200,2,112_vs_112,True,17057,20,0.8,9500,14000,0.1,7000,5000,1200,2,2,3,5800,4,0.2,-0.7,10,4,0.5,0.2",
                     ]
                 )
                 + "\n",
@@ -94,6 +94,9 @@ class SelectCheckpointTest(unittest.TestCase):
             self.assertEqual(rows[0]["reward_push_window_tower_damage"], 0.4)
             self.assertEqual(rows[0]["reward_win_result"], 1)
             self.assertEqual(rows[0]["matchup_min_win_rate"], 0.9)
+            self.assertEqual(rows[0]["matchup_max_death_p90"], 2)
+            self.assertEqual(rows[0]["matchup_min_self_tower_hp_p10"], 6000)
+            self.assertEqual(rows[0]["matchup_avg_timeout_rate"], 0)
             self.assertAlmostEqual(rows[0]["matchup_avg_push_window_tower_damage"], 0.4)
             self.assertEqual(rows[0]["matchup_avg_push_window_active_frames"], 12)
             self.assertEqual(rows[0]["matchup_avg_unsafe_dive_active_frames"], 2)
@@ -105,8 +108,10 @@ class SelectCheckpointTest(unittest.TestCase):
             write_csv(rows, csv_path)
             write_markdown(rows, md_path, "Ranking")
             self.assertIn("reward_push_window_tower_damage", csv_path.read_text(encoding="utf-8"))
+            self.assertIn("matchup_max_death_p90", csv_path.read_text(encoding="utf-8"))
             self.assertIn("matchup_eval_ids", csv_path.read_text(encoding="utf-8"))
             self.assertIn("reward_win_result", md_path.read_text(encoding="utf-8"))
+            self.assertIn("matchup_avg_timeout_rate", md_path.read_text(encoding="utf-8"))
             self.assertIn("matchup_repeat_indices", md_path.read_text(encoding="utf-8"))
 
             attach_matchup_metrics(candidates, matchup_csv, eval_only=False, opponent_agent=None)

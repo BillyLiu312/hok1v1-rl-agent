@@ -18,6 +18,9 @@ MIN_EPISODES_PER_MATCHUP = 20
 MIN_MATCHUP_WIN_RATE_GAP = 0.25
 MIN_PUSH_WINDOW_TOWER_DAMAGE_SHARE = 0.10
 MAX_UNSAFE_DIVE_DEATH_CORR = 0.30
+MAX_DEATH_P90 = 4.0
+MIN_SELF_TOWER_HP_P10 = 1000.0
+MAX_TIMEOUT_RATE = 0.15
 
 
 def read_csv_rows(path: Path) -> list[dict]:
@@ -97,6 +100,9 @@ def evaluate_candidate(candidate: dict, matchup_rows: list[dict] | None = None) 
     min_win_rate = to_float(candidate.get("matchup_min_win_rate"))
     push_window_tower_damage_share = to_float(candidate.get("matchup_avg_push_window_tower_damage_share"))
     unsafe_dive_death_corr = to_float(candidate.get("matchup_avg_unsafe_dive_death_corr"))
+    death_p90 = to_float(candidate.get("matchup_max_death_p90"))
+    self_tower_hp_p10 = to_float(candidate.get("matchup_min_self_tower_hp_p10"))
+    timeout_rate = to_float(candidate.get("matchup_avg_timeout_rate"))
 
     if win_rate is None:
         gates.append(gate("MISSING", "common_ai_win_rate", "", f"> {V1_1_BEST_WIN_RATE}", "Win rate is unavailable."))
@@ -179,6 +185,72 @@ def evaluate_candidate(candidate: dict, matchup_rows: list[dict] | None = None) 
                 push_window_tower_damage_share,
                 f">= {MIN_PUSH_WINDOW_TOWER_DAMAGE_SHARE}",
                 "Push-window tower damage share is low; inspect whether the window detector or policy is too conservative.",
+            )
+        )
+
+    if death_p90 is None:
+        gates.append(
+            gate(
+                "WARN",
+                "death_tail_risk",
+                "",
+                f"<= {MAX_DEATH_P90}",
+                "Missing p90 death evidence; cannot verify that deaths are controlled beyond the mean.",
+            )
+        )
+    else:
+        status = "PASS" if death_p90 <= MAX_DEATH_P90 else "WARN"
+        gates.append(
+            gate(
+                status,
+                "death_tail_risk",
+                death_p90,
+                f"<= {MAX_DEATH_P90}",
+                "High-percentile deaths should stay bounded across matchups.",
+            )
+        )
+
+    if self_tower_hp_p10 is None:
+        gates.append(
+            gate(
+                "WARN",
+                "self_tower_tail_risk",
+                "",
+                f">= {MIN_SELF_TOWER_HP_P10}",
+                "Missing p10 self-tower evidence; cannot verify defensive stability.",
+            )
+        )
+    else:
+        status = "PASS" if self_tower_hp_p10 >= MIN_SELF_TOWER_HP_P10 else "WARN"
+        gates.append(
+            gate(
+                status,
+                "self_tower_tail_risk",
+                self_tower_hp_p10,
+                f">= {MIN_SELF_TOWER_HP_P10}",
+                "Low-percentile self tower HP should not collapse in weak matchups.",
+            )
+        )
+
+    if timeout_rate is None:
+        gates.append(
+            gate(
+                "WARN",
+                "timeout_rate",
+                "",
+                f"<= {MAX_TIMEOUT_RATE}",
+                "Missing timeout evidence; cannot separate stable wins from slow stalling.",
+            )
+        )
+    else:
+        status = "PASS" if timeout_rate <= MAX_TIMEOUT_RATE else "WARN"
+        gates.append(
+            gate(
+                status,
+                "timeout_rate",
+                timeout_rate,
+                f"<= {MAX_TIMEOUT_RATE}",
+                "Timeout rate should remain low so tower pressure is decisive.",
             )
         )
 

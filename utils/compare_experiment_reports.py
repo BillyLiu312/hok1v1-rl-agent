@@ -124,6 +124,9 @@ def summarize_report(report_dir: Path) -> dict:
         "avg_win_rate": to_float(ranking.get("matchup_avg_win_rate") or ranking.get("common_ai_win_rate"), ""),
         "min_win_rate": to_float(ranking.get("matchup_min_win_rate"), ""),
         "avg_death": to_float(ranking.get("matchup_avg_death") or ranking.get("common_ai_death"), ""),
+        "max_death_p90": to_float(ranking.get("matchup_max_death_p90"), ""),
+        "min_self_tower_hp_p10": to_float(ranking.get("matchup_min_self_tower_hp_p10"), ""),
+        "avg_timeout_rate": to_float(ranking.get("matchup_avg_timeout_rate"), ""),
         "avg_enemy_tower_hp": to_float(ranking.get("matchup_avg_enemy_tower_hp") or ranking.get("common_ai_enemy_tower_hp"), ""),
         "reward_push_window_tower_damage": to_float(ranking.get("reward_push_window_tower_damage"), ""),
         "reward_unsafe_dive": to_float(ranking.get("reward_unsafe_dive"), ""),
@@ -139,6 +142,9 @@ DELTA_METRICS = [
     "avg_win_rate",
     "min_win_rate",
     "avg_death",
+    "max_death_p90",
+    "min_self_tower_hp_p10",
+    "avg_timeout_rate",
     "avg_enemy_tower_hp",
     "avg_push_window_tower_damage_share",
     "avg_unsafe_dive_death_corr",
@@ -237,6 +243,12 @@ def research_story_verdict(row: dict, baseline_label: str) -> str:
     min_win_worse = is_worse_delta(row.get("min_win_rate_delta_vs_baseline"), higher_is_better=True)
     death_better = is_better_delta(row.get("avg_death_delta_vs_baseline"), higher_is_better=False)
     death_worse = is_worse_delta(row.get("avg_death_delta_vs_baseline"), higher_is_better=False)
+    death_tail_better = is_better_delta(row.get("max_death_p90_delta_vs_baseline"), higher_is_better=False)
+    death_tail_worse = is_worse_delta(row.get("max_death_p90_delta_vs_baseline"), higher_is_better=False)
+    self_tower_tail_better = is_better_delta(row.get("min_self_tower_hp_p10_delta_vs_baseline"), higher_is_better=True)
+    self_tower_tail_worse = is_worse_delta(row.get("min_self_tower_hp_p10_delta_vs_baseline"), higher_is_better=True)
+    timeout_better = is_better_delta(row.get("avg_timeout_rate_delta_vs_baseline"), higher_is_better=False)
+    timeout_worse = is_worse_delta(row.get("avg_timeout_rate_delta_vs_baseline"), higher_is_better=False)
     tower_better = is_better_delta(row.get("avg_enemy_tower_hp_delta_vs_baseline"), higher_is_better=False)
     tower_worse = is_worse_delta(row.get("avg_enemy_tower_hp_delta_vs_baseline"), higher_is_better=False)
     push_share_better = is_better_delta(row.get("avg_push_window_tower_damage_share_delta_vs_baseline"), higher_is_better=True)
@@ -250,6 +262,12 @@ def research_story_verdict(row: dict, baseline_label: str) -> str:
         min_win_worse,
         death_better,
         death_worse,
+        death_tail_better,
+        death_tail_worse,
+        self_tower_tail_better,
+        self_tower_tail_worse,
+        timeout_better,
+        timeout_worse,
         tower_better,
         tower_worse,
         push_share_better,
@@ -275,11 +293,13 @@ def research_story_verdict(row: dict, baseline_label: str) -> str:
         return "mixed_terminal_evidence"
 
     if profile == "death_only_risk" or "death" in name or "risk" in name:
-        if death_better and any_true([win_worse, min_win_worse, tower_worse, push_share_worse]):
+        risk_better = any_true([death_better, death_tail_better, self_tower_tail_better, timeout_better])
+        risk_worse = any_true([death_worse, death_tail_worse, self_tower_tail_worse, timeout_worse])
+        if risk_better and any_true([win_worse, min_win_worse, tower_worse, push_share_worse]):
             return "death_risk_reduces_deaths_but_hurts_objective"
-        if death_better and any_true([win_better, tower_better]) and not any_true([win_worse, tower_worse]):
+        if risk_better and any_true([win_better, tower_better]) and not any_true([win_worse, tower_worse]):
             return "death_risk_improves_stability"
-        if death_worse:
+        if risk_worse:
             return "challenges_death_only_risk"
         return "mixed_risk_evidence"
 
@@ -370,6 +390,12 @@ def write_csv(rows: list[dict], output_path: Path):
         "min_win_rate_delta_vs_baseline",
         "avg_death",
         "avg_death_delta_vs_baseline",
+        "max_death_p90",
+        "max_death_p90_delta_vs_baseline",
+        "min_self_tower_hp_p10",
+        "min_self_tower_hp_p10_delta_vs_baseline",
+        "avg_timeout_rate",
+        "avg_timeout_rate_delta_vs_baseline",
         "avg_enemy_tower_hp",
         "avg_enemy_tower_hp_delta_vs_baseline",
         "reward_push_window_tower_damage",
@@ -412,6 +438,12 @@ def write_markdown(rows: list[dict], output_path: Path, title="v1.2 Experiment C
         "min_win_rate",
         "avg_death",
         "avg_death_delta_vs_baseline",
+        "max_death_p90",
+        "max_death_p90_delta_vs_baseline",
+        "min_self_tower_hp_p10",
+        "min_self_tower_hp_p10_delta_vs_baseline",
+        "avg_timeout_rate",
+        "avg_timeout_rate_delta_vs_baseline",
         "avg_enemy_tower_hp",
         "avg_enemy_tower_hp_delta_vs_baseline",
         "reward_push_window_tower_damage",
