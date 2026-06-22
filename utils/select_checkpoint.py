@@ -51,6 +51,29 @@ def is_truthy(value) -> bool:
     return str(value).strip().lower() in ("true", "1", "yes")
 
 
+def collect_unique_tokens(rows: list[dict], key: str) -> str:
+    values = []
+    seen = set()
+    for row in rows:
+        raw_value = row.get(key)
+        if raw_value in ("", None):
+            continue
+        for token in str(raw_value).split(","):
+            token = token.strip()
+            if token and token not in seen:
+                seen.add(token)
+                values.append(token)
+    return ",".join(values)
+
+
+def first_non_empty(rows: list[dict], key: str):
+    for row in rows:
+        value = row.get(key)
+        if value not in ("", None):
+            return value
+    return ""
+
+
 def normalize_training_row(row: dict) -> dict:
     step = to_int(row.get("step"))
     actual_step = to_int(row.get("actual_train_global_step"))
@@ -148,6 +171,9 @@ def attach_matchup_metrics(
                 "matchup_rows": len(rows),
                 "matchup_filter_eval_only": eval_only,
                 "matchup_filter_opponent_agent": opponent_agent,
+                "matchup_eval_ids": collect_unique_tokens(rows, "eval_ids"),
+                "matchup_repeat_indices": collect_unique_tokens(rows, "repeat_indices"),
+                "matchup_evaluation_checkpoint_step": first_non_empty(rows, "evaluation_checkpoint_step"),
                 "matchup_avg_win_rate": avg(win_rates),
                 "matchup_min_win_rate": min(win_rates) if win_rates else None,
                 "matchup_avg_death": avg(deaths),
@@ -259,6 +285,9 @@ def write_csv(rows: list[dict], output_path: Path):
         "matchup_rows",
         "matchup_filter_eval_only",
         "matchup_filter_opponent_agent",
+        "matchup_eval_ids",
+        "matchup_repeat_indices",
+        "matchup_evaluation_checkpoint_step",
         "matchup_avg_win_rate",
         "matchup_min_win_rate",
         "matchup_avg_death",
@@ -291,6 +320,8 @@ def write_markdown(rows: list[dict], output_path: Path, title: str):
         "reward_win_result",
         "matchup_groups",
         "matchup_rows",
+        "matchup_eval_ids",
+        "matchup_repeat_indices",
         "matchup_avg_win_rate",
         "matchup_min_win_rate",
         "matchup_avg_death",

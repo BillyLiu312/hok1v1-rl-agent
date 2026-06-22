@@ -34,8 +34,8 @@ def make_report(
     (report_dir / "checkpoint_ranking.csv").write_text(
         "\n".join(
             [
-                "checkpoint_step,score,matchup_groups,matchup_rows,matchup_filter_eval_only,matchup_filter_opponent_agent,matchup_avg_win_rate,matchup_min_win_rate,matchup_avg_death,matchup_avg_enemy_tower_hp,reward_push_window_tower_damage,reward_unsafe_dive,reward_win_result,matchup_avg_push_window_active_frames,matchup_avg_unsafe_dive_active_frames,matchup_avg_push_window_tower_damage_share,matchup_avg_unsafe_dive_death_corr",
-                f"15000,100,9,18,True,common_ai,{win_rate},{min_win_rate},{death},{enemy_tower_hp},0.4,-0.5,1,12,1,{push_window_share},{unsafe_dive_corr}",
+                "checkpoint_step,score,matchup_groups,matchup_rows,matchup_filter_eval_only,matchup_filter_opponent_agent,matchup_eval_ids,matchup_repeat_indices,matchup_avg_win_rate,matchup_min_win_rate,matchup_avg_death,matchup_avg_enemy_tower_hp,reward_push_window_tower_damage,reward_unsafe_dive,reward_win_result,matchup_avg_push_window_active_frames,matchup_avg_unsafe_dive_active_frames,matchup_avg_push_window_tower_damage_share,matchup_avg_unsafe_dive_death_corr",
+                f"15000,100,9,18,True,common_ai,1,1,{win_rate},{min_win_rate},{death},{enemy_tower_hp},0.4,-0.5,1,12,1,{push_window_share},{unsafe_dive_corr}",
             ]
         )
         + "\n",
@@ -105,6 +105,8 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertEqual(rows[0]["matchup_rows"], "18")
             self.assertEqual(rows[0]["matchup_filter_eval_only"], "True")
             self.assertEqual(rows[0]["matchup_filter_opponent_agent"], "common_ai")
+            self.assertEqual(rows[0]["matchup_eval_ids"], "1")
+            self.assertEqual(rows[0]["matchup_repeat_indices"], "1")
             self.assertEqual(rows[0]["reward_push_window_tower_damage"], 0.4)
             self.assertEqual(rows[0]["reward_win_result"], 1.0)
             self.assertEqual(rows[0]["avg_push_window_tower_damage_share"], 0.75)
@@ -130,6 +132,7 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertIn("research_story_verdict", csv_path.read_text(encoding="utf-8"))
             self.assertIn("candidate_gate_matchup_filter", csv_path.read_text(encoding="utf-8"))
             self.assertIn("matchup_filter_opponent_agent", csv_path.read_text(encoding="utf-8"))
+            self.assertIn("matchup_eval_ids", csv_path.read_text(encoding="utf-8"))
             self.assertIn("avg_win_rate_delta_vs_baseline", csv_path.read_text(encoding="utf-8"))
             self.assertIn("reward_profile", csv_path.read_text(encoding="utf-8"))
             self.assertIn("v1.2-run", md_path.read_text(encoding="utf-8"))

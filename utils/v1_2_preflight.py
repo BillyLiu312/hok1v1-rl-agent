@@ -188,10 +188,13 @@ def check_evidence_chain_fields(root: Path) -> list[dict]:
             "research_story_verdict",
             "candidate_gate_matchup_filter",
             "matchup_filter_opponent_agent",
+            "matchup_eval_ids",
         ],
         "utils/select_checkpoint.py": [
             "matchup_filter_eval_only",
             "matchup_filter_opponent_agent",
+            "matchup_eval_ids",
+            "matchup_repeat_indices",
         ],
         "utils/evaluate_v1_2_candidate.py": [
             "matchup_min_episodes",
