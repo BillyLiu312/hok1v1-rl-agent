@@ -5,10 +5,18 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from utils.build_experiment_report import build_report
+from utils.build_experiment_report import build_report, filter_rows_for_checkpoint
 
 
 class BuildExperimentReportTest(unittest.TestCase):
+    def test_filter_rows_for_checkpoint_matches_exact_step(self):
+        rows = [
+            {"checkpoint_step": 15000, "matchup": "199_vs_133"},
+            {"checkpoint_step": "17057", "matchup": "112_vs_112"},
+        ]
+        self.assertEqual(filter_rows_for_checkpoint(rows, "15000"), [rows[0]])
+        self.assertEqual(filter_rows_for_checkpoint(rows, None), rows)
+
     def test_build_report_writes_expected_artifacts(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -122,7 +130,16 @@ class BuildExperimentReportTest(unittest.TestCase):
                     ],
                 },
             }
-            (record_dir / "episode_end-unit-1.jsonl").write_text(json.dumps(event) + "\n", encoding="utf-8")
+            other_checkpoint_event = json.loads(json.dumps(event))
+            other_checkpoint_event["payload"]["monitor_hero_id"] = 112
+            other_checkpoint_event["payload"]["opponent_hero_id"] = 112
+            other_checkpoint_event["payload"]["checkpoint"] = {"actual_train_global_step": 17057}
+            other_checkpoint_event["payload"]["agents"][0]["hero"]["config_id"] = 112
+            other_checkpoint_event["payload"]["agents"][0]["enemy_hero"]["config_id"] = 112
+            (record_dir / "episode_end-unit-1.jsonl").write_text(
+                json.dumps(event) + "\n" + json.dumps(other_checkpoint_event) + "\n",
+                encoding="utf-8",
+            )
 
             artifacts = build_report(
                 log_dir=log_dir,
@@ -150,6 +167,8 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertIn("summoner_skill_results_csv", manifest)
             self.assertIn("recommended_matchup_rows", manifest)
             self.assertIn("recommended_push_window_tower_damage_share", manifest)
+            candidate_gate = artifacts["v1.2_candidate_gate_csv"].read_text(encoding="utf-8")
+            self.assertIn("raw_matchup_rows,1", candidate_gate)
 
     def test_build_report_can_expand_skill_grid_matrix(self):
         with tempfile.TemporaryDirectory() as temp_dir:

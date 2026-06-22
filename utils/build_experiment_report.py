@@ -144,7 +144,9 @@ def build_report(
     artifacts["checkpoint_ranking_csv"] = checkpoint_csv
     artifacts["checkpoint_ranking_md"] = checkpoint_md
 
-    candidate_gate_rows = evaluate_candidate(checkpoint_rows[0] if checkpoint_rows else {}, matchup_rows=run_rows)
+    candidate = checkpoint_rows[0] if checkpoint_rows else {}
+    candidate_matchup_rows = filter_rows_for_checkpoint(run_rows, candidate.get("checkpoint_step") if candidate else None)
+    candidate_gate_rows = evaluate_candidate(candidate, matchup_rows=candidate_matchup_rows)
     candidate_gate_csv = output_dir / "v1.2_candidate_gate.csv"
     candidate_gate_md = output_dir / "v1.2_candidate_gate.md"
     write_candidate_gate_csv(candidate_gate_rows, candidate_gate_csv)
@@ -152,7 +154,7 @@ def build_report(
         candidate_gate_rows,
         candidate_gate_md,
         "v1.2 Candidate Gate",
-        checkpoint_rows[0] if checkpoint_rows else {},
+        candidate,
     )
     artifacts["v1.2_candidate_gate_csv"] = candidate_gate_csv
     artifacts["v1.2_candidate_gate_md"] = candidate_gate_md
@@ -196,6 +198,12 @@ def read_launch_manifest(path: Path | None) -> dict:
         return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return {}
+
+
+def filter_rows_for_checkpoint(rows: list[dict] | None, checkpoint_step) -> list[dict] | None:
+    if rows is None or checkpoint_step in ("", None):
+        return rows
+    return [row for row in rows if str(row.get("checkpoint_step")) == str(checkpoint_step)]
 
 
 def count_status(rows: list[dict], status: str) -> int:
