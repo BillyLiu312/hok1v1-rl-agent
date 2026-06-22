@@ -123,7 +123,11 @@ def matches_any(path: str, patterns: list[str]) -> bool:
             return True
         if pattern.endswith("/**"):
             directory = pattern[:-3].rstrip("/")
-            if directory and directory in PurePosixPath(path).parts:
+            if directory and (
+                path == directory
+                or path.startswith(directory + "/")
+                or directory in PurePosixPath(path).parts
+            ):
                 return True
     return False
 
@@ -158,17 +162,62 @@ def should_include(
     return not matches_any(rel, exclude_patterns)
 
 
+def may_contain_included_files(rel_dir: str, include_patterns: list[str]) -> bool:
+    if not include_patterns or rel_dir in ("", "."):
+        return True
+
+    rel_dir = rel_dir.rstrip("/")
+    for pattern in include_patterns:
+        if "/" not in pattern:
+            return True
+        if pattern.endswith("/**"):
+            directory = pattern[:-3].rstrip("/")
+            if (
+                rel_dir == directory
+                or directory.startswith(rel_dir + "/")
+                or rel_dir.startswith(directory + "/")
+            ):
+                return True
+        elif pattern == rel_dir or pattern.startswith(rel_dir + "/"):
+            return True
+    return False
+
+
 def iter_files(
     root: Path,
     include_patterns: list[str],
     exclude_patterns: list[str],
 ) -> list[Path]:
     files: list[Path] = []
-    for path in root.rglob("*"):
-        if not path.is_file():
+    visited_dirs: set[str] = set()
+    for dirpath, dirnames, filenames in os.walk(root, topdown=True, followlinks=True):
+        current_dir = Path(dirpath)
+        real_dir = os.path.realpath(dirpath)
+        if real_dir in visited_dirs:
+            dirnames[:] = []
             continue
-        if should_include(path, root, include_patterns, exclude_patterns):
-            files.append(path)
+        visited_dirs.add(real_dir)
+
+        kept_dirnames = []
+        for dirname in dirnames:
+            child_dir = current_dir / dirname
+            try:
+                rel_dir = to_posix(child_dir.relative_to(root))
+            except ValueError:
+                continue
+            if matches_any(rel_dir, exclude_patterns):
+                continue
+            if not may_contain_included_files(rel_dir, include_patterns):
+                continue
+            kept_dirnames.append(dirname)
+        dirnames[:] = kept_dirnames
+
+        for filename in filenames:
+            path = current_dir / filename
+            if not path.is_file():
+                continue
+            if should_include(path, root, include_patterns, exclude_patterns):
+                files.append(path)
     return sorted(files, key=lambda p: to_posix(p.relative_to(root)))
 
 
