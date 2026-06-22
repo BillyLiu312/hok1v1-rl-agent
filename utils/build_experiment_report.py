@@ -32,6 +32,9 @@ from utils.evaluate_v1_2_candidate import write_markdown as write_candidate_gate
 from utils.select_checkpoint import attach_matchup_metrics, collect_candidates, rank_candidates
 from utils.select_checkpoint import write_csv as write_checkpoint_csv
 from utils.select_checkpoint import write_markdown as write_checkpoint_markdown
+from utils.run_metadata_summary import collect_rows as collect_metadata_rows
+from utils.run_metadata_summary import write_csv as write_metadata_csv
+from utils.run_metadata_summary import write_markdown as write_metadata_markdown
 from utils.summoner_skill_grid import build_rows as build_skill_rows
 from utils.summoner_skill_grid import write_csv as write_skill_csv
 from utils.summoner_skill_grid import write_markdown as write_skill_markdown
@@ -72,6 +75,14 @@ def build_report(
         write_run_markdown(run_rows, matchup_md, f"Run Record Matchup Summary: {record_dir.as_posix()}")
         artifacts["matchup_summary_csv"] = matchup_csv
         artifacts["matchup_summary_md"] = matchup_md
+
+        metadata_rows = collect_metadata_rows(record_dir)
+        metadata_csv = output_dir / "run_metadata_summary.csv"
+        metadata_md = output_dir / "run_metadata_summary.md"
+        write_metadata_csv(metadata_rows, metadata_csv)
+        write_metadata_markdown(metadata_rows, metadata_md, f"Run Metadata Summary: {record_dir.as_posix()}")
+        artifacts["run_metadata_summary_csv"] = metadata_csv
+        artifacts["run_metadata_summary_md"] = metadata_md
 
         checkpoint_matrix_rows, checkpoint_elo_rows = build_checkpoint_matrix(record_dir)
         checkpoint_matrix_csv = output_dir / "checkpoint_matrix.csv"
