@@ -20,6 +20,7 @@
 - `utils/evaluation_config_export.py`：把评估矩阵导出为 `usr_conf` JSONL 和 TOML 配置片段。
 - `utils/analyze_run_records.py`：聚合训练账本中的 episode/matchup/reward 分解。
 - `utils/select_checkpoint.py`：根据训练摘要和矩阵评估结果排序 checkpoint。
+- `utils/evaluate_v1_2_candidate.py`：根据 v1.2 验收标准逐项判定候选 checkpoint。
 - `utils/checkpoint_matrix.py`：生成 checkpoint-vs-opponent 胜率矩阵和 Elo 排名。
 - `utils/summoner_skill_results.py`：按 matchup 和召唤师技能选择聚合胜率、死亡和推塔指标，并输出技能推荐。
 - `utils/build_experiment_report.py`：一键生成 v1.2 训练摘要、评估矩阵、召唤师技能网格和 checkpoint 排名证据包。

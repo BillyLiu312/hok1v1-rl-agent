@@ -26,6 +26,9 @@ from utils.evaluation_matrix import parse_ids
 from utils.evaluation_matrix import write_csv as write_eval_csv
 from utils.evaluation_matrix import write_markdown as write_eval_markdown
 from utils.evaluation_config_export import export_configs
+from utils.evaluate_v1_2_candidate import evaluate_candidate
+from utils.evaluate_v1_2_candidate import write_csv as write_candidate_gate_csv
+from utils.evaluate_v1_2_candidate import write_markdown as write_candidate_gate_markdown
 from utils.select_checkpoint import attach_matchup_metrics, collect_candidates, rank_candidates
 from utils.select_checkpoint import write_csv as write_checkpoint_csv
 from utils.select_checkpoint import write_markdown as write_checkpoint_markdown
@@ -60,6 +63,7 @@ def build_report(
     artifacts["training_summary_md"] = training_md
 
     matchup_csv = None
+    run_rows = None
     if record_dir and record_dir.exists():
         run_rows = collect_run_rows(record_dir)
         matchup_csv = output_dir / "matchup_summary.csv"
@@ -122,6 +126,19 @@ def build_report(
     write_checkpoint_markdown(checkpoint_rows, checkpoint_md, "Checkpoint Ranking")
     artifacts["checkpoint_ranking_csv"] = checkpoint_csv
     artifacts["checkpoint_ranking_md"] = checkpoint_md
+
+    candidate_gate_rows = evaluate_candidate(checkpoint_rows[0] if checkpoint_rows else {}, matchup_rows=run_rows)
+    candidate_gate_csv = output_dir / "v1.2_candidate_gate.csv"
+    candidate_gate_md = output_dir / "v1.2_candidate_gate.md"
+    write_candidate_gate_csv(candidate_gate_rows, candidate_gate_csv)
+    write_candidate_gate_markdown(
+        candidate_gate_rows,
+        candidate_gate_md,
+        "v1.2 Candidate Gate",
+        checkpoint_rows[0] if checkpoint_rows else {},
+    )
+    artifacts["v1.2_candidate_gate_csv"] = candidate_gate_csv
+    artifacts["v1.2_candidate_gate_md"] = candidate_gate_md
 
     eval_rows = build_eval_rows(checkpoints=checkpoints, hero_ids=heroes, repeats=repeats)
     eval_csv = output_dir / "evaluation_matrix.csv"

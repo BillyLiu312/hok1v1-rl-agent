@@ -47,6 +47,7 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertIn("recommended_checkpoint: 15000", manifest)
             self.assertIn("evaluation_rows: 2", manifest)
             self.assertIn("checkpoint_ranking_csv", manifest)
+            self.assertIn("v1.2_candidate_gate_csv", manifest)
 
     def test_build_report_includes_run_record_artifacts(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -116,6 +117,7 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertTrue(artifacts["matchup_summary_csv"].exists())
             self.assertTrue(artifacts["checkpoint_matrix_csv"].exists())
             self.assertTrue(artifacts["summoner_skill_results_csv"].exists())
+            self.assertTrue(artifacts["v1.2_candidate_gate_csv"].exists())
             manifest = artifacts["manifest"].read_text(encoding="utf-8")
             self.assertIn("checkpoint_matrix_csv", manifest)
             self.assertIn("summoner_skill_results_csv", manifest)
