@@ -15,7 +15,7 @@ from utils.summoner_skill_results import (
 )
 
 
-def make_event(skill_id, win):
+def make_event(skill_id, win, checkpoint_step=15000):
     return {
         "stream": "episode_end",
         "payload": {
@@ -24,7 +24,7 @@ def make_event(skill_id, win):
             "opponent_hero_id": 133,
             "is_eval": True,
             "opponent_agent": "common_ai",
-            "checkpoint": {"actual_train_global_step": 15000},
+            "checkpoint": {"actual_train_global_step": checkpoint_step},
             "usr_conf": {
                 "lineups": {
                     "blue_camp": [{"hero_id": 199, "select_skill": skill_id}],
@@ -61,6 +61,7 @@ class SummonerSkillResultsTest(unittest.TestCase):
             self.assertEqual(len(rows), 2)
 
             purify = [row for row in rows if row["monitor_skill"] == 80107][0]
+            self.assertEqual(purify["checkpoint_step"], 15000)
             self.assertEqual(purify["matchup"], "199_vs_133")
             self.assertEqual(purify["monitor_skill_name"], "净化")
             self.assertTrue(purify["is_current_policy_skill"])
@@ -81,6 +82,7 @@ class SummonerSkillResultsTest(unittest.TestCase):
     def test_recommend_skill_rows_compares_against_current_policy(self):
         rows = [
             {
+                "checkpoint_step": 15000,
                 "matchup": "199_vs_133",
                 "monitor_skill": 80107,
                 "monitor_skill_name": "净化",
@@ -93,6 +95,7 @@ class SummonerSkillResultsTest(unittest.TestCase):
                 "avg_enemy_tower_hp": 2000,
             },
             {
+                "checkpoint_step": 15000,
                 "matchup": "199_vs_133",
                 "monitor_skill": 80110,
                 "monitor_skill_name": "狂暴",
@@ -108,6 +111,7 @@ class SummonerSkillResultsTest(unittest.TestCase):
 
         recommendations = recommend_skill_rows(rows)
         self.assertEqual(len(recommendations), 1)
+        self.assertEqual(recommendations[0]["checkpoint_step"], 15000)
         self.assertEqual(recommendations[0]["recommended_skill"], 80110)
         self.assertEqual(recommendations[0]["current_policy_skill"], 80107)
         self.assertTrue(recommendations[0]["needs_policy_update"])
@@ -119,6 +123,23 @@ class SummonerSkillResultsTest(unittest.TestCase):
             write_recommendation_markdown(recommendations, md_path, "Recommendations")
             self.assertIn("recommended_skill_name", csv_path.read_text(encoding="utf-8"))
             self.assertIn("needs_policy_update", md_path.read_text(encoding="utf-8"))
+
+    def test_skill_rows_are_split_by_checkpoint(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            record_dir = Path(temp_dir)
+            events = [make_event("80107", 1, 15000), make_event("80107", 0, 17057)]
+            (record_dir / "episode_end-unit-1.jsonl").write_text(
+                "\n".join(json.dumps(event) for event in events) + "\n",
+                encoding="utf-8",
+            )
+
+            rows = collect_rows(record_dir)
+            self.assertEqual(len(rows), 2)
+            self.assertEqual({row["checkpoint_step"] for row in rows}, {15000, 17057})
+
+            recommendations = recommend_skill_rows(rows)
+            self.assertEqual(len(recommendations), 2)
+            self.assertEqual({row["checkpoint_step"] for row in recommendations}, {15000, 17057})
 
 
 if __name__ == "__main__":

@@ -71,6 +71,7 @@ def collect_rows(record_dir: Path) -> list[dict]:
     groups = defaultdict(list)
     for episode in episodes:
         key = (
+            episode["checkpoint_step"],
             episode["matchup"],
             episode["monitor_skill"],
             episode["opponent_skill"],
@@ -80,11 +81,12 @@ def collect_rows(record_dir: Path) -> list[dict]:
         groups[key].append(episode)
 
     rows = []
-    for (matchup, monitor_skill, opponent_skill, is_eval, opponent_agent), items in sorted(
+    for (checkpoint_step, matchup, monitor_skill, opponent_skill, is_eval, opponent_agent), items in sorted(
         groups.items(), key=lambda item: tuple(str(value) for value in item[0])
     ):
         rows.append(
             {
+                "checkpoint_step": checkpoint_step,
                 "matchup": matchup,
                 "monitor_skill": monitor_skill,
                 "monitor_skill_name": SUMMONER_SKILL_MAP.get(
@@ -135,6 +137,7 @@ def recommend_skill_rows(rows: list[dict], min_episodes=1) -> list[dict]:
         if to_float(row.get("episodes"), 0.0) < min_episodes:
             continue
         key = (
+            row.get("checkpoint_step"),
             row.get("matchup"),
             row.get("is_eval"),
             row.get("opponent_agent"),
@@ -142,7 +145,7 @@ def recommend_skill_rows(rows: list[dict], min_episodes=1) -> list[dict]:
         grouped[key].append(row)
 
     recommendations = []
-    for (matchup, is_eval, opponent_agent), items in sorted(grouped.items(), key=lambda item: tuple(str(value) for value in item[0])):
+    for (checkpoint_step, matchup, is_eval, opponent_agent), items in sorted(grouped.items(), key=lambda item: tuple(str(value) for value in item[0])):
         ranked = sorted(
             items,
             key=lambda item: (
@@ -160,6 +163,7 @@ def recommend_skill_rows(rows: list[dict], min_episodes=1) -> list[dict]:
 
         recommendations.append(
             {
+                "checkpoint_step": checkpoint_step,
                 "matchup": matchup,
                 "is_eval": is_eval,
                 "opponent_agent": opponent_agent,
@@ -190,6 +194,7 @@ def fmt(value):
 def write_csv(rows: list[dict], output_path: Path):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [
+        "checkpoint_step",
         "matchup",
         "monitor_skill",
         "monitor_skill_name",
@@ -214,6 +219,7 @@ def write_csv(rows: list[dict], output_path: Path):
 def write_markdown(rows: list[dict], output_path: Path, title: str):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     columns = [
+        "checkpoint_step",
         "matchup",
         "monitor_skill",
         "monitor_skill_name",
@@ -235,6 +241,7 @@ def write_markdown(rows: list[dict], output_path: Path, title: str):
 def write_recommendation_csv(rows: list[dict], output_path: Path):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [
+        "checkpoint_step",
         "matchup",
         "is_eval",
         "opponent_agent",
@@ -259,6 +266,7 @@ def write_recommendation_csv(rows: list[dict], output_path: Path):
 def write_recommendation_markdown(rows: list[dict], output_path: Path, title: str):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     columns = [
+        "checkpoint_step",
         "matchup",
         "recommended_skill",
         "recommended_skill_name",
