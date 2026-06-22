@@ -7,7 +7,18 @@ from pathlib import Path
 from utils.compare_experiment_reports import collect_rows, interpretation_counts, read_manifest_summary, write_csv, write_markdown
 
 
-def make_report(root: Path, name: str, profile: str, win_rate: float, gate_status: str):
+def make_report(
+    root: Path,
+    name: str,
+    profile: str,
+    win_rate: float,
+    gate_status: str,
+    min_win_rate: float = 0.7,
+    death: float = 2.1,
+    enemy_tower_hp: float = 900,
+    push_window_share: float = 0.75,
+    unsafe_dive_corr: float = 0.1,
+):
     report_dir = root / name
     report_dir.mkdir()
     (report_dir / "run_metadata_summary.csv").write_text(
@@ -24,7 +35,7 @@ def make_report(root: Path, name: str, profile: str, win_rate: float, gate_statu
         "\n".join(
             [
                 "checkpoint_step,score,matchup_groups,matchup_rows,matchup_avg_win_rate,matchup_min_win_rate,matchup_avg_death,matchup_avg_enemy_tower_hp,reward_push_window_tower_damage,reward_unsafe_dive,reward_win_result,matchup_avg_push_window_active_frames,matchup_avg_unsafe_dive_active_frames,matchup_avg_push_window_tower_damage_share,matchup_avg_unsafe_dive_death_corr",
-                f"15000,100,9,18,{win_rate},0.7,2.1,900,0.4,-0.5,1,12,1,0.75,0.1",
+                f"15000,100,9,18,{win_rate},{min_win_rate},{death},{enemy_tower_hp},0.4,-0.5,1,12,1,{push_window_share},{unsafe_dive_corr}",
             ]
         )
         + "\n",
@@ -83,6 +94,7 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertEqual(rows[0]["success_metrics"], "avg_win_rate,avg_death")
             self.assertEqual(rows[0]["baseline_experiment"], "v1.2")
             self.assertEqual(rows[0]["ablation_interpretation"], "baseline")
+            self.assertEqual(rows[0]["research_story_verdict"], "baseline_reference")
             self.assertEqual(rows[0]["avg_win_rate_delta_vs_baseline"], 0.0)
             self.assertEqual(rows[0]["launch_run_id"], "v1.2-run")
             self.assertEqual(rows[0]["launch_preflight_status"], "PASS")
@@ -97,6 +109,7 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertEqual(rows[1]["gate_status"], "WARN")
             self.assertEqual(rows[1]["baseline_experiment"], "v1.2")
             self.assertEqual(rows[1]["ablation_interpretation"], "supports_baseline")
+            self.assertEqual(rows[1]["research_story_verdict"], "supports_push_window_modeling")
             self.assertAlmostEqual(rows[1]["avg_win_rate_delta_vs_baseline"], -0.08)
             self.assertEqual(rows[1]["avg_death_delta_vs_baseline"], 0.0)
             self.assertEqual(rows[1]["avg_enemy_tower_hp_delta_vs_baseline"], 0.0)
@@ -110,6 +123,7 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertIn("experiment_hypothesis", csv_path.read_text(encoding="utf-8"))
             self.assertIn("success_metric_count", csv_path.read_text(encoding="utf-8"))
             self.assertIn("ablation_interpretation", csv_path.read_text(encoding="utf-8"))
+            self.assertIn("research_story_verdict", csv_path.read_text(encoding="utf-8"))
             self.assertIn("avg_win_rate_delta_vs_baseline", csv_path.read_text(encoding="utf-8"))
             self.assertIn("reward_profile", csv_path.read_text(encoding="utf-8"))
             self.assertIn("v1.2-run", md_path.read_text(encoding="utf-8"))
@@ -119,7 +133,39 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertIn("no_window_reward", md_path.read_text(encoding="utf-8"))
             self.assertIn("hypothesis for v1.2", md_path.read_text(encoding="utf-8"))
             self.assertIn("supports_baseline", md_path.read_text(encoding="utf-8"))
+            self.assertIn("supports_push_window_modeling", md_path.read_text(encoding="utf-8"))
             self.assertIn("-0.08", md_path.read_text(encoding="utf-8"))
+
+    def test_research_story_verdicts_cover_terminal_and_risk_ablations(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            baseline = make_report(root, "v1.2", "v1.2", 0.88, "PASS", death=2.1, enemy_tower_hp=900)
+            no_terminal = make_report(
+                root,
+                "no_terminal_reward",
+                "no_terminal_reward",
+                0.81,
+                "WARN",
+                death=2.2,
+                enemy_tower_hp=1200,
+            )
+            death_risk = make_report(
+                root,
+                "death_only_risk",
+                "death_only_risk",
+                0.82,
+                "WARN",
+                death=1.2,
+                enemy_tower_hp=1300,
+                push_window_share=0.5,
+            )
+
+            rows = collect_rows([baseline, no_terminal, death_risk])
+            verdicts = {row["experiment_name"]: row["research_story_verdict"] for row in rows}
+
+            self.assertEqual(verdicts["v1.2"], "baseline_reference")
+            self.assertEqual(verdicts["no_terminal_reward"], "supports_terminal_alignment")
+            self.assertEqual(verdicts["death_only_risk"], "death_risk_reduces_deaths_but_hurts_objective")
 
     def test_read_manifest_summary_parses_top_level_keys(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -181,6 +227,7 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertEqual(rows[0]["success_metric_count"], "7")
             self.assertEqual(rows[0]["baseline_experiment"], "no_window_reward")
             self.assertEqual(rows[0]["ablation_interpretation"], "baseline")
+            self.assertEqual(rows[0]["research_story_verdict"], "baseline_reference")
             self.assertEqual(rows[0]["avg_win_rate_delta_vs_baseline"], 0.0)
             self.assertEqual(rows[0]["gate_status"], "PASS")
 

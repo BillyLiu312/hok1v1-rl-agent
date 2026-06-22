@@ -158,6 +158,7 @@ def attach_baseline_deltas(rows: list[dict]) -> list[dict]:
         for metric in DELTA_METRICS:
             row[f"{metric}_delta_vs_baseline"] = metric_delta(row.get(metric), baseline.get(metric))
         row["ablation_interpretation"] = interpret_ablation(row, baseline_label)
+        row["research_story_verdict"] = research_story_verdict(row, baseline_label)
     return rows
 
 
@@ -200,6 +201,90 @@ def interpret_ablation(row: dict, baseline_label: str) -> str:
     return "mixed"
 
 
+def is_better_delta(delta, higher_is_better=True):
+    if delta in ("", None):
+        return None
+    return delta > 0 if higher_is_better else delta < 0
+
+
+def is_worse_delta(delta, higher_is_better=True):
+    if delta in ("", None):
+        return None
+    return delta < 0 if higher_is_better else delta > 0
+
+
+def any_true(values):
+    return any(value is True for value in values)
+
+
+def all_observed(values):
+    return any(value is not None for value in values)
+
+
+def research_story_verdict(row: dict, baseline_label: str) -> str:
+    name = first_non_empty(row.get("experiment_name"), row.get("report"))
+    profile = row.get("reward_profile", "")
+    if name == baseline_label:
+        return "baseline_reference"
+
+    win_better = is_better_delta(row.get("avg_win_rate_delta_vs_baseline"), higher_is_better=True)
+    win_worse = is_worse_delta(row.get("avg_win_rate_delta_vs_baseline"), higher_is_better=True)
+    min_win_worse = is_worse_delta(row.get("min_win_rate_delta_vs_baseline"), higher_is_better=True)
+    death_better = is_better_delta(row.get("avg_death_delta_vs_baseline"), higher_is_better=False)
+    death_worse = is_worse_delta(row.get("avg_death_delta_vs_baseline"), higher_is_better=False)
+    tower_better = is_better_delta(row.get("avg_enemy_tower_hp_delta_vs_baseline"), higher_is_better=False)
+    tower_worse = is_worse_delta(row.get("avg_enemy_tower_hp_delta_vs_baseline"), higher_is_better=False)
+    push_share_better = is_better_delta(row.get("avg_push_window_tower_damage_share_delta_vs_baseline"), higher_is_better=True)
+    push_share_worse = is_worse_delta(row.get("avg_push_window_tower_damage_share_delta_vs_baseline"), higher_is_better=True)
+    unsafe_corr_better = is_better_delta(row.get("avg_unsafe_dive_death_corr_delta_vs_baseline"), higher_is_better=False)
+    unsafe_corr_worse = is_worse_delta(row.get("avg_unsafe_dive_death_corr_delta_vs_baseline"), higher_is_better=False)
+
+    observed = [
+        win_better,
+        win_worse,
+        min_win_worse,
+        death_better,
+        death_worse,
+        tower_better,
+        tower_worse,
+        push_share_better,
+        push_share_worse,
+        unsafe_corr_better,
+        unsafe_corr_worse,
+    ]
+    if not all_observed(observed):
+        return "insufficient_evidence"
+
+    if profile == "no_window_reward" or "window" in name:
+        if any_true([win_worse, min_win_worse, death_worse, tower_worse, push_share_worse]):
+            return "supports_push_window_modeling"
+        if any_true([win_better, death_better, tower_better, push_share_better]) and not any_true([win_worse, death_worse, tower_worse]):
+            return "challenges_push_window_modeling"
+        return "mixed_push_window_evidence"
+
+    if profile == "no_terminal_reward" or "terminal" in name:
+        if any_true([win_worse, min_win_worse, tower_worse]):
+            return "supports_terminal_alignment"
+        if any_true([win_better, tower_better]) and not any_true([win_worse, tower_worse]):
+            return "challenges_terminal_alignment"
+        return "mixed_terminal_evidence"
+
+    if profile == "death_only_risk" or "death" in name or "risk" in name:
+        if death_better and any_true([win_worse, min_win_worse, tower_worse, push_share_worse]):
+            return "death_risk_reduces_deaths_but_hurts_objective"
+        if death_better and any_true([win_better, tower_better]) and not any_true([win_worse, tower_worse]):
+            return "death_risk_improves_stability"
+        if death_worse:
+            return "challenges_death_only_risk"
+        return "mixed_risk_evidence"
+
+    if any_true([win_worse, death_worse, tower_worse, push_share_worse, unsafe_corr_worse]):
+        return "supports_full_v1_2_recipe"
+    if any_true([win_better, death_better, tower_better, push_share_better, unsafe_corr_better]):
+        return "ablation_may_improve_recipe"
+    return "mixed_research_evidence"
+
+
 def collect_rows(report_dirs: list[Path]) -> list[dict]:
     return attach_baseline_deltas([summarize_report(report_dir) for report_dir in report_dirs])
 
@@ -230,6 +315,7 @@ def interpretation_summary_lines(rows: list[dict]) -> list[str]:
         name = first_non_empty(row.get("experiment_name"), row.get("report"))
         lines.append(
             f"- {name}: {row.get('ablation_interpretation', '')} "
+            f"[{row.get('research_story_verdict', '')}] "
             f"(win_delta={fmt(row.get('avg_win_rate_delta_vs_baseline'))}, "
             f"death_delta={fmt(row.get('avg_death_delta_vs_baseline'))}, "
             f"tower_hp_delta={fmt(row.get('avg_enemy_tower_hp_delta_vs_baseline'))})"
@@ -254,6 +340,7 @@ def write_csv(rows: list[dict], output_path: Path):
         "success_metrics",
         "baseline_experiment",
         "ablation_interpretation",
+        "research_story_verdict",
         "reward_profile",
         "reward_weight_overrides",
         "opponent_schedule",
@@ -303,6 +390,7 @@ def write_markdown(rows: list[dict], output_path: Path, title="v1.2 Experiment C
         "success_metric_count",
         "baseline_experiment",
         "ablation_interpretation",
+        "research_story_verdict",
         "recommended_checkpoint",
         "gate_status",
         "evaluation_matchups",
