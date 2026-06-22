@@ -53,6 +53,20 @@ def first_row(rows: list[dict]) -> dict:
     return rows[0] if rows else {}
 
 
+def read_manifest_summary(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    summary = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.startswith("- ") or ": " not in line:
+            continue
+        key, value = line[2:].split(": ", 1)
+        if key.endswith("_csv") or key.endswith("_md") or key in ("path",):
+            continue
+        summary[key] = value.strip("`")
+    return summary
+
+
 def report_label(report_dir: Path) -> str:
     return report_dir.name or report_dir.as_posix()
 
@@ -61,18 +75,26 @@ def summarize_report(report_dir: Path) -> dict:
     ranking = first_row(read_csv_rows(report_dir / "checkpoint_ranking.csv"))
     gate_rows = read_csv_rows(report_dir / "v1.2_candidate_gate.csv")
     metadata = first_row(read_csv_rows(report_dir / "run_metadata_summary.csv"))
+    manifest = read_manifest_summary(report_dir / "manifest.md")
 
     return {
         "report": report_label(report_dir),
         "path": report_dir.as_posix(),
+        "launch_stage": manifest.get("launch_stage", ""),
+        "launch_run_id": manifest.get("launch_run_id", ""),
+        "launch_preflight_status": manifest.get("launch_preflight_status", ""),
+        "launch_git_commit": manifest.get("launch_git_commit", ""),
         "reward_profile": metadata.get("reward_profile", ""),
         "reward_weight_overrides": metadata.get("reward_weight_overrides", ""),
         "opponent_schedule": metadata.get("opponent_schedule", ""),
+        "evaluation_rows": manifest.get("evaluation_rows", ""),
+        "evaluation_matchups": manifest.get("evaluation_matchups", ""),
+        "evaluation_skill_pairs": manifest.get("evaluation_skill_pairs", ""),
         "recommended_checkpoint": ranking.get("checkpoint_step", ""),
         "score": to_float(ranking.get("score"), ""),
-        "gate_status": gate_status(gate_rows),
-        "gate_fail": count_status(gate_rows, "FAIL"),
-        "gate_missing": count_status(gate_rows, "MISSING"),
+        "gate_status": manifest.get("candidate_gate_status") or gate_status(gate_rows),
+        "gate_fail": manifest.get("candidate_gate_fail") or count_status(gate_rows, "FAIL"),
+        "gate_missing": manifest.get("candidate_gate_missing") or count_status(gate_rows, "MISSING"),
         "matchup_groups": ranking.get("matchup_groups", ""),
         "matchup_rows": ranking.get("matchup_rows", ""),
         "avg_win_rate": to_float(ranking.get("matchup_avg_win_rate") or ranking.get("common_ai_win_rate"), ""),
@@ -95,9 +117,16 @@ def write_csv(rows: list[dict], output_path: Path):
     fieldnames = [
         "report",
         "path",
+        "launch_stage",
+        "launch_run_id",
+        "launch_preflight_status",
+        "launch_git_commit",
         "reward_profile",
         "reward_weight_overrides",
         "opponent_schedule",
+        "evaluation_rows",
+        "evaluation_matchups",
+        "evaluation_skill_pairs",
         "recommended_checkpoint",
         "score",
         "gate_status",
@@ -124,9 +153,12 @@ def write_markdown(rows: list[dict], output_path: Path, title="v1.2 Experiment C
     output_path.parent.mkdir(parents=True, exist_ok=True)
     columns = [
         "report",
+        "launch_run_id",
+        "launch_preflight_status",
         "reward_profile",
         "recommended_checkpoint",
         "gate_status",
+        "evaluation_matchups",
         "avg_win_rate",
         "min_win_rate",
         "avg_death",

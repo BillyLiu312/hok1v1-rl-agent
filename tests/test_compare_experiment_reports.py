@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from utils.compare_experiment_reports import collect_rows, write_csv, write_markdown
+from utils.compare_experiment_reports import collect_rows, read_manifest_summary, write_csv, write_markdown
 
 
 def make_report(root: Path, name: str, profile: str, win_rate: float, gate_status: str):
@@ -40,6 +40,26 @@ def make_report(root: Path, name: str, profile: str, win_rate: float, gate_statu
         + "\n",
         encoding="utf-8",
     )
+    (report_dir / "manifest.md").write_text(
+        "\n".join(
+            [
+                "# v1.2 Experiment Evidence Package",
+                "",
+                "- evaluation_rows: 360",
+                "- evaluation_matchups: 9",
+                "- evaluation_skill_pairs: 4",
+                f"- candidate_gate_status: {gate_status}",
+                "- candidate_gate_fail: 0",
+                "- candidate_gate_missing: 0",
+                "- launch_stage: v1.2-a",
+                f"- launch_run_id: {name}-run",
+                "- launch_preflight_status: PASS",
+                "- launch_git_commit: abc123",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
     return report_dir
 
 
@@ -53,6 +73,9 @@ class CompareExperimentReportsTest(unittest.TestCase):
             rows = collect_rows([report_a, report_b])
             self.assertEqual(len(rows), 2)
             self.assertEqual(rows[0]["reward_profile"], "v1.2")
+            self.assertEqual(rows[0]["launch_run_id"], "v1.2-run")
+            self.assertEqual(rows[0]["launch_preflight_status"], "PASS")
+            self.assertEqual(rows[0]["evaluation_matchups"], "9")
             self.assertEqual(rows[0]["gate_status"], "PASS")
             self.assertEqual(rows[0]["matchup_rows"], "18")
             self.assertEqual(rows[0]["avg_push_window_tower_damage_share"], 0.75)
@@ -64,8 +87,25 @@ class CompareExperimentReportsTest(unittest.TestCase):
             md_path = root / "comparison.md"
             write_csv(rows, csv_path)
             write_markdown(rows, md_path)
+            self.assertIn("launch_run_id", csv_path.read_text(encoding="utf-8"))
             self.assertIn("reward_profile", csv_path.read_text(encoding="utf-8"))
+            self.assertIn("v1.2-run", md_path.read_text(encoding="utf-8"))
             self.assertIn("no_window_reward", md_path.read_text(encoding="utf-8"))
+
+    def test_read_manifest_summary_parses_top_level_keys(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            manifest = Path(temp_dir) / "manifest.md"
+            manifest.write_text(
+                "\n".join(
+                    [
+                        "# Manifest",
+                        "- launch_run_id: unit",
+                        "- checkpoint_ranking_csv: `/tmp/ranking.csv`",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            self.assertEqual(read_manifest_summary(manifest), {"launch_run_id": "unit"})
 
 
 if __name__ == "__main__":
