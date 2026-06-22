@@ -108,6 +108,7 @@ def build_report_command(group: dict, checkpoints: list[int], heroes: list[int],
         "--launch-manifest logs/v1.2/launch_manifest.json "
         "--experiment-plan logs/v1.2/experiment_plan.json "
         f"--experiment-name {group['name']} "
+        "--baseline-json logs/v1.2/baseline_v1.1.json "
         f"--output-dir {group['report_dir']} "
         f"--checkpoints {csv_list(checkpoints)} "
         f"--heroes {csv_list(heroes)} "

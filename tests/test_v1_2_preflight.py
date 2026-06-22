@@ -50,6 +50,7 @@ class V12PreflightTest(unittest.TestCase):
         self.assertEqual(statuses["experiment_plan_skill_pairs"], "PASS")
         self.assertEqual(statuses["experiment_plan_success_metrics"], "PASS")
         self.assertEqual(statuses["experiment_plan_report_bindings"], "PASS")
+        self.assertEqual(statuses["experiment_plan_report_baseline"], "PASS")
 
     def test_evidence_chain_fields_cover_report_protocol(self):
         rows = check_evidence_chain_fields(Path.cwd())

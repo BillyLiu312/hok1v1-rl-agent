@@ -19,6 +19,10 @@ class V12ExperimentPlanTest(unittest.TestCase):
         self.assertIn("--skill-grid", manifest["ablations"][0]["report_command"])
         self.assertIn("--experiment-plan logs/v1.2/experiment_plan.json", manifest["ablations"][0]["report_command"])
         self.assertIn("--experiment-name v1.2", manifest["ablations"][0]["report_command"])
+        self.assertIn("--baseline-json logs/v1.2/baseline_v1.1.json", manifest["ablations"][0]["report_command"])
+        self.assertTrue(
+            all("--baseline-json logs/v1.2/baseline_v1.1.json" in group["report_command"] for group in manifest["ablations"])
+        )
         self.assertIn("logs/v1.2/report-no-terminal", manifest["comparison_command"])
 
     def test_write_outputs_include_hypotheses_and_commands(self):

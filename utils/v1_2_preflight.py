@@ -331,6 +331,13 @@ def check_experiment_plan() -> list[dict]:
             "--experiment-plan and --experiment-name",
             "Generated report commands should bind each report to the experiment plan.",
         ),
+        row(
+            "PASS" if all("--baseline-json logs/v1.2/baseline_v1.1.json" in command for command in commands) else "FAIL",
+            "experiment_plan_report_baseline",
+            "present" if all("--baseline-json logs/v1.2/baseline_v1.1.json" in command for command in commands) else "missing",
+            "--baseline-json logs/v1.2/baseline_v1.1.json",
+            "Generated report commands should bind every ablation gate to the v1.1 baseline file.",
+        ),
     ]
     return rows
 
