@@ -35,6 +35,7 @@ REQUIRED_TOOLS = [
     "utils/summoner_skill_grid.py",
     "utils/summoner_skill_results.py",
     "utils/offline_sync.py",
+    "utils/v1_2_experiment_plan.py",
     "utils/v1_2_launch_manifest.py",
 ]
 
