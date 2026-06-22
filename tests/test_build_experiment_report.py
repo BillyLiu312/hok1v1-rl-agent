@@ -56,6 +56,13 @@ class BuildExperimentReportTest(unittest.TestCase):
                         "git_commit": "abc123",
                         "preflight_status": "PASS",
                         "sync_package_sha256": "f" * 64,
+                        "env": {
+                            "HOK_TRAINING_RECORD_DIR": "logs/run_records/unit",
+                            "HOK_TRAINING_RUN_ID": "unit-train",
+                            "HOK_REWARD_PROFILE": "v1.2",
+                            "HOK_REWARD_WEIGHT_OVERRIDES": "death:5",
+                            "HOK_OPPONENT_SCHEDULE": "common_ai:4,historical:4,selfplay:2",
+                        },
                     }
                 ),
                 encoding="utf-8",
@@ -80,6 +87,11 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertIn("launch_run_id: unit-launch", manifest)
             self.assertIn("launch_git_commit: abc123", manifest)
             self.assertIn("launch_sync_package_sha256: " + "f" * 64, manifest)
+            self.assertIn("launch_training_record_dir: logs/run_records/unit", manifest)
+            self.assertIn("launch_training_run_id: unit-train", manifest)
+            self.assertIn("launch_reward_profile: v1.2", manifest)
+            self.assertIn("launch_reward_weight_overrides: death:5", manifest)
+            self.assertIn("launch_opponent_schedule: common_ai:4,historical:4,selfplay:2", manifest)
             self.assertIn("checkpoint_ranking_csv", manifest)
             self.assertIn("v1.2_candidate_gate_csv", manifest)
 

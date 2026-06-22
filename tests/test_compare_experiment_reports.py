@@ -109,6 +109,43 @@ class CompareExperimentReportsTest(unittest.TestCase):
             )
             self.assertEqual(read_manifest_summary(manifest), {"launch_run_id": "unit"})
 
+    def test_collects_launch_env_when_metadata_is_missing(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            report_dir = root / "manifest_only"
+            report_dir.mkdir()
+            (report_dir / "checkpoint_ranking.csv").write_text(
+                "\n".join(
+                    [
+                        "checkpoint_step,score,matchup_groups,matchup_rows,matchup_avg_win_rate",
+                        "17057,101,9,18,0.9",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            (report_dir / "manifest.md").write_text(
+                "\n".join(
+                    [
+                        "# v1.2 Experiment Evidence Package",
+                        "",
+                        "- launch_reward_profile: v1.2",
+                        "- launch_reward_weight_overrides: death:5",
+                        "- launch_opponent_schedule: common_ai:4,historical:4,selfplay:2",
+                        "- candidate_gate_status: PASS",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            rows = collect_rows([report_dir])
+
+            self.assertEqual(rows[0]["reward_profile"], "v1.2")
+            self.assertEqual(rows[0]["reward_weight_overrides"], "death:5")
+            self.assertEqual(rows[0]["opponent_schedule"], "common_ai:4,historical:4,selfplay:2")
+            self.assertEqual(rows[0]["gate_status"], "PASS")
+
 
 if __name__ == "__main__":
     unittest.main()

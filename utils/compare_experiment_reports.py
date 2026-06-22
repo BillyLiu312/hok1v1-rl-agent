@@ -71,6 +71,13 @@ def report_label(report_dir: Path) -> str:
     return report_dir.name or report_dir.as_posix()
 
 
+def first_non_empty(*values):
+    for value in values:
+        if value not in ("", None):
+            return value
+    return ""
+
+
 def summarize_report(report_dir: Path) -> dict:
     ranking = first_row(read_csv_rows(report_dir / "checkpoint_ranking.csv"))
     gate_rows = read_csv_rows(report_dir / "v1.2_candidate_gate.csv")
@@ -84,9 +91,12 @@ def summarize_report(report_dir: Path) -> dict:
         "launch_run_id": manifest.get("launch_run_id", ""),
         "launch_preflight_status": manifest.get("launch_preflight_status", ""),
         "launch_git_commit": manifest.get("launch_git_commit", ""),
-        "reward_profile": metadata.get("reward_profile", ""),
-        "reward_weight_overrides": metadata.get("reward_weight_overrides", ""),
-        "opponent_schedule": metadata.get("opponent_schedule", ""),
+        "reward_profile": first_non_empty(metadata.get("reward_profile"), manifest.get("launch_reward_profile")),
+        "reward_weight_overrides": first_non_empty(
+            metadata.get("reward_weight_overrides"),
+            manifest.get("launch_reward_weight_overrides"),
+        ),
+        "opponent_schedule": first_non_empty(metadata.get("opponent_schedule"), manifest.get("launch_opponent_schedule")),
         "evaluation_rows": manifest.get("evaluation_rows", ""),
         "evaluation_matchups": manifest.get("evaluation_matchups", ""),
         "evaluation_skill_pairs": manifest.get("evaluation_skill_pairs", ""),

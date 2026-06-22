@@ -248,11 +248,17 @@ def write_manifest(
         f"- candidate_gate_missing: {count_status(candidate_gate_rows, 'MISSING')}",
     ]
     if launch_metadata:
+        launch_env = launch_metadata.get("env") or {}
         lines.append(f"- launch_stage: {launch_metadata.get('stage', '')}")
         lines.append(f"- launch_run_id: {launch_metadata.get('run_id', '')}")
         lines.append(f"- launch_git_commit: {launch_metadata.get('git_commit', '')}")
         lines.append(f"- launch_preflight_status: {launch_metadata.get('preflight_status', '')}")
         lines.append(f"- launch_sync_package_sha256: {launch_metadata.get('sync_package_sha256', '')}")
+        lines.append(f"- launch_training_record_dir: {launch_env.get('HOK_TRAINING_RECORD_DIR', '')}")
+        lines.append(f"- launch_training_run_id: {launch_env.get('HOK_TRAINING_RUN_ID', '')}")
+        lines.append(f"- launch_reward_profile: {launch_env.get('HOK_REWARD_PROFILE', '')}")
+        lines.append(f"- launch_reward_weight_overrides: {launch_env.get('HOK_REWARD_WEIGHT_OVERRIDES', '')}")
+        lines.append(f"- launch_opponent_schedule: {launch_env.get('HOK_OPPONENT_SCHEDULE', '')}")
     if checkpoint_rows:
         best = checkpoint_rows[0]
         lines.append(f"- recommended_checkpoint: {best.get('checkpoint_step')}")
