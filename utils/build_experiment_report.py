@@ -356,6 +356,21 @@ def gate_summary(rows: list[dict]) -> str:
     )
 
 
+def candidate_metric(candidate: dict, primary_key: str, fallback_key: str | None = None):
+    value = candidate.get(primary_key)
+    if value is None and fallback_key:
+        value = candidate.get(fallback_key)
+    return value
+
+
+def candidate_damage_balance(candidate: dict):
+    hurt_to_hero = candidate_metric(candidate, "matchup_avg_hurt_to_hero", "common_ai_hurt_to_hero")
+    hurt_by_hero = candidate_metric(candidate, "matchup_avg_hurt_by_hero", "common_ai_hurt_by_hero")
+    if hurt_to_hero is None or hurt_by_hero is None:
+        return None
+    return hurt_to_hero - hurt_by_hero
+
+
 def build_research_story_rows(
     candidate: dict,
     candidate_gate_rows: list[dict],
@@ -379,9 +394,12 @@ def build_research_story_rows(
             "matchup_groups": candidate.get("matchup_groups", ""),
             "matchup_rows": candidate.get("matchup_rows", ""),
             "matchup_eval_ids": candidate.get("matchup_eval_ids", ""),
-            "avg_win_rate": manifest_value(candidate.get("matchup_avg_win_rate") if candidate.get("matchup_avg_win_rate") is not None else candidate.get("common_ai_win_rate")),
+            "avg_win_rate": manifest_value(candidate_metric(candidate, "matchup_avg_win_rate", "common_ai_win_rate")),
             "min_win_rate": manifest_value(candidate.get("matchup_min_win_rate")),
-            "avg_death": manifest_value(candidate.get("matchup_avg_death") if candidate.get("matchup_avg_death") is not None else candidate.get("common_ai_death")),
+            "avg_death": manifest_value(candidate_metric(candidate, "matchup_avg_death", "common_ai_death")),
+            "hurt_to_hero": manifest_value(candidate_metric(candidate, "matchup_avg_hurt_to_hero", "common_ai_hurt_to_hero")),
+            "hurt_by_hero": manifest_value(candidate_metric(candidate, "matchup_avg_hurt_by_hero", "common_ai_hurt_by_hero")),
+            "hero_damage_balance": manifest_value(candidate_damage_balance(candidate)),
             "death_p90": manifest_value(candidate.get("matchup_max_death_p90")),
             "self_tower_hp_p10": manifest_value(candidate.get("matchup_min_self_tower_hp_p10")),
             "timeout_rate": manifest_value(candidate.get("matchup_avg_timeout_rate")),
@@ -440,6 +458,9 @@ def write_research_story_markdown(rows: list[dict], output_path: Path):
         f"- avg_win_rate: {manifest_value(row.get('avg_win_rate'))}",
         f"- min_win_rate: {manifest_value(row.get('min_win_rate'))}",
         f"- avg_death: {manifest_value(row.get('avg_death'))}",
+        f"- hurt_to_hero: {manifest_value(row.get('hurt_to_hero'))}",
+        f"- hurt_by_hero: {manifest_value(row.get('hurt_by_hero'))}",
+        f"- hero_damage_balance: {manifest_value(row.get('hero_damage_balance'))}",
         f"- death_tail_status: {manifest_value(row.get('death_tail_status'))}",
         f"- death_p90: {manifest_value(row.get('death_p90'))}",
         f"- self_tower_tail_status: {manifest_value(row.get('self_tower_tail_status'))}",
@@ -528,18 +549,16 @@ def write_manifest(
         lines.append(f"- checkpoint_score: {best.get('score'):.4g}")
         lines.append(f"- recommended_matchup_groups: {manifest_value(best.get('matchup_groups'))}")
         lines.append(f"- recommended_matchup_rows: {manifest_value(best.get('matchup_rows'))}")
-        win_rate = best.get("matchup_avg_win_rate") if best.get("matchup_avg_win_rate") is not None else best.get("common_ai_win_rate")
-        death = best.get("matchup_avg_death") if best.get("matchup_avg_death") is not None else best.get("common_ai_death")
-        hurt_to_hero = best.get("common_ai_hurt_to_hero")
-        hurt_by_hero = best.get("common_ai_hurt_by_hero")
+        win_rate = candidate_metric(best, "matchup_avg_win_rate", "common_ai_win_rate")
+        death = candidate_metric(best, "matchup_avg_death", "common_ai_death")
+        hurt_to_hero = candidate_metric(best, "matchup_avg_hurt_to_hero", "common_ai_hurt_to_hero")
+        hurt_by_hero = candidate_metric(best, "matchup_avg_hurt_by_hero", "common_ai_hurt_by_hero")
         lines.append(f"- recommended_win_rate: {manifest_value(win_rate)}")
         lines.append(f"- recommended_min_win_rate: {manifest_value(best.get('matchup_min_win_rate'))}")
         lines.append(f"- recommended_death: {manifest_value(death)}")
         lines.append(f"- recommended_hurt_to_hero: {manifest_value(hurt_to_hero)}")
         lines.append(f"- recommended_hurt_by_hero: {manifest_value(hurt_by_hero)}")
-        lines.append(
-            f"- recommended_hero_damage_balance: {manifest_value(hurt_to_hero - hurt_by_hero if hurt_to_hero is not None and hurt_by_hero is not None else None)}"
-        )
+        lines.append(f"- recommended_hero_damage_balance: {manifest_value(candidate_damage_balance(best))}")
         lines.append(f"- recommended_death_p90: {manifest_value(best.get('matchup_max_death_p90'))}")
         lines.append(f"- recommended_self_tower_hp_p10: {manifest_value(best.get('matchup_min_self_tower_hp_p10'))}")
         lines.append(f"- recommended_timeout_rate: {manifest_value(best.get('matchup_avg_timeout_rate'))}")

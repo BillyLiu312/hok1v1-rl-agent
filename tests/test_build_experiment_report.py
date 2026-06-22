@@ -266,6 +266,7 @@ class BuildExperimentReportTest(unittest.TestCase):
             other_checkpoint_event = json.loads(json.dumps(event))
             other_checkpoint_event["payload"]["monitor_hero_id"] = 112
             other_checkpoint_event["payload"]["opponent_hero_id"] = 112
+            other_checkpoint_event["payload"]["is_eval"] = False
             other_checkpoint_event["payload"]["checkpoint"] = {"actual_train_global_step": 17057}
             other_checkpoint_event["payload"]["agents"][0]["hero"]["config_id"] = 112
             other_checkpoint_event["payload"]["agents"][0]["enemy_hero"]["config_id"] = 112
@@ -333,6 +334,9 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertIn("recommended_hurt_to_hero", manifest)
             self.assertIn("recommended_hurt_by_hero", manifest)
             self.assertIn("recommended_hero_damage_balance", manifest)
+            self.assertIn("recommended_hurt_to_hero: 0.75", manifest)
+            self.assertIn("recommended_hurt_by_hero: 0.75", manifest)
+            self.assertIn("recommended_hero_damage_balance: 0.0", manifest)
             self.assertIn("recommended_push_window_tower_damage_share", manifest)
             self.assertIn("recommended_death_p90", manifest)
             self.assertIn("recommended_self_tower_hp_p10", manifest)
@@ -351,6 +355,9 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertIn("## Tactical Window Evidence", story_md)
             self.assertIn("## Stability Evidence", story_md)
             self.assertIn("resolved_reward_profile: v1.2", story_md)
+            self.assertIn("hurt_to_hero: 0.75", story_md)
+            self.assertIn("hurt_by_hero: 0.75", story_md)
+            self.assertIn("hero_damage_balance: 0.0", story_md)
             candidate_gate = artifacts["v1.2_candidate_gate_csv"].read_text(encoding="utf-8")
             self.assertIn("raw_matchup_rows,1", candidate_gate)
             self.assertIn("death_tail_risk", candidate_gate)
