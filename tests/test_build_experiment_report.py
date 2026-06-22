@@ -164,6 +164,8 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertIn("recommended_checkpoint: 15000", manifest)
             self.assertIn("evaluation_rows: 2", manifest)
             self.assertIn("evaluation_skill_pairs: 1", manifest)
+            self.assertIn("evaluation_coverage_rate: 0.0", manifest)
+            self.assertIn("evaluation_missing_rows: 2", manifest)
             self.assertIn("candidate_gate_status: FAIL", manifest)
             self.assertIn("launch_run_id: unit-launch", manifest)
             self.assertIn("launch_git_commit: abc123", manifest)
@@ -190,6 +192,7 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertIn("baseline_json", manifest)
             self.assertIn("evaluation_toml_metadata_csv", manifest)
             self.assertIn("evaluation_toml_metadata_jsonl", manifest)
+            self.assertIn("evaluation_coverage_csv", manifest)
             gate_md = artifacts["v1.2_candidate_gate_md"].read_text(encoding="utf-8")
             self.assertIn("> 0.85", gate_md)
             self.assertIn("< 1200.0", gate_md)
@@ -231,6 +234,12 @@ class BuildExperimentReportTest(unittest.TestCase):
                     "configured_opponent_agent": "curriculum",
                     "checkpoint": {"actual_train_global_step": 15039},
                     "usr_conf": {
+                        "evaluation": {
+                            "eval_id": 1,
+                            "checkpoint_step": 15000,
+                            "repeat_index": 1,
+                            "matchup": "199_vs_199",
+                        },
                         "lineups": {
                             "blue_camp": [{"hero_id": 199, "select_skill": "80107"}],
                             "red_camp": [{"hero_id": 133, "select_skill": 80110}],
@@ -259,6 +268,7 @@ class BuildExperimentReportTest(unittest.TestCase):
             }
             event_2 = json.loads(json.dumps(event))
             event_2["payload"]["frame_no"] = 20000
+            event_2["payload"]["usr_conf"]["evaluation"]["eval_id"] = 2
             event_2["payload"]["agents"][0]["hero"]["dead_cnt"] = 3
             event_2["payload"]["agents"][0]["hero"]["total_hurt_to_hero"] = 10000
             event_2["payload"]["agents"][0]["hero"]["total_be_hurt_by_hero"] = 20000
@@ -311,6 +321,8 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertTrue(artifacts["v1.2_candidate_gate_csv"].exists())
             self.assertTrue(artifacts["research_story_summary_csv"].exists())
             self.assertTrue(artifacts["research_story_summary_md"].exists())
+            self.assertTrue(artifacts["evaluation_coverage_csv"].exists())
+            self.assertTrue(artifacts["evaluation_coverage_md"].exists())
             self.assertIn(
                 "push_window_tower_damage_share",
                 artifacts["matchup_summary_csv"].read_text(encoding="utf-8"),
@@ -330,6 +342,10 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertIn("summoner_skill_policy_gate_csv", manifest)
             self.assertIn("summoner_skill_policy_patch_py", manifest)
             self.assertIn("research_story_summary_md", manifest)
+            self.assertIn("evaluation_coverage_md", manifest)
+            self.assertIn("evaluation_coverage_rate: 1.0", manifest)
+            self.assertIn("evaluation_missing_rows: 0", manifest)
+            self.assertIn("evaluation_unexpected_rows: 0", manifest)
             self.assertIn("recommended_matchup_rows", manifest)
             self.assertIn("recommended_hurt_to_hero", manifest)
             self.assertIn("recommended_hurt_by_hero", manifest)
@@ -351,16 +367,23 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertIn("push_window_evidence_status", story_csv)
             self.assertIn("unsafe_dive_risk_status", story_csv)
             self.assertIn("resolved_reward_weight_dict_sha", story_csv)
+            self.assertIn("evaluation_coverage_rate", story_csv)
             self.assertIn("# v1.2 Research Story Summary", story_md)
             self.assertIn("## Tactical Window Evidence", story_md)
             self.assertIn("## Stability Evidence", story_md)
             self.assertIn("resolved_reward_profile: v1.2", story_md)
+            self.assertIn("evaluation_coverage_rate: 1.0", story_md)
             self.assertIn("hurt_to_hero: 0.75", story_md)
             self.assertIn("hurt_by_hero: 0.75", story_md)
             self.assertIn("hero_damage_balance: 0.0", story_md)
             candidate_gate = artifacts["v1.2_candidate_gate_csv"].read_text(encoding="utf-8")
             self.assertIn("raw_matchup_rows,1", candidate_gate)
             self.assertIn("death_tail_risk", candidate_gate)
+            coverage_csv = artifacts["evaluation_coverage_csv"].read_text(encoding="utf-8")
+            coverage_md = artifacts["evaluation_coverage_md"].read_text(encoding="utf-8")
+            self.assertIn("planned_eval_rows,observed_eval_rows,coverage_rate", coverage_csv)
+            self.assertIn("1.0", coverage_csv)
+            self.assertIn("# Evaluation Coverage", coverage_md)
 
     def test_build_report_can_expand_skill_grid_matrix(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -398,6 +421,7 @@ class BuildExperimentReportTest(unittest.TestCase):
             manifest = artifacts["manifest"].read_text(encoding="utf-8")
             self.assertIn("evaluation_rows: 8", manifest)
             self.assertIn("evaluation_skill_pairs: 4", manifest)
+            self.assertIn("evaluation_missing_rows: 8", manifest)
             self.assertIn("80107", artifacts["evaluation_matrix_csv"].read_text(encoding="utf-8"))
             self.assertIn("80110", artifacts["summoner_skill_grid_csv"].read_text(encoding="utf-8"))
 

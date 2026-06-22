@@ -213,14 +213,6 @@ def build_report(
     artifacts["v1.2_candidate_gate_csv"] = candidate_gate_csv
     artifacts["v1.2_candidate_gate_md"] = candidate_gate_md
 
-    research_story_rows = build_research_story_rows(candidate, candidate_gate_rows, experiment_metadata, baseline_metadata, metadata_rows)
-    research_story_csv = output_dir / "research_story_summary.csv"
-    research_story_md = output_dir / "research_story_summary.md"
-    write_research_story_csv(research_story_rows, research_story_csv)
-    write_research_story_markdown(research_story_rows, research_story_md)
-    artifacts["research_story_summary_csv"] = research_story_csv
-    artifacts["research_story_summary_md"] = research_story_md
-
     eval_rows = build_eval_rows(
         checkpoints=checkpoints,
         hero_ids=heroes,
@@ -234,6 +226,29 @@ def build_report(
     write_eval_markdown(eval_rows, eval_md)
     artifacts["evaluation_matrix_csv"] = eval_csv
     artifacts["evaluation_matrix_md"] = eval_md
+
+    evaluation_coverage_rows = build_evaluation_coverage_rows(eval_rows, run_rows)
+    evaluation_coverage_csv = output_dir / "evaluation_coverage.csv"
+    evaluation_coverage_md = output_dir / "evaluation_coverage.md"
+    write_evaluation_coverage_csv(evaluation_coverage_rows, evaluation_coverage_csv)
+    write_evaluation_coverage_markdown(evaluation_coverage_rows, evaluation_coverage_md)
+    artifacts["evaluation_coverage_csv"] = evaluation_coverage_csv
+    artifacts["evaluation_coverage_md"] = evaluation_coverage_md
+
+    research_story_rows = build_research_story_rows(
+        candidate,
+        candidate_gate_rows,
+        experiment_metadata,
+        baseline_metadata,
+        metadata_rows,
+        evaluation_coverage_rows,
+    )
+    research_story_csv = output_dir / "research_story_summary.csv"
+    research_story_md = output_dir / "research_story_summary.md"
+    write_research_story_csv(research_story_rows, research_story_csv)
+    write_research_story_markdown(research_story_rows, research_story_md)
+    artifacts["research_story_summary_csv"] = research_story_csv
+    artifacts["research_story_summary_md"] = research_story_md
 
     eval_config_artifacts = export_configs(eval_csv, output_dir / "evaluation_configs")
     artifacts["evaluation_usr_conf_jsonl"] = eval_config_artifacts["jsonl"]
@@ -257,6 +272,7 @@ def build_report(
         checkpoint_rows,
         candidate_gate_rows,
         eval_rows,
+        evaluation_coverage_rows,
         launch_metadata,
         experiment_metadata,
         baseline_metadata,
@@ -377,8 +393,10 @@ def build_research_story_rows(
     experiment_metadata: dict | None = None,
     baseline_metadata: dict | None = None,
     metadata_rows: list[dict] | None = None,
+    evaluation_coverage_rows: list[dict] | None = None,
 ) -> list[dict]:
     metadata = first_metadata_row(metadata_rows)
+    evaluation_coverage = first_metadata_row(evaluation_coverage_rows)
     return [
         {
             "experiment_name": (experiment_metadata or {}).get("experiment_name", ""),
@@ -391,6 +409,9 @@ def build_research_story_rows(
             "baseline_late_death": (baseline_metadata or {}).get("late_death", ""),
             "resolved_reward_profile": metadata.get("reward_profile", ""),
             "resolved_reward_weight_dict_sha": metadata.get("reward_weight_dict_sha", ""),
+            "evaluation_coverage_rate": evaluation_coverage.get("coverage_rate", ""),
+            "evaluation_missing_rows": evaluation_coverage.get("missing_eval_rows", ""),
+            "evaluation_unexpected_rows": evaluation_coverage.get("unexpected_eval_rows", ""),
             "matchup_groups": candidate.get("matchup_groups", ""),
             "matchup_rows": candidate.get("matchup_rows", ""),
             "matchup_eval_ids": candidate.get("matchup_eval_ids", ""),
@@ -440,6 +461,9 @@ def write_research_story_markdown(rows: list[dict], output_path: Path):
         f"- baseline_source: {manifest_value(row.get('baseline_source'))}",
         f"- resolved_reward_profile: {manifest_value(row.get('resolved_reward_profile'))}",
         f"- resolved_reward_weight_dict_sha: {manifest_value(row.get('resolved_reward_weight_dict_sha'))}",
+        f"- evaluation_coverage_rate: {manifest_value(row.get('evaluation_coverage_rate'))}",
+        f"- evaluation_missing_rows: {manifest_value(row.get('evaluation_missing_rows'))}",
+        f"- evaluation_unexpected_rows: {manifest_value(row.get('evaluation_unexpected_rows'))}",
         "",
         "## Tactical Window Evidence",
         "",
@@ -473,6 +497,69 @@ def write_research_story_markdown(rows: list[dict], output_path: Path):
     output_path.write_text("\n".join(str(line) for line in lines), encoding="utf-8")
 
 
+def split_csv_tokens(value) -> list[str]:
+    if value in ("", None):
+        return []
+    return [token.strip() for token in str(value).split(",") if token.strip()]
+
+
+def eval_id_sort_key(value: str):
+    return (0, int(value)) if value.isdigit() else (1, value)
+
+
+def build_evaluation_coverage_rows(eval_rows: list[dict], run_rows: list[dict] | None) -> list[dict]:
+    planned_ids = {str(row.get("eval_id")) for row in eval_rows if row.get("eval_id") not in ("", None)}
+    observed_ids = set()
+    for row in run_rows or []:
+        if str(row.get("is_eval")).strip().lower() not in ("true", "1", "yes"):
+            continue
+        observed_ids.update(split_csv_tokens(row.get("eval_ids")))
+    matched_ids = planned_ids & observed_ids
+    missing_ids = sorted(planned_ids - observed_ids, key=eval_id_sort_key)
+    unexpected_ids = sorted(observed_ids - planned_ids, key=eval_id_sort_key)
+    planned_count = len(planned_ids)
+    observed_count = len(matched_ids)
+    coverage_rate = observed_count / planned_count if planned_count else ""
+    return [
+        {
+            "planned_eval_rows": planned_count,
+            "observed_eval_rows": observed_count,
+            "coverage_rate": coverage_rate,
+            "missing_eval_rows": len(missing_ids),
+            "unexpected_eval_rows": len(unexpected_ids),
+            "missing_eval_ids_preview": ",".join(missing_ids[:20]),
+            "unexpected_eval_ids_preview": ",".join(unexpected_ids[:20]),
+        }
+    ]
+
+
+def write_evaluation_coverage_csv(rows: list[dict], output_path: Path):
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = list(rows[0].keys()) if rows else []
+    with output_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def write_evaluation_coverage_markdown(rows: list[dict], output_path: Path):
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    row = rows[0] if rows else {}
+    lines = [
+        "# Evaluation Coverage",
+        "",
+        f"- planned_eval_rows: {manifest_value(row.get('planned_eval_rows'))}",
+        f"- observed_eval_rows: {manifest_value(row.get('observed_eval_rows'))}",
+        f"- coverage_rate: {manifest_value(row.get('coverage_rate'))}",
+        f"- missing_eval_rows: {manifest_value(row.get('missing_eval_rows'))}",
+        f"- unexpected_eval_rows: {manifest_value(row.get('unexpected_eval_rows'))}",
+        f"- missing_eval_ids_preview: {manifest_value(row.get('missing_eval_ids_preview'))}",
+        f"- unexpected_eval_ids_preview: {manifest_value(row.get('unexpected_eval_ids_preview'))}",
+        "",
+    ]
+    output_path.write_text("\n".join(str(line) for line in lines), encoding="utf-8")
+
+
 def manifest_value(value):
     return "" if value is None else value
 
@@ -484,6 +571,7 @@ def write_manifest(
     checkpoint_rows: list[dict],
     candidate_gate_rows: list[dict],
     eval_rows: list[dict],
+    evaluation_coverage_rows: list[dict] | None = None,
     launch_metadata: dict | None = None,
     experiment_metadata: dict | None = None,
     baseline_metadata: dict | None = None,
@@ -492,6 +580,7 @@ def write_manifest(
     checkpoint_count = len({row["checkpoint_step"] for row in eval_rows})
     matchup_count = len({row["matchup"] for row in eval_rows})
     skill_pairs = len({(row["blue_select_skill"], row["red_select_skill"]) for row in eval_rows})
+    evaluation_coverage = evaluation_coverage_rows[0] if evaluation_coverage_rows else {}
     lines = [
         "# v1.2 Experiment Evidence Package",
         "",
@@ -500,6 +589,9 @@ def write_manifest(
         f"- evaluation_checkpoints: {checkpoint_count}",
         f"- evaluation_matchups: {matchup_count}",
         f"- evaluation_skill_pairs: {skill_pairs}",
+        f"- evaluation_coverage_rate: {manifest_value(evaluation_coverage.get('coverage_rate'))}",
+        f"- evaluation_missing_rows: {manifest_value(evaluation_coverage.get('missing_eval_rows'))}",
+        f"- evaluation_unexpected_rows: {manifest_value(evaluation_coverage.get('unexpected_eval_rows'))}",
         f"- candidate_gate_status: {candidate_gate_status(candidate_gate_rows)}",
         f"- candidate_gate_pass: {count_status(candidate_gate_rows, 'PASS')}",
         f"- candidate_gate_warn: {count_status(candidate_gate_rows, 'WARN')}",
