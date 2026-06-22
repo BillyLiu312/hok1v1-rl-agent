@@ -32,7 +32,7 @@ from agent_ppo.conf.opponent_schedule import (
     load_opponent_schedule,
     select_curriculum_opponent,
 )
-from utils.training_recorder import TrainingRecorder
+from agent_ppo.conf.training_recorder import TrainingRecorder
 from tools.env_conf_manager import EnvConfManager
 from tools.model_pool_utils import get_valid_model_pool
 from tools.metrics_utils import get_training_metrics

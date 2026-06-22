@@ -17,7 +17,7 @@ from agent_ppo.bootstrap import ensure_project_root_on_path
 ensure_project_root_on_path()
 
 from agent_ppo.conf.conf import Config
-from utils.training_recorder import TrainingRecorder
+from agent_ppo.conf.training_recorder import TrainingRecorder
 
 
 class Algorithm:

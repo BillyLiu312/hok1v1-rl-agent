@@ -36,6 +36,7 @@ V1_2_REQUIRED_FILES = [
     "agent_ppo/conf/runtime_config.ini",
     "agent_ppo/conf/runtime_config.py",
     "agent_ppo/conf/summoner_skill.py",
+    "agent_ppo/conf/training_recorder.py",
     "agent_ppo/conf/train_env_conf.toml",
     "agent_ppo/feature/reward_process.py",
     "agent_ppo/feature/feature_process/hero_process.py",

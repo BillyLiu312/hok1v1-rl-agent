@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 class TrainWorkflowEvidenceFieldsTest(unittest.TestCase):
-    def test_agent_bootstrap_exposes_project_root_utils(self):
+    def test_agent_training_recorder_imports_from_symlinked_agent_package(self):
         root = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -16,7 +16,7 @@ class TrainWorkflowEvidenceFieldsTest(unittest.TestCase):
             code = (
                 "from agent_ppo.bootstrap import ensure_project_root_on_path;"
                 "ensure_project_root_on_path();"
-                "import utils.training_recorder;"
+                "import agent_ppo.conf.training_recorder;"
                 "print('ok')"
             )
             result = subprocess.run(
@@ -73,6 +73,15 @@ class TrainWorkflowEvidenceFieldsTest(unittest.TestCase):
         self.assertIn('"evaluation": self._extract_evaluation_metadata(usr_conf)', workflow_text)
         self.assertIn("def _extract_evaluation_metadata", workflow_text)
         self.assertIn('usr_conf.get("evaluation")', workflow_text)
+
+    def test_training_hot_path_does_not_import_project_level_utils(self):
+        workflow_text = Path("agent_ppo/workflow/train_workflow.py").read_text(encoding="utf-8")
+        algorithm_text = Path("agent_ppo/algorithm/algorithm.py").read_text(encoding="utf-8")
+
+        self.assertNotIn("from utils.training_recorder import TrainingRecorder", workflow_text)
+        self.assertNotIn("from utils.training_recorder import TrainingRecorder", algorithm_text)
+        self.assertIn("from agent_ppo.conf.training_recorder import TrainingRecorder", workflow_text)
+        self.assertIn("from agent_ppo.conf.training_recorder import TrainingRecorder", algorithm_text)
 
 
 if __name__ == "__main__":
