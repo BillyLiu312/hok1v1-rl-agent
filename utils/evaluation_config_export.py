@@ -53,11 +53,16 @@ def build_eval_metadata(row: dict) -> dict:
     return {
         "eval_id": to_int(row["eval_id"]),
         "checkpoint_step": to_int(row["checkpoint_step"]),
+        "opponent_agent": str(row["opponent_agent"]),
         "matchup": row["matchup"],
         "repeat_index": to_int(row["repeat_index"]),
         "monitor_side": to_int(row["monitor_side"]),
         "monitor_hero_id": to_int(row["monitor_hero_id"]),
         "opponent_hero_id": to_int(row["opponent_hero_id"]),
+        "blue_hero_id": to_int(row["blue_hero_id"]),
+        "red_hero_id": to_int(row["red_hero_id"]),
+        "blue_select_skill": to_int(row["blue_select_skill"]),
+        "red_select_skill": to_int(row["red_select_skill"]),
     }
 
 
@@ -130,12 +135,16 @@ def write_manifest(rows: list[dict], output_path: Path, toml_paths: list[Path]):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     checkpoints = sorted({to_int(row["checkpoint_step"]) for row in rows})
     matchups = sorted({row["matchup"] for row in rows})
+    skill_pairs = sorted({(to_int(row["blue_select_skill"]), to_int(row["red_select_skill"])) for row in rows})
+    opponent_agents = sorted({str(row["opponent_agent"]) for row in rows})
     lines = [
         "# Evaluation Config Export",
         "",
         f"- rows: {len(rows)}",
         f"- checkpoints: {', '.join(str(value) for value in checkpoints)}",
         f"- matchups: {len(matchups)}",
+        f"- opponent_agents: {', '.join(opponent_agents)}",
+        f"- skill_pairs: {len(skill_pairs)}",
         f"- toml_files: {len(toml_paths)}",
         "- note: TOML files contain only platform train_env_conf fields; evaluation metadata is kept in eval_usr_conf.jsonl and filenames.",
         "",

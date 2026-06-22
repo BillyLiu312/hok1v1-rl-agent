@@ -47,8 +47,38 @@ class EvaluationConfigExportTest(unittest.TestCase):
             self.assertEqual(len(jsonl_lines), 4)
             first_event = json.loads(jsonl_lines[0])
             self.assertEqual(first_event["evaluation"]["checkpoint_step"], 15000)
+            self.assertEqual(first_event["evaluation"]["blue_select_skill"], 80115)
+            self.assertEqual(first_event["evaluation"]["red_select_skill"], 80115)
             self.assertNotIn("evaluation", first_event["usr_conf"])
             self.assertIn("toml_files: 1", artifacts["manifest"].read_text(encoding="utf-8"))
+            self.assertIn("skill_pairs: 1", artifacts["manifest"].read_text(encoding="utf-8"))
+
+    def test_export_configs_preserves_skill_grid_metadata(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            matrix_csv = root / "matrix.csv"
+            output_dir = root / "configs"
+            rows = build_rows(
+                checkpoints=[15000],
+                hero_ids=[199],
+                repeats=1,
+                include_skill_grid=True,
+                candidate_skills=[80107, 80110],
+            )
+            write_csv(rows, matrix_csv)
+
+            artifacts = export_configs(matrix_csv, output_dir, toml_limit=1)
+
+            jsonl_lines = artifacts["jsonl"].read_text(encoding="utf-8").splitlines()
+            self.assertEqual(len(jsonl_lines), 8)
+            events = [json.loads(line) for line in jsonl_lines]
+            skill_pairs = {
+                (event["evaluation"]["blue_select_skill"], event["evaluation"]["red_select_skill"])
+                for event in events
+            }
+            self.assertEqual(skill_pairs, {(80107, 80107), (80107, 80110), (80110, 80107), (80110, 80110)})
+            manifest = artifacts["manifest"].read_text(encoding="utf-8")
+            self.assertIn("skill_pairs: 4", manifest)
 
 
 if __name__ == "__main__":
