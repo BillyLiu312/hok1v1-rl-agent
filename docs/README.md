@@ -9,6 +9,8 @@
 3. [智能体详述](dev-guide/agent_lite.md)
 4. [数据协议](dev-guide/protocol.md)
 5. [胜率优化管线](optimization-pipeline.md)
+6. [v1.1 训练分析](v1.1-training-analysis.md)
+7. [v1.2 实施计划](v1.2-implementation-plan.md)
 
 ## 腾讯开悟强化学习框架
 
