@@ -55,6 +55,8 @@ class V12PreflightTest(unittest.TestCase):
         statuses = {row["check"]: row["status"] for row in rows}
         self.assertEqual(statuses["launch_manifest_experiment_plan_command"], "PASS")
         self.assertEqual(statuses["launch_manifest_report_binding"], "PASS")
+        self.assertEqual(statuses["launch_manifest_report_record_dir"], "PASS")
+        self.assertEqual(statuses["launch_manifest_report_output_dir"], "PASS")
 
     def test_required_tools_cover_v1_2_evidence_chain(self):
         expected = {

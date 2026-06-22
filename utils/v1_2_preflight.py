@@ -236,6 +236,20 @@ def check_launch_manifest_commands(root: Path) -> list[dict]:
             "--experiment-plan and --experiment-name",
             "Launch manifest report command should bind reports to the v1.2 experiment plan.",
         ),
+        row(
+            "PASS" if "--record-dir logs/run_records/v1.2-a" in report_command else "FAIL",
+            "launch_manifest_report_record_dir",
+            "logs/run_records/v1.2-a" if "--record-dir logs/run_records/v1.2-a" in report_command else "missing",
+            "logs/run_records/v1.2-a",
+            "The v1.2-a launch report command should read the v1.2-a recorder directory.",
+        ),
+        row(
+            "PASS" if "--output-dir logs/v1.2/report-v1.2" in report_command else "FAIL",
+            "launch_manifest_report_output_dir",
+            "logs/v1.2/report-v1.2" if "--output-dir logs/v1.2/report-v1.2" in report_command else "missing",
+            "logs/v1.2/report-v1.2",
+            "The v1.2-a launch report command should write the canonical v1.2 report directory.",
+        ),
     ]
 
 

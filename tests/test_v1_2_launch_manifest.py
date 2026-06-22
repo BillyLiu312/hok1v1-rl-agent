@@ -11,6 +11,8 @@ class V12LaunchManifestTest(unittest.TestCase):
     def test_build_commands_bind_experiment_plan(self):
         commands = build_commands("v1.2-a")
         self.assertIn("utils/v1_2_experiment_plan.py --stage v1.2-a", commands["experiment_plan"])
+        self.assertIn("--record-dir logs/run_records/v1.2-a", commands["report"])
+        self.assertIn("--output-dir logs/v1.2/report-v1.2", commands["report"])
         self.assertIn("--experiment-plan logs/v1.2/experiment_plan.json", commands["report"])
         self.assertIn("--experiment-name v1.2", commands["report"])
 
@@ -46,6 +48,8 @@ class V12LaunchManifestTest(unittest.TestCase):
             self.assertEqual(manifest["env"]["HOK_TRAINING_RECORD_DIR"], "logs/run_records/v1.2-b")
             self.assertEqual(manifest["env"]["HOK_OPPONENT_SCHEDULE"], "common_ai:4,historical:4,selfplay:2")
             self.assertIn("--stage v1.2-b", manifest["commands"]["experiment_plan"])
+            self.assertIn("--record-dir logs/run_records/v1.2-b", manifest["commands"]["report"])
+            self.assertIn("--output-dir logs/v1.2/report-v1.2-b", manifest["commands"]["report"])
 
 
 if __name__ == "__main__":
