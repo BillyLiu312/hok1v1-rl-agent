@@ -29,6 +29,8 @@ class AnalyzeRunRecordsTest(unittest.TestCase):
                             "self_tower_hp_down": -0.1,
                             "push_window_tower_damage": 0.2,
                             "unsafe_dive": -1.0,
+                            "push_window_active": 12.0,
+                            "unsafe_dive_active": 3.0,
                             "win_result": 1.0,
                             "timeout_tower_gap": 0.0,
                         },
@@ -56,6 +58,8 @@ class AnalyzeRunRecordsTest(unittest.TestCase):
             self.assertEqual(rows[0]["avg_enemy_tower_hp"], 0)
             self.assertEqual(rows[0]["avg_push_window_tower_damage"], 0.2)
             self.assertEqual(rows[0]["avg_unsafe_dive"], -1.0)
+            self.assertEqual(rows[0]["avg_push_window_active_frames"], 12.0)
+            self.assertEqual(rows[0]["avg_unsafe_dive_active_frames"], 3.0)
 
             csv_path = record_dir / "summary.csv"
             md_path = record_dir / "summary.md"
@@ -64,6 +68,7 @@ class AnalyzeRunRecordsTest(unittest.TestCase):
             markdown = md_path.read_text(encoding="utf-8")
             self.assertIn("199_vs_133", markdown)
             self.assertIn("avg_push_window_tower_damage", markdown)
+            self.assertIn("avg_unsafe_dive_active_frames", markdown)
 
     def test_collect_handles_missing_reward_sum_for_monitor_side(self):
         with tempfile.TemporaryDirectory() as temp_dir:

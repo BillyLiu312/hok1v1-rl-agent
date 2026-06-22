@@ -88,6 +88,14 @@ def build_monitor():
             expr="round(avg(reward_unsafe_dive{}), 0.01)",
         )
         .add_metric(
+            metrics_name="push_window_active",
+            expr="round(avg(reward_push_window_active{}), 0.01)",
+        )
+        .add_metric(
+            metrics_name="unsafe_dive_active",
+            expr="round(avg(reward_unsafe_dive_active{}), 0.01)",
+        )
+        .add_metric(
             metrics_name="win_result",
             expr="round(avg(reward_win_result{}), 0.01)",
         )

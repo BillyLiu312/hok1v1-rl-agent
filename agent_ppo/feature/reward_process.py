@@ -92,6 +92,10 @@ class GameRewardManager:
                 )
             elif reward_name == "unsafe_dive":
                 reward_struct.cur_frame_value = self._unsafe_dive(main_hero, enemy_hero, enemy_tower, frame_data, camp)
+            elif reward_name == "push_window_active":
+                reward_struct.cur_frame_value = 1.0 if self._has_push_window(main_hero, enemy_hero, enemy_tower, frame_data, camp) else 0.0
+            elif reward_name == "unsafe_dive_active":
+                reward_struct.cur_frame_value = self._unsafe_dive(main_hero, enemy_hero, enemy_tower, frame_data, camp)
             elif reward_name in ("win_result", "timeout_tower_gap"):
                 reward_struct.cur_frame_value = 0.0
 
@@ -149,6 +153,8 @@ class GameRewardManager:
                 reward_struct.value = main_value.cur_frame_value - main_value.last_frame_value
             elif reward_name == "unsafe_dive":
                 reward_struct.value = -1.0 * main_value.cur_frame_value
+            elif reward_name in ("push_window_active", "unsafe_dive_active"):
+                reward_struct.value = main_value.cur_frame_value
             elif reward_name in ("win_result", "timeout_tower_gap"):
                 reward_struct.value = 0.0
             else:

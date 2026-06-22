@@ -6,6 +6,7 @@ Opponent curriculum helpers for PPO training.
 from __future__ import annotations
 
 import json
+import os
 import random
 from pathlib import Path
 
@@ -15,6 +16,32 @@ DEFAULT_OPPONENT_SCHEDULE = {
     "historical": 4,
     "selfplay": 2,
 }
+
+
+def parse_schedule(raw_schedule: str | None):
+    if not raw_schedule:
+        return None
+
+    schedule = {}
+    for item in raw_schedule.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        if ":" not in item:
+            continue
+        opponent_type, weight = item.split(":", 1)
+        opponent_type = opponent_type.strip()
+        if not opponent_type:
+            continue
+        try:
+            schedule[opponent_type] = float(weight.strip())
+        except (TypeError, ValueError):
+            continue
+    return schedule or None
+
+
+def load_opponent_schedule(env_var="HOK_OPPONENT_SCHEDULE"):
+    return parse_schedule(os.environ.get(env_var))
 
 
 def load_model_pool(path="kaiwu.json"):

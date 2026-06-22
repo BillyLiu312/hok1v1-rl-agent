@@ -3,8 +3,15 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from agent_ppo.conf.opponent_schedule import apply_opponent_agent, load_model_pool, select_curriculum_opponent
+from agent_ppo.conf.opponent_schedule import (
+    apply_opponent_agent,
+    load_model_pool,
+    load_opponent_schedule,
+    parse_schedule,
+    select_curriculum_opponent,
+)
 
 
 class FixedRng:
@@ -35,6 +42,19 @@ class OpponentScheduleTest(unittest.TestCase):
             path = Path(temp_dir) / "kaiwu.json"
             path.write_text('{"model_pool": [123, "456"]}', encoding="utf-8")
             self.assertEqual(load_model_pool(path), ["123", "456"])
+
+    def test_parse_schedule_accepts_weight_string(self):
+        self.assertEqual(
+            parse_schedule("common_ai:4,historical:4,selfplay:2"),
+            {"common_ai": 4.0, "historical": 4.0, "selfplay": 2.0},
+        )
+
+    def test_parse_schedule_ignores_invalid_items(self):
+        self.assertEqual(parse_schedule("common_ai:4,bad,historical:x,selfplay:2"), {"common_ai": 4.0, "selfplay": 2.0})
+
+    def test_load_opponent_schedule_reads_env(self):
+        with patch.dict("os.environ", {"UNIT_OPPONENT_SCHEDULE": "common_ai:1,selfplay:3"}):
+            self.assertEqual(load_opponent_schedule("UNIT_OPPONENT_SCHEDULE"), {"common_ai": 1.0, "selfplay": 3.0})
 
 
 if __name__ == "__main__":

@@ -115,6 +115,10 @@ def attach_matchup_metrics(candidates: dict[int, dict], matchup_csv: Path | None
         push_window_tower_damage = [value for value in push_window_tower_damage if value is not None]
         unsafe_dive = [to_float(row.get("avg_unsafe_dive")) for row in rows]
         unsafe_dive = [value for value in unsafe_dive if value is not None]
+        push_window_active_frames = [to_float(row.get("avg_push_window_active_frames")) for row in rows]
+        push_window_active_frames = [value for value in push_window_active_frames if value is not None]
+        unsafe_dive_active_frames = [to_float(row.get("avg_unsafe_dive_active_frames")) for row in rows]
+        unsafe_dive_active_frames = [value for value in unsafe_dive_active_frames if value is not None]
 
         candidate.update(
             {
@@ -126,6 +130,8 @@ def attach_matchup_metrics(candidates: dict[int, dict], matchup_csv: Path | None
                 "matchup_avg_self_tower_hp": avg(self_tower_hp),
                 "matchup_avg_push_window_tower_damage": avg(push_window_tower_damage),
                 "matchup_avg_unsafe_dive": avg(unsafe_dive),
+                "matchup_avg_push_window_active_frames": avg(push_window_active_frames),
+                "matchup_avg_unsafe_dive_active_frames": avg(unsafe_dive_active_frames),
             }
         )
 
@@ -157,6 +163,9 @@ def compute_score(candidate: dict) -> float:
         score -= enemy_tower_hp / 1000.0
     if self_tower_hp is not None:
         score += self_tower_hp / 5000.0
+    unsafe_dive_active_frames = candidate.get("matchup_avg_unsafe_dive_active_frames")
+    if unsafe_dive_active_frames is not None:
+        score -= unsafe_dive_active_frames * 0.05
     score += min(candidate.get("matchup_groups") or 0, 9) * 0.5
     return score
 
@@ -187,6 +196,9 @@ def recommendation_reason(row: dict) -> str:
     groups = row.get("matchup_groups")
     if groups:
         parts.append(f"matchup_groups={groups}")
+    unsafe_dive_active_frames = row.get("matchup_avg_unsafe_dive_active_frames")
+    if unsafe_dive_active_frames is not None:
+        parts.append(f"unsafe_dive_active_frames={fmt(unsafe_dive_active_frames)}")
     return ", ".join(parts)
 
 
@@ -211,6 +223,8 @@ def write_csv(rows: list[dict], output_path: Path):
         "matchup_avg_self_tower_hp",
         "matchup_avg_push_window_tower_damage",
         "matchup_avg_unsafe_dive",
+        "matchup_avg_push_window_active_frames",
+        "matchup_avg_unsafe_dive_active_frames",
         "source",
     ]
     with output_path.open("w", encoding="utf-8", newline="") as handle:
@@ -231,6 +245,8 @@ def write_markdown(rows: list[dict], output_path: Path, title: str):
         "matchup_avg_win_rate",
         "matchup_min_win_rate",
         "matchup_avg_death",
+        "matchup_avg_push_window_active_frames",
+        "matchup_avg_unsafe_dive_active_frames",
     ]
     lines = [f"# {title}", "", f"- candidates: {len(rows)}"]
     if rows:

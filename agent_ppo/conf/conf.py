@@ -24,6 +24,8 @@ class GameConfig:
         "forward": 0.05,
         "push_window_tower_damage": 2.0,
         "unsafe_dive": 2.0,
+        "push_window_active": 0.0,
+        "unsafe_dive_active": 0.0,
         "win_result": 20.0,
         "timeout_tower_gap": 8.0,
     }

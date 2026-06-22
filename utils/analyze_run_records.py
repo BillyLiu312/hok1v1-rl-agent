@@ -83,6 +83,8 @@ def summarize_episode(payload: dict) -> dict:
         "reward_self_tower_hp_down": reward_detail.get("self_tower_hp_down"),
         "reward_push_window_tower_damage": reward_detail.get("push_window_tower_damage"),
         "reward_unsafe_dive": reward_detail.get("unsafe_dive"),
+        "push_window_active_frames": reward_detail.get("push_window_active"),
+        "unsafe_dive_active_frames": reward_detail.get("unsafe_dive_active"),
         "reward_win_result": reward_detail.get("win_result"),
         "reward_timeout_tower_gap": reward_detail.get("timeout_tower_gap"),
     }
@@ -131,6 +133,8 @@ def collect_rows(record_dir: Path) -> list[dict]:
                 "avg_reward_self_tower_hp_down": avg([item["reward_self_tower_hp_down"] for item in items]),
                 "avg_push_window_tower_damage": avg([item["reward_push_window_tower_damage"] for item in items]),
                 "avg_unsafe_dive": avg([item["reward_unsafe_dive"] for item in items]),
+                "avg_push_window_active_frames": avg([item["push_window_active_frames"] for item in items]),
+                "avg_unsafe_dive_active_frames": avg([item["unsafe_dive_active_frames"] for item in items]),
                 "avg_win_result": avg([item["reward_win_result"] for item in items]),
                 "avg_timeout_tower_gap": avg([item["reward_timeout_tower_gap"] for item in items]),
             }
@@ -166,6 +170,8 @@ def write_csv(rows: list[dict], output_path: Path):
         "avg_reward_self_tower_hp_down",
         "avg_push_window_tower_damage",
         "avg_unsafe_dive",
+        "avg_push_window_active_frames",
+        "avg_unsafe_dive_active_frames",
         "avg_win_result",
         "avg_timeout_tower_gap",
     ]
@@ -189,6 +195,8 @@ def write_markdown(rows: list[dict], output_path: Path, title: str):
         "avg_death",
         "avg_push_window_tower_damage",
         "avg_unsafe_dive",
+        "avg_push_window_active_frames",
+        "avg_unsafe_dive_active_frames",
         "avg_frame",
     ]
     lines = [f"# {title}", "", f"- groups: {len(rows)}", ""]

@@ -124,11 +124,33 @@ class PpoOptimizationTest(unittest.TestCase):
             "forward",
             "push_window_tower_damage",
             "unsafe_dive",
+            "push_window_active",
+            "unsafe_dive_active",
             "win_result",
             "timeout_tower_gap",
             "reward_sum",
         ):
             self.assertIn(key, reward)
+
+    def test_push_window_and_unsafe_dive_diagnostics_are_unweighted(self):
+        frame_state = make_frame_state()
+        frame_state["hero_states"][0]["location"] = {"x": 16000, "z": 0}
+        frame_state["hero_states"][1]["location"] = {"x": 40000, "z": 0}
+        reward = GameRewardManager(1001).result(frame_state)
+
+        self.assertEqual(reward["push_window_active"], 1.0)
+        self.assertEqual(reward["unsafe_dive_active"], 0.0)
+
+        frame_state["hero_states"][0]["hp"] = 500
+        frame_state["hero_states"][1]["location"] = {"x": 17000, "z": 0}
+        frame_state["npc_states"] = [
+            npc for npc in frame_state["npc_states"] if npc.get("camp") != 1 or npc.get("sub_type") == 21
+        ]
+        frame_state["npc_states"][1]["attack_target"] = 1001
+        reward = GameRewardManager(1001).result(frame_state)
+
+        self.assertEqual(reward["push_window_active"], 0.0)
+        self.assertEqual(reward["unsafe_dive_active"], 1.0)
 
     def test_terminal_reward_uses_win_and_timeout(self):
         manager = GameRewardManager(1001)

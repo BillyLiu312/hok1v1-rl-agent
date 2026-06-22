@@ -20,7 +20,12 @@ from agent_ppo.feature.definition import (
 )
 from agent_ppo.conf.conf import GameConfig
 from agent_ppo.conf.evaluation_config import camp_has_preset_skills
-from agent_ppo.conf.opponent_schedule import apply_opponent_agent, load_model_pool, select_curriculum_opponent
+from agent_ppo.conf.opponent_schedule import (
+    apply_opponent_agent,
+    load_model_pool,
+    load_opponent_schedule,
+    select_curriculum_opponent,
+)
 from utils.training_recorder import TrainingRecorder
 from tools.env_conf_manager import EnvConfManager
 from tools.model_pool_utils import get_valid_model_pool
@@ -350,6 +355,8 @@ class EpisodeRunner:
                             "forward",
                             "push_window_tower_damage",
                             "unsafe_dive",
+                            "push_window_active",
+                            "unsafe_dive_active",
                             "win_result",
                             "timeout_tower_gap",
                         ):
@@ -482,6 +489,7 @@ class EpisodeRunner:
             return configured_opponent_agent
         return select_curriculum_opponent(
             model_pool=load_model_pool(),
+            schedule=load_opponent_schedule(),
             rng=random,
         )
 
