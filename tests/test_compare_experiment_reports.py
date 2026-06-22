@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from utils.compare_experiment_reports import collect_rows, read_manifest_summary, write_csv, write_markdown
+from utils.compare_experiment_reports import collect_rows, interpretation_counts, read_manifest_summary, write_csv, write_markdown
 
 
 def make_report(root: Path, name: str, profile: str, win_rate: float, gate_status: str):
@@ -100,6 +100,7 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertAlmostEqual(rows[1]["avg_win_rate_delta_vs_baseline"], -0.08)
             self.assertEqual(rows[1]["avg_death_delta_vs_baseline"], 0.0)
             self.assertEqual(rows[1]["avg_enemy_tower_hp_delta_vs_baseline"], 0.0)
+            self.assertEqual(interpretation_counts(rows), {"baseline": 1, "supports_baseline": 1})
 
             csv_path = root / "comparison.csv"
             md_path = root / "comparison.md"
@@ -112,6 +113,9 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertIn("avg_win_rate_delta_vs_baseline", csv_path.read_text(encoding="utf-8"))
             self.assertIn("reward_profile", csv_path.read_text(encoding="utf-8"))
             self.assertIn("v1.2-run", md_path.read_text(encoding="utf-8"))
+            self.assertIn("## Interpretation Summary", md_path.read_text(encoding="utf-8"))
+            self.assertIn("supports_baseline: 1", md_path.read_text(encoding="utf-8"))
+            self.assertIn("no_window: supports_baseline", md_path.read_text(encoding="utf-8"))
             self.assertIn("no_window_reward", md_path.read_text(encoding="utf-8"))
             self.assertIn("hypothesis for v1.2", md_path.read_text(encoding="utf-8"))
             self.assertIn("supports_baseline", md_path.read_text(encoding="utf-8"))

@@ -204,6 +204,40 @@ def collect_rows(report_dirs: list[Path]) -> list[dict]:
     return attach_baseline_deltas([summarize_report(report_dir) for report_dir in report_dirs])
 
 
+def interpretation_counts(rows: list[dict]) -> dict:
+    counts = {}
+    for row in rows:
+        key = row.get("ablation_interpretation") or "inconclusive"
+        counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
+def interpretation_summary_lines(rows: list[dict]) -> list[str]:
+    counts = interpretation_counts(rows)
+    lines = [
+        "## Interpretation Summary",
+        "",
+        f"- baseline: {counts.get('baseline', 0)}",
+        f"- supports_baseline: {counts.get('supports_baseline', 0)}",
+        f"- ablation_improves: {counts.get('ablation_improves', 0)}",
+        f"- mixed: {counts.get('mixed', 0)}",
+        f"- inconclusive: {counts.get('inconclusive', 0)}",
+        "",
+    ]
+    for row in rows:
+        if row.get("ablation_interpretation") == "baseline":
+            continue
+        name = first_non_empty(row.get("experiment_name"), row.get("report"))
+        lines.append(
+            f"- {name}: {row.get('ablation_interpretation', '')} "
+            f"(win_delta={fmt(row.get('avg_win_rate_delta_vs_baseline'))}, "
+            f"death_delta={fmt(row.get('avg_death_delta_vs_baseline'))}, "
+            f"tower_hp_delta={fmt(row.get('avg_enemy_tower_hp_delta_vs_baseline'))})"
+        )
+    lines.append("")
+    return lines
+
+
 def write_csv(rows: list[dict], output_path: Path):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [
@@ -290,6 +324,7 @@ def write_markdown(rows: list[dict], output_path: Path, title="v1.2 Experiment C
         "avg_unsafe_dive_death_corr_delta_vs_baseline",
     ]
     lines = [f"# {title}", "", f"- reports: {len(rows)}", ""]
+    lines.extend(interpretation_summary_lines(rows))
     lines.extend(["| " + " | ".join(columns) + " |", "| " + " | ".join(["---"] * len(columns)) + " |"])
     for row in rows:
         lines.append("| " + " | ".join(fmt(row.get(column, "")) for column in columns) + " |")
