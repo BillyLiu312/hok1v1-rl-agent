@@ -27,6 +27,49 @@ MARKER_BEGIN = "-----BEGIN OFFLINE SYNC PACKAGE-----"
 MARKER_END = "-----END OFFLINE SYNC PACKAGE-----"
 FORMAT_VERSION = 1
 
+V1_2_REQUIRED_FILES = [
+    "agent_ppo/conf/conf.py",
+    "agent_ppo/conf/evaluation_config.py",
+    "agent_ppo/conf/monitor_builder.py",
+    "agent_ppo/conf/opponent_schedule.py",
+    "agent_ppo/conf/summoner_skill.py",
+    "agent_ppo/conf/train_env_conf.toml",
+    "agent_ppo/feature/reward_process.py",
+    "agent_ppo/feature/feature_process/hero_process.py",
+    "agent_ppo/feature/feature_process/organ_process.py",
+    "agent_ppo/feature/feature_process/soldier_process.py",
+    "agent_ppo/workflow/train_workflow.py",
+    "utils/analyze_run_records.py",
+    "utils/analyze_training_logs.py",
+    "utils/build_experiment_report.py",
+    "utils/checkpoint_matrix.py",
+    "utils/evaluate_v1_2_candidate.py",
+    "utils/evaluation_config_export.py",
+    "utils/evaluation_matrix.py",
+    "utils/select_checkpoint.py",
+    "utils/summoner_skill_grid.py",
+    "utils/summoner_skill_results.py",
+    "utils/training_recorder.py",
+    "docs/README.md",
+    "docs/v1.1-training-analysis.md",
+    "docs/v1.2-implementation-plan.md",
+    "docs/v1.2-runbook.md",
+]
+
+PRESET_INCLUDE_PATTERNS = {
+    "v1.2": [
+        "agent_ppo/conf/**",
+        "agent_ppo/feature/**",
+        "agent_ppo/workflow/**",
+        "utils/**",
+        "tests/**",
+        "docs/README.md",
+        "docs/v1.1-training-analysis.md",
+        "docs/v1.2-implementation-plan.md",
+        "docs/v1.2-runbook.md",
+    ],
+}
+
 DEFAULT_EXCLUDES = [
     ".git/**",
     ".git",
@@ -118,6 +161,24 @@ def iter_files(
         if should_include(path, root, include_patterns, exclude_patterns):
             files.append(path)
     return sorted(files, key=lambda p: to_posix(p.relative_to(root)))
+
+
+def preset_include_patterns(preset: str | None) -> list[str]:
+    if not preset:
+        return []
+    return PRESET_INCLUDE_PATTERNS.get(preset, [])
+
+
+def v1_2_readiness(root: Path, include_patterns: list[str], exclude_patterns: list[str]) -> dict:
+    included_paths = {to_posix(path.relative_to(root)) for path in iter_files(root, include_patterns, exclude_patterns)}
+    missing = [path for path in V1_2_REQUIRED_FILES if path not in included_paths]
+    return {
+        "preset": "v1.2",
+        "included_count": len(included_paths),
+        "required_count": len(V1_2_REQUIRED_FILES),
+        "missing": missing,
+        "ready": not missing,
+    }
 
 
 def file_sha256(path: Path) -> str:
@@ -265,7 +326,12 @@ def unpack_tar(
 def cmd_pack(args: argparse.Namespace) -> int:
     root = repo_root()
     excludes = DEFAULT_EXCLUDES + load_gitignore_patterns(root) + args.exclude
-    package, manifest = make_package(root, args.include, excludes, args.note)
+    includes = preset_include_patterns(args.preset) + args.include
+    if args.preset == "v1.2":
+        readiness = v1_2_readiness(root, includes, excludes)
+        if not readiness["ready"]:
+            raise ValueError(f"v1.2 package is missing required files: {', '.join(readiness['missing'])}")
+    package, manifest = make_package(root, includes, excludes, args.note)
 
     if args.output:
         Path(args.output).write_text(package, encoding="utf-8")
@@ -279,6 +345,25 @@ def cmd_pack(args: argparse.Namespace) -> int:
         file=sys.stderr,
     )
     return 0
+
+
+def cmd_check(args: argparse.Namespace) -> int:
+    root = repo_root()
+    excludes = DEFAULT_EXCLUDES + load_gitignore_patterns(root) + args.exclude
+    includes = preset_include_patterns(args.preset) + args.include
+    if args.preset != "v1.2":
+        raise ValueError("only --preset v1.2 is currently supported for check")
+
+    readiness = v1_2_readiness(root, includes, excludes)
+    print(f"preset: {readiness['preset']}")
+    print(f"included_files: {readiness['included_count']}")
+    print(f"required_files: {readiness['required_count']}")
+    print(f"ready: {str(readiness['ready']).lower()}")
+    if readiness["missing"]:
+        print("missing:")
+        for path in readiness["missing"]:
+            print(f"  {path}")
+    return 0 if readiness["ready"] else 1
 
 
 def cmd_apply(args: argparse.Namespace) -> int:
@@ -339,8 +424,25 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         help="exclude paths matching this glob; can be repeated",
     )
+    pack.add_argument("--preset", choices=sorted(PRESET_INCLUDE_PATTERNS), default=None, help="include a curated file set")
     pack.add_argument("--note", default="", help="optional note stored in package metadata")
     pack.set_defaults(func=cmd_pack)
+
+    check_cmd = subparsers.add_parser("check", help="check a curated package preset before syncing")
+    check_cmd.add_argument("--preset", choices=sorted(PRESET_INCLUDE_PATTERNS), required=True, help="preset to check")
+    check_cmd.add_argument(
+        "--include",
+        action="append",
+        default=[],
+        help="additional include glob; can be repeated",
+    )
+    check_cmd.add_argument(
+        "--exclude",
+        action="append",
+        default=[],
+        help="additional exclude glob; can be repeated",
+    )
+    check_cmd.set_defaults(func=cmd_check)
 
     apply_cmd = subparsers.add_parser("apply", help="apply an offline sync package")
     apply_cmd.add_argument(
