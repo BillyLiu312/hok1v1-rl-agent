@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from utils.build_experiment_report import build_report, filter_rows_for_checkpoint, manifest_value
+from utils.build_experiment_report import build_report, filter_rows_for_checkpoint, manifest_value, resolve_experiment_metadata
 
 
 class BuildExperimentReportTest(unittest.TestCase):
@@ -23,6 +23,23 @@ class BuildExperimentReportTest(unittest.TestCase):
         candidate = {"checkpoint_step": "15000", "actual_train_global_step": 15039}
         self.assertEqual(filter_rows_for_checkpoint(rows, candidate), [rows[0], rows[1]])
         self.assertEqual(filter_rows_for_checkpoint(rows, None), rows)
+
+    def test_resolve_experiment_metadata_selects_named_ablation(self):
+        plan = {
+            "stage": "v1.2-a",
+            "story": {"research_question": "question", "main_hypothesis": "main"},
+            "ablations": [
+                {"name": "v1.2", "reward_profile": "v1.2", "hypothesis": "full"},
+                {"name": "no_window_reward", "reward_profile": "no_window_reward", "hypothesis": "window"},
+            ],
+        }
+
+        metadata = resolve_experiment_metadata(plan, "no_window_reward")
+
+        self.assertEqual(metadata["plan_stage"], "v1.2-a")
+        self.assertEqual(metadata["experiment_name"], "no_window_reward")
+        self.assertEqual(metadata["experiment_reward_profile"], "no_window_reward")
+        self.assertEqual(metadata["experiment_hypothesis"], "window")
 
     def test_build_report_writes_expected_artifacts(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -67,11 +84,34 @@ class BuildExperimentReportTest(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
+            experiment_plan = root / "experiment_plan.json"
+            experiment_plan.write_text(
+                json.dumps(
+                    {
+                        "stage": "v1.2-a",
+                        "story": {
+                            "research_question": "How can the agent learn stable tower-taking wins?",
+                            "main_hypothesis": "Push-window modeling improves tower pressure without extra deaths.",
+                        },
+                        "ablations": [
+                            {
+                                "name": "v1.2",
+                                "reward_profile": "v1.2",
+                                "hypothesis": "Full reward should stabilize the v1.1 peak.",
+                                "report_dir": "logs/v1.2/report-v1.2",
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
 
             artifacts = build_report(
                 log_dir=log_dir,
                 output_dir=output_dir,
                 launch_manifest=launch_manifest,
+                experiment_plan=experiment_plan,
+                experiment_name="v1.2",
                 checkpoints=[15000],
                 heroes=[112],
                 repeats=1,
@@ -92,6 +132,10 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertIn("launch_reward_profile: v1.2", manifest)
             self.assertIn("launch_reward_weight_overrides: death:5", manifest)
             self.assertIn("launch_opponent_schedule: common_ai:4,historical:4,selfplay:2", manifest)
+            self.assertIn("experiment_plan_stage: v1.2-a", manifest)
+            self.assertIn("experiment_name: v1.2", manifest)
+            self.assertIn("experiment_hypothesis: Full reward should stabilize the v1.1 peak.", manifest)
+            self.assertIn("experiment_main_hypothesis: Push-window modeling improves tower pressure without extra deaths.", manifest)
             self.assertIn("checkpoint_ranking_csv", manifest)
             self.assertIn("v1.2_candidate_gate_csv", manifest)
 

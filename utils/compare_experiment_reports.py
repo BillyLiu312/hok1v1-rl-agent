@@ -91,7 +91,14 @@ def summarize_report(report_dir: Path) -> dict:
         "launch_run_id": manifest.get("launch_run_id", ""),
         "launch_preflight_status": manifest.get("launch_preflight_status", ""),
         "launch_git_commit": manifest.get("launch_git_commit", ""),
-        "reward_profile": first_non_empty(metadata.get("reward_profile"), manifest.get("launch_reward_profile")),
+        "experiment_plan_stage": manifest.get("experiment_plan_stage", ""),
+        "experiment_name": manifest.get("experiment_name", ""),
+        "experiment_hypothesis": manifest.get("experiment_hypothesis", ""),
+        "reward_profile": first_non_empty(
+            metadata.get("reward_profile"),
+            manifest.get("launch_reward_profile"),
+            manifest.get("experiment_reward_profile"),
+        ),
         "reward_weight_overrides": first_non_empty(
             metadata.get("reward_weight_overrides"),
             manifest.get("launch_reward_weight_overrides"),
@@ -134,6 +141,9 @@ def write_csv(rows: list[dict], output_path: Path):
         "launch_run_id",
         "launch_preflight_status",
         "launch_git_commit",
+        "experiment_plan_stage",
+        "experiment_name",
+        "experiment_hypothesis",
         "reward_profile",
         "reward_weight_overrides",
         "opponent_schedule",
@@ -169,9 +179,11 @@ def write_markdown(rows: list[dict], output_path: Path, title="v1.2 Experiment C
     output_path.parent.mkdir(parents=True, exist_ok=True)
     columns = [
         "report",
+        "experiment_name",
         "launch_run_id",
         "launch_preflight_status",
         "reward_profile",
+        "experiment_hypothesis",
         "recommended_checkpoint",
         "gate_status",
         "evaluation_matchups",

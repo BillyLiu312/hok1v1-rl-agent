@@ -53,6 +53,8 @@ def build_report(
     output_dir: Path,
     record_dir: Path | None = None,
     launch_manifest: Path | None = None,
+    experiment_plan: Path | None = None,
+    experiment_name: str | None = None,
     checkpoints=None,
     heroes=None,
     repeats=20,
@@ -62,6 +64,7 @@ def build_report(
     output_dir.mkdir(parents=True, exist_ok=True)
     artifacts = {}
     launch_metadata = read_launch_manifest(launch_manifest)
+    experiment_metadata = resolve_experiment_metadata(read_json_file(experiment_plan), experiment_name)
 
     training_rows = collect_training_rows(log_dir)
     training_csv = output_dir / "training_summary.csv"
@@ -186,18 +189,51 @@ def build_report(
     artifacts["summoner_skill_grid_md"] = skill_md
 
     manifest = output_dir / "manifest.md"
-    write_manifest(manifest, artifacts, training_rows, checkpoint_rows, candidate_gate_rows, eval_rows, launch_metadata)
+    write_manifest(
+        manifest,
+        artifacts,
+        training_rows,
+        checkpoint_rows,
+        candidate_gate_rows,
+        eval_rows,
+        launch_metadata,
+        experiment_metadata,
+    )
     artifacts["manifest"] = manifest
     return artifacts
 
 
-def read_launch_manifest(path: Path | None) -> dict:
+def read_json_file(path: Path | None) -> dict:
     if not path or not path.exists():
         return {}
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return {}
+
+
+def read_launch_manifest(path: Path | None) -> dict:
+    return read_json_file(path)
+
+
+def resolve_experiment_metadata(plan: dict, experiment_name: str | None = None) -> dict:
+    if not plan:
+        return {}
+    ablations = plan.get("ablations") or []
+    selected = {}
+    if experiment_name:
+        selected = next((item for item in ablations if item.get("name") == experiment_name), {})
+    elif len(ablations) == 1:
+        selected = ablations[0]
+    return {
+        "plan_stage": plan.get("stage", ""),
+        "plan_research_question": (plan.get("story") or {}).get("research_question", ""),
+        "plan_main_hypothesis": (plan.get("story") or {}).get("main_hypothesis", ""),
+        "experiment_name": selected.get("name", experiment_name or ""),
+        "experiment_reward_profile": selected.get("reward_profile", ""),
+        "experiment_hypothesis": selected.get("hypothesis", ""),
+        "experiment_report_dir": selected.get("report_dir", ""),
+    }
 
 
 def filter_rows_for_checkpoint(rows: list[dict] | None, candidate: dict | None) -> list[dict] | None:
@@ -229,6 +265,7 @@ def write_manifest(
     candidate_gate_rows: list[dict],
     eval_rows: list[dict],
     launch_metadata: dict | None = None,
+    experiment_metadata: dict | None = None,
 ):
     checkpoint_count = len({row["checkpoint_step"] for row in eval_rows})
     matchup_count = len({row["matchup"] for row in eval_rows})
@@ -259,6 +296,13 @@ def write_manifest(
         lines.append(f"- launch_reward_profile: {launch_env.get('HOK_REWARD_PROFILE', '')}")
         lines.append(f"- launch_reward_weight_overrides: {launch_env.get('HOK_REWARD_WEIGHT_OVERRIDES', '')}")
         lines.append(f"- launch_opponent_schedule: {launch_env.get('HOK_OPPONENT_SCHEDULE', '')}")
+    if experiment_metadata:
+        lines.append(f"- experiment_plan_stage: {experiment_metadata.get('plan_stage', '')}")
+        lines.append(f"- experiment_name: {experiment_metadata.get('experiment_name', '')}")
+        lines.append(f"- experiment_reward_profile: {experiment_metadata.get('experiment_reward_profile', '')}")
+        lines.append(f"- experiment_hypothesis: {experiment_metadata.get('experiment_hypothesis', '')}")
+        lines.append(f"- experiment_research_question: {experiment_metadata.get('plan_research_question', '')}")
+        lines.append(f"- experiment_main_hypothesis: {experiment_metadata.get('plan_main_hypothesis', '')}")
     if checkpoint_rows:
         best = checkpoint_rows[0]
         lines.append(f"- recommended_checkpoint: {best.get('checkpoint_step')}")
@@ -286,6 +330,8 @@ def parse_args():
     parser.add_argument("--log-dir", type=Path, required=True, help="Directory containing step-*.md training logs")
     parser.add_argument("--record-dir", type=Path, default=None, help="Directory containing training recorder JSONL files")
     parser.add_argument("--launch-manifest", type=Path, default=Path("logs/v1.2/launch_manifest.json"), help="JSON from utils/v1_2_launch_manifest.py")
+    parser.add_argument("--experiment-plan", type=Path, default=Path("logs/v1.2/experiment_plan.json"), help="JSON from utils/v1_2_experiment_plan.py")
+    parser.add_argument("--experiment-name", default=None, help="Ablation name in the experiment plan")
     parser.add_argument("--output-dir", type=Path, default=Path("logs/v1.2/report"), help="Output directory")
     parser.add_argument("--checkpoints", default="15000,17057", help="Comma-separated checkpoint steps for eval matrix")
     parser.add_argument("--heroes", default="112,133,199", help="Comma-separated hero IDs")
@@ -301,6 +347,8 @@ def main():
         log_dir=args.log_dir,
         record_dir=args.record_dir,
         launch_manifest=args.launch_manifest,
+        experiment_plan=args.experiment_plan,
+        experiment_name=args.experiment_name,
         output_dir=args.output_dir,
         checkpoints=parse_ids(args.checkpoints),
         heroes=parse_ids(args.heroes),

@@ -55,6 +55,8 @@ def make_report(root: Path, name: str, profile: str, win_rate: float, gate_statu
                 f"- launch_run_id: {name}-run",
                 "- launch_preflight_status: PASS",
                 "- launch_git_commit: abc123",
+                f"- experiment_name: {name}",
+                f"- experiment_hypothesis: hypothesis for {profile}",
                 "",
             ]
         ),
@@ -73,6 +75,8 @@ class CompareExperimentReportsTest(unittest.TestCase):
             rows = collect_rows([report_a, report_b])
             self.assertEqual(len(rows), 2)
             self.assertEqual(rows[0]["reward_profile"], "v1.2")
+            self.assertEqual(rows[0]["experiment_name"], "v1.2")
+            self.assertEqual(rows[0]["experiment_hypothesis"], "hypothesis for v1.2")
             self.assertEqual(rows[0]["launch_run_id"], "v1.2-run")
             self.assertEqual(rows[0]["launch_preflight_status"], "PASS")
             self.assertEqual(rows[0]["evaluation_matchups"], "9")
@@ -90,9 +94,11 @@ class CompareExperimentReportsTest(unittest.TestCase):
             write_csv(rows, csv_path)
             write_markdown(rows, md_path)
             self.assertIn("launch_run_id", csv_path.read_text(encoding="utf-8"))
+            self.assertIn("experiment_hypothesis", csv_path.read_text(encoding="utf-8"))
             self.assertIn("reward_profile", csv_path.read_text(encoding="utf-8"))
             self.assertIn("v1.2-run", md_path.read_text(encoding="utf-8"))
             self.assertIn("no_window_reward", md_path.read_text(encoding="utf-8"))
+            self.assertIn("hypothesis for v1.2", md_path.read_text(encoding="utf-8"))
 
     def test_read_manifest_summary_parses_top_level_keys(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -130,6 +136,9 @@ class CompareExperimentReportsTest(unittest.TestCase):
                         "# v1.2 Experiment Evidence Package",
                         "",
                         "- launch_reward_profile: v1.2",
+                        "- experiment_reward_profile: no_window_reward",
+                        "- experiment_name: no_window_reward",
+                        "- experiment_hypothesis: No window reward ablation.",
                         "- launch_reward_weight_overrides: death:5",
                         "- launch_opponent_schedule: common_ai:4,historical:4,selfplay:2",
                         "- candidate_gate_status: PASS",
@@ -144,6 +153,8 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertEqual(rows[0]["reward_profile"], "v1.2")
             self.assertEqual(rows[0]["reward_weight_overrides"], "death:5")
             self.assertEqual(rows[0]["opponent_schedule"], "common_ai:4,historical:4,selfplay:2")
+            self.assertEqual(rows[0]["experiment_name"], "no_window_reward")
+            self.assertEqual(rows[0]["experiment_hypothesis"], "No window reward ablation.")
             self.assertEqual(rows[0]["gate_status"], "PASS")
 
 

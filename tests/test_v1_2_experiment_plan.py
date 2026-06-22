@@ -17,6 +17,8 @@ class V12ExperimentPlanTest(unittest.TestCase):
         self.assertEqual([group["reward_profile"] for group in manifest["ablations"]], ["v1.2", "no_window_reward", "no_terminal_reward", "death_only_risk"])
         self.assertEqual(manifest["ablations"][0]["env"]["HOK_TRAINING_RUN_ID"], "v1.2-a-v1.2")
         self.assertIn("--skill-grid", manifest["ablations"][0]["report_command"])
+        self.assertIn("--experiment-plan logs/v1.2/experiment_plan.json", manifest["ablations"][0]["report_command"])
+        self.assertIn("--experiment-name v1.2", manifest["ablations"][0]["report_command"])
         self.assertIn("logs/v1.2/report-no-terminal", manifest["comparison_command"])
 
     def test_write_outputs_include_hypotheses_and_commands(self):
