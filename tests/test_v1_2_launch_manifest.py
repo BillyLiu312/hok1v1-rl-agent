@@ -4,17 +4,24 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from utils.v1_2_launch_manifest import build_commands, build_manifest, write_json, write_markdown
+from utils.v1_2_launch_manifest import ablation_for_profile, build_commands, build_manifest, write_json, write_markdown
 
 
 class V12LaunchManifestTest(unittest.TestCase):
     def test_build_commands_bind_experiment_plan(self):
-        commands = build_commands("v1.2-a")
+        commands = build_commands("v1.2-a", "v1.2")
         self.assertIn("utils/v1_2_experiment_plan.py --stage v1.2-a", commands["experiment_plan"])
         self.assertIn("--record-dir logs/run_records/v1.2-a", commands["report"])
         self.assertIn("--output-dir logs/v1.2/report-v1.2", commands["report"])
         self.assertIn("--experiment-plan logs/v1.2/experiment_plan.json", commands["report"])
         self.assertIn("--experiment-name v1.2", commands["report"])
+
+    def test_ablation_profile_commands_use_ablation_dirs(self):
+        self.assertEqual(ablation_for_profile("no_window_reward")["name"], "no_window_reward")
+        commands = build_commands("v1.2-a", "no_window_reward")
+        self.assertIn("--record-dir logs/run_records/v1.2-no-window", commands["report"])
+        self.assertIn("--output-dir logs/v1.2/report-no-window", commands["report"])
+        self.assertIn("--experiment-name no_window_reward", commands["report"])
 
     def test_build_manifest_records_sync_package_and_env(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -50,6 +57,17 @@ class V12LaunchManifestTest(unittest.TestCase):
             self.assertIn("--stage v1.2-b", manifest["commands"]["experiment_plan"])
             self.assertIn("--record-dir logs/run_records/v1.2-b", manifest["commands"]["report"])
             self.assertIn("--output-dir logs/v1.2/report-v1.2-b", manifest["commands"]["report"])
+
+    def test_ablation_manifest_uses_profile_record_dir(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            sync_package = Path(temp_dir) / "sync_package.txt"
+            sync_package.write_text("package", encoding="utf-8")
+            manifest = build_manifest(sync_package, run_id="unit-no-window", stage="v1.2-a", reward_profile="no_window_reward")
+            self.assertEqual(manifest["env"]["HOK_REWARD_PROFILE"], "no_window_reward")
+            self.assertEqual(manifest["env"]["HOK_TRAINING_RECORD_DIR"], "logs/run_records/v1.2-no-window")
+            self.assertIn("--record-dir logs/run_records/v1.2-no-window", manifest["commands"]["report"])
+            self.assertIn("--output-dir logs/v1.2/report-no-window", manifest["commands"]["report"])
+            self.assertIn("--experiment-name no_window_reward", manifest["commands"]["report"])
 
 
 if __name__ == "__main__":

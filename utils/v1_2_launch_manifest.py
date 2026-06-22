@@ -19,6 +19,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from utils.v1_2_preflight import collect_rows as collect_preflight_rows
 from utils.v1_2_preflight import overall_status as preflight_status
+from utils.v1_2_experiment_plan import ABLATIONS
 
 
 DEFAULT_ENV = {
@@ -48,14 +49,23 @@ def git_value(args: list[str]) -> str:
         return ""
 
 
-def build_commands(stage: str) -> dict:
-    record_dir = "logs/run_records/v1.2-b" if stage == "v1.2-b" else "logs/run_records/v1.2-a"
-    output_dir = "logs/v1.2/report-v1.2-b" if stage == "v1.2-b" else "logs/v1.2/report-v1.2"
+def ablation_for_profile(reward_profile: str) -> dict:
+    for ablation in ABLATIONS:
+        if ablation.get("reward_profile") == reward_profile:
+            return ablation
+    return ABLATIONS[0]
+
+
+def build_commands(stage: str, reward_profile: str = "v1.2") -> dict:
+    ablation = ablation_for_profile(reward_profile)
+    experiment_name = ablation["name"]
+    record_dir = "logs/run_records/v1.2-b" if stage == "v1.2-b" and reward_profile == "v1.2" else ablation["record_dir"]
+    output_dir = "logs/v1.2/report-v1.2-b" if stage == "v1.2-b" and reward_profile == "v1.2" else ablation["report_dir"]
     return {
         "preflight": "python3 utils/v1_2_preflight.py --md logs/v1.2/preflight.md --csv logs/v1.2/preflight.csv",
         "pack": "python3 utils/offline_sync.py pack --preset v1.2 --note v1.2-a-ready -o sync_package.txt",
         "experiment_plan": f"python3 utils/v1_2_experiment_plan.py --stage {stage} --json logs/v1.2/experiment_plan.json --md logs/v1.2/experiment_plan.md",
-        "report": f"python3 utils/build_experiment_report.py --log-dir logs/v1.2 --record-dir {record_dir} --launch-manifest logs/v1.2/launch_manifest.json --experiment-plan logs/v1.2/experiment_plan.json --experiment-name v1.2 --output-dir {output_dir} --checkpoints 15000,17057 --heroes 112,133,199 --repeats 20",
+        "report": f"python3 utils/build_experiment_report.py --log-dir logs/v1.2 --record-dir {record_dir} --launch-manifest logs/v1.2/launch_manifest.json --experiment-plan logs/v1.2/experiment_plan.json --experiment-name {experiment_name} --output-dir {output_dir} --checkpoints 15000,17057 --heroes 112,133,199 --repeats 20",
     }
 
 
@@ -64,7 +74,9 @@ def build_manifest(sync_package: Path, run_id: str, stage: str, reward_profile: 
     env = dict(DEFAULT_ENV)
     env["HOK_TRAINING_RUN_ID"] = run_id
     env["HOK_REWARD_PROFILE"] = reward_profile
-    if stage == "v1.2-b":
+    ablation = ablation_for_profile(reward_profile)
+    env["HOK_TRAINING_RECORD_DIR"] = ablation["record_dir"]
+    if stage == "v1.2-b" and reward_profile == "v1.2":
         env["HOK_TRAINING_RECORD_DIR"] = "logs/run_records/v1.2-b"
         env["HOK_OPPONENT_SCHEDULE"] = "common_ai:4,historical:4,selfplay:2"
 
@@ -81,7 +93,7 @@ def build_manifest(sync_package: Path, run_id: str, stage: str, reward_profile: 
         "preflight_status": preflight_status(preflight_rows),
         "preflight_checks": len(preflight_rows),
         "env": env,
-        "commands": build_commands(stage),
+        "commands": build_commands(stage, reward_profile),
     }
 
 
