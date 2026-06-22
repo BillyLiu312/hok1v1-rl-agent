@@ -23,6 +23,7 @@
 - `utils/compare_experiment_reports.py`：横向比较多个 v1.2 证据包，用于 reward/课程/技能消融。
 - `utils/evaluate_v1_2_candidate.py`：根据 v1.2 验收标准逐项判定候选 checkpoint。
 - `utils/v1_2_preflight.py`：训练前一次性检查 v1.2-a 配置、reward、工具和同步 preset。
+- `utils/v1_2_launch_manifest.py`：生成训练启动清单，记录 commit、同步包 hash、环境变量和报告命令。
 - `utils/run_metadata_summary.py`：汇总训练启动配置快照、reward profile、对手课程和关键配置 hash。
 - `utils/checkpoint_matrix.py`：生成 checkpoint-vs-opponent 胜率矩阵和 Elo 排名。
 - `utils/summoner_skill_results.py`：按 matchup 和召唤师技能选择聚合胜率、死亡和推塔指标，并输出技能推荐。
