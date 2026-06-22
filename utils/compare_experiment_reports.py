@@ -112,10 +112,14 @@ def summarize_report(report_dir: Path) -> dict:
         ),
         "reward_weight_overrides": first_non_empty(
             metadata.get("reward_weight_overrides"),
+            manifest.get("resolved_reward_weight_overrides"),
             manifest.get("launch_reward_weight_overrides"),
         ),
-        "reward_weight_dict": metadata.get("reward_weight_dict", ""),
-        "reward_weight_dict_sha": metadata.get("reward_weight_dict_sha", ""),
+        "reward_weight_dict": first_non_empty(metadata.get("reward_weight_dict"), manifest.get("resolved_reward_weight_dict")),
+        "reward_weight_dict_sha": first_non_empty(
+            metadata.get("reward_weight_dict_sha"),
+            manifest.get("resolved_reward_weight_dict_sha"),
+        ),
         "opponent_schedule": first_non_empty(metadata.get("opponent_schedule"), manifest.get("launch_opponent_schedule")),
         "evaluation_rows": manifest.get("evaluation_rows", ""),
         "evaluation_matchups": manifest.get("evaluation_matchups", ""),

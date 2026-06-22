@@ -272,6 +272,23 @@ class BuildExperimentReportTest(unittest.TestCase):
                 json.dumps(event) + "\n" + json.dumps(event_2) + "\n" + json.dumps(other_checkpoint_event) + "\n",
                 encoding="utf-8",
             )
+            config_event = {
+                "stream": "config",
+                "payload": {
+                    "name": "ppo_training_start",
+                    "extra": {
+                        "reward_profile": "v1.2",
+                        "reward_weight_overrides": "death:5",
+                        "reward_weight_dict": {
+                            "death": 5.0,
+                            "win_result": 20.0,
+                            "push_window_tower_damage": 2.0,
+                        },
+                    },
+                    "files": [],
+                },
+            }
+            (record_dir / "config-unit-1.jsonl").write_text(json.dumps(config_event) + "\n", encoding="utf-8")
 
             artifacts = build_report(
                 log_dir=log_dir,
@@ -317,6 +334,10 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertIn("recommended_self_tower_hp_p10", manifest)
             self.assertIn("recommended_timeout_rate", manifest)
             self.assertIn("recommended_unsafe_dive_severity", manifest)
+            self.assertIn("resolved_reward_profile: v1.2", manifest)
+            self.assertIn("resolved_reward_weight_overrides: death:5", manifest)
+            self.assertIn("resolved_reward_weight_dict_sha", manifest)
+            self.assertIn("death=5.0,push_window_tower_damage=2.0,win_result=20.0", manifest)
             candidate_gate = artifacts["v1.2_candidate_gate_csv"].read_text(encoding="utf-8")
             self.assertIn("raw_matchup_rows,1", candidate_gate)
             self.assertIn("death_tail_risk", candidate_gate)

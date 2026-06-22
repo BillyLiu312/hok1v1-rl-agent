@@ -262,6 +262,9 @@ class CompareExperimentReportsTest(unittest.TestCase):
                         "- experiment_success_metric_count: 7",
                         "- experiment_success_metrics: avg_win_rate,avg_death",
                         "- launch_reward_weight_overrides: death:5",
+                        "- resolved_reward_weight_overrides: death:4",
+                        "- resolved_reward_weight_dict_sha: resolved1234",
+                        "- resolved_reward_weight_dict: death=4.0,win_result=20.0",
                         "- launch_opponent_schedule: common_ai:4,historical:4,selfplay:2",
                         "- candidate_gate_status: PASS",
                         "",
@@ -273,7 +276,9 @@ class CompareExperimentReportsTest(unittest.TestCase):
             rows = collect_rows([report_dir])
 
             self.assertEqual(rows[0]["reward_profile"], "v1.2")
-            self.assertEqual(rows[0]["reward_weight_overrides"], "death:5")
+            self.assertEqual(rows[0]["reward_weight_overrides"], "death:4")
+            self.assertEqual(rows[0]["reward_weight_dict_sha"], "resolved1234")
+            self.assertEqual(rows[0]["reward_weight_dict"], "death=4.0,win_result=20.0")
             self.assertEqual(rows[0]["opponent_schedule"], "common_ai:4,historical:4,selfplay:2")
             self.assertEqual(rows[0]["experiment_name"], "no_window_reward")
             self.assertEqual(rows[0]["experiment_hypothesis"], "No window reward ablation.")

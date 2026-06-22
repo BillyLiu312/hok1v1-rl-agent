@@ -192,6 +192,7 @@ def check_evidence_chain_fields(root: Path) -> list[dict]:
             "summoner_skill_policy_gate",
             "recommended_death_p90",
             "opponent_curriculum_summary",
+            "resolved_reward_weight_dict_sha",
         ],
         "utils/evaluate_summoner_skill_policy.py": [
             "current_policy_coverage",

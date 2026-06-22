@@ -93,6 +93,7 @@ def build_report(
 
     matchup_csv = None
     run_rows = None
+    metadata_rows = []
     if record_dir and record_dir.exists():
         run_rows = collect_run_rows(record_dir)
         matchup_csv = output_dir / "matchup_summary.csv"
@@ -250,6 +251,7 @@ def build_report(
         launch_metadata,
         experiment_metadata,
         baseline_metadata,
+        metadata_rows,
     )
     artifacts["manifest"] = manifest
     return artifacts
@@ -340,6 +342,7 @@ def write_manifest(
     launch_metadata: dict | None = None,
     experiment_metadata: dict | None = None,
     baseline_metadata: dict | None = None,
+    metadata_rows: list[dict] | None = None,
 ):
     checkpoint_count = len({row["checkpoint_step"] for row in eval_rows})
     matchup_count = len({row["matchup"] for row in eval_rows})
@@ -371,6 +374,12 @@ def write_manifest(
         lines.append(f"- launch_reward_profile: {launch_env.get('HOK_REWARD_PROFILE', '')}")
         lines.append(f"- launch_reward_weight_overrides: {launch_env.get('HOK_REWARD_WEIGHT_OVERRIDES', '')}")
         lines.append(f"- launch_opponent_schedule: {launch_env.get('HOK_OPPONENT_SCHEDULE', '')}")
+    if metadata_rows:
+        metadata = metadata_rows[0]
+        lines.append(f"- resolved_reward_profile: {metadata.get('reward_profile', '')}")
+        lines.append(f"- resolved_reward_weight_overrides: {metadata.get('reward_weight_overrides', '')}")
+        lines.append(f"- resolved_reward_weight_dict_sha: {metadata.get('reward_weight_dict_sha', '')}")
+        lines.append(f"- resolved_reward_weight_dict: {metadata.get('reward_weight_dict', '')}")
     if experiment_metadata:
         lines.append(f"- experiment_plan_stage: {experiment_metadata.get('plan_stage', '')}")
         lines.append(f"- experiment_name: {experiment_metadata.get('experiment_name', '')}")
