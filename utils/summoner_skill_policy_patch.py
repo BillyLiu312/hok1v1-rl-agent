@@ -81,6 +81,8 @@ def build_patch_rows(rows: list[dict], min_episodes=1, min_win_delta=0.0) -> lis
                 "current_policy_skill_name": SUMMONER_SKILL_MAP.get(current_skill, str(current_skill) if current_skill else ""),
                 "recommended_win_rate": recommended_win_rate if recommended_win_rate is not None else "",
                 "current_policy_win_rate": current_win_rate if current_win_rate is not None else "",
+                "current_policy_avg_death": row.get("current_policy_avg_death", ""),
+                "current_policy_avg_enemy_tower_hp": row.get("current_policy_avg_enemy_tower_hp", ""),
                 "win_rate_delta": win_delta,
                 "recommended_avg_death": row.get("recommended_avg_death", ""),
                 "recommended_avg_enemy_tower_hp": row.get("recommended_avg_enemy_tower_hp", ""),
@@ -140,7 +142,9 @@ def write_markdown(rows: list[dict], output_path: Path, title="Summoner Skill Po
         "current_policy_win_rate",
         "win_rate_delta",
         "recommended_avg_death",
+        "current_policy_avg_death",
         "recommended_avg_enemy_tower_hp",
+        "current_policy_avg_enemy_tower_hp",
         "recommended_episodes",
     ]
     lines = [f"# {title}", "", f"- candidates: {len(rows)}", ""]

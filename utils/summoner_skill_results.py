@@ -160,6 +160,8 @@ def recommend_skill_rows(rows: list[dict], min_episodes=1) -> list[dict]:
         current = current_items[0] if current_items else None
         current_skill = current.get("monitor_skill") if current else ""
         current_win_rate = current.get("win_rate") if current else ""
+        current_avg_death = current.get("avg_death") if current else ""
+        current_avg_enemy_tower_hp = current.get("avg_enemy_tower_hp") if current else ""
 
         recommendations.append(
             {
@@ -176,6 +178,8 @@ def recommend_skill_rows(rows: list[dict], min_episodes=1) -> list[dict]:
                 "current_policy_skill": current_skill,
                 "current_policy_skill_name": current.get("monitor_skill_name") if current else "",
                 "current_policy_win_rate": current_win_rate,
+                "current_policy_avg_death": current_avg_death,
+                "current_policy_avg_enemy_tower_hp": current_avg_enemy_tower_hp,
                 "recommendation_score": recommendation_score(best),
                 "needs_policy_update": best.get("monitor_skill") != current_skill if current_skill != "" else "",
             }
@@ -254,6 +258,8 @@ def write_recommendation_csv(rows: list[dict], output_path: Path):
         "current_policy_skill",
         "current_policy_skill_name",
         "current_policy_win_rate",
+        "current_policy_avg_death",
+        "current_policy_avg_enemy_tower_hp",
         "recommendation_score",
         "needs_policy_update",
     ]

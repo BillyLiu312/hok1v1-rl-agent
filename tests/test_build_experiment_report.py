@@ -254,6 +254,7 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertTrue(artifacts["summoner_skill_results_csv"].exists())
             self.assertTrue(artifacts["summoner_skill_policy_patch_py"].exists())
             self.assertTrue(artifacts["summoner_skill_policy_patch_md"].exists())
+            self.assertTrue(artifacts["summoner_skill_policy_gate_csv"].exists())
             self.assertTrue(artifacts["v1.2_candidate_gate_csv"].exists())
             self.assertIn(
                 "push_window_tower_damage_share",
@@ -271,6 +272,7 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertIn("checkpoint_matrix_csv", manifest)
             self.assertIn("opponent_curriculum_summary_csv", manifest)
             self.assertIn("summoner_skill_results_csv", manifest)
+            self.assertIn("summoner_skill_policy_gate_csv", manifest)
             self.assertIn("summoner_skill_policy_patch_py", manifest)
             self.assertIn("recommended_matchup_rows", manifest)
             self.assertIn("recommended_push_window_tower_damage_share", manifest)

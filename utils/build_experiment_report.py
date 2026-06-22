@@ -31,6 +31,9 @@ from utils.evaluate_v1_2_candidate import evaluate_candidate
 from utils.evaluate_v1_2_candidate import overall_status as candidate_gate_status
 from utils.evaluate_v1_2_candidate import write_csv as write_candidate_gate_csv
 from utils.evaluate_v1_2_candidate import write_markdown as write_candidate_gate_markdown
+from utils.evaluate_summoner_skill_policy import evaluate_recommendations as evaluate_skill_policy
+from utils.evaluate_summoner_skill_policy import write_csv as write_skill_policy_gate_csv
+from utils.evaluate_summoner_skill_policy import write_markdown as write_skill_policy_gate_markdown
 from utils.opponent_curriculum_summary import collect_rows as collect_opponent_curriculum_rows
 from utils.opponent_curriculum_summary import write_csv as write_opponent_curriculum_csv
 from utils.opponent_curriculum_summary import write_markdown as write_opponent_curriculum_markdown
@@ -157,6 +160,14 @@ def build_report(
         )
         artifacts["summoner_skill_recommendations_csv"] = skill_recommendation_csv
         artifacts["summoner_skill_recommendations_md"] = skill_recommendation_md
+
+        skill_policy_gate_rows = evaluate_skill_policy(skill_recommendation_rows)
+        skill_policy_gate_csv = output_dir / "summoner_skill_policy_gate.csv"
+        skill_policy_gate_md = output_dir / "summoner_skill_policy_gate.md"
+        write_skill_policy_gate_csv(skill_policy_gate_rows, skill_policy_gate_csv)
+        write_skill_policy_gate_markdown(skill_policy_gate_rows, skill_policy_gate_md)
+        artifacts["summoner_skill_policy_gate_csv"] = skill_policy_gate_csv
+        artifacts["summoner_skill_policy_gate_md"] = skill_policy_gate_md
 
         skill_policy_patch_rows = build_skill_policy_patch_rows(skill_recommendation_rows)
         skill_policy_patch_py = output_dir / "summoner_skill_policy_patch.py"

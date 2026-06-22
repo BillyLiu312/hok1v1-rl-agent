@@ -44,6 +44,7 @@ V1_2_REQUIRED_FILES = [
     "utils/build_experiment_report.py",
     "utils/checkpoint_matrix.py",
     "utils/compare_experiment_reports.py",
+    "utils/evaluate_summoner_skill_policy.py",
     "utils/evaluate_v1_2_candidate.py",
     "utils/evaluation_config_export.py",
     "utils/evaluation_matrix.py",

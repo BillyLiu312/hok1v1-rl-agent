@@ -22,6 +22,7 @@
 - `utils/select_checkpoint.py`：根据训练摘要、矩阵评估结果和风险尾部指标排序 checkpoint。
 - `utils/compare_experiment_reports.py`：横向比较多个 v1.2 证据包，输出 baseline delta、消融判读和 Markdown 摘要。
 - `utils/evaluate_v1_2_candidate.py`：根据 v1.2 验收标准逐项判定候选 checkpoint。
+- `utils/evaluate_summoner_skill_policy.py`：检查召唤师技能推荐是否有足够样本、胜率增益和风险对照，决定是否进入规则表审阅。
 - `utils/v1_2_preflight.py`：训练前一次性检查 v1.2-a 配置、reward、实验方案、启动清单命令、工具和同步 preset。
 - `utils/v1_2_experiment_plan.py`：生成 v1.2 科研主线、消融组、固定矩阵、成功指标和比较命令。
 - `utils/v1_2_launch_manifest.py`：生成训练启动清单，记录 commit、同步包 hash、环境变量、reward/profile 覆盖和报告命令。

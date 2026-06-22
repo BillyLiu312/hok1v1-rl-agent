@@ -114,6 +114,8 @@ class SummonerSkillResultsTest(unittest.TestCase):
         self.assertEqual(recommendations[0]["checkpoint_step"], 15000)
         self.assertEqual(recommendations[0]["recommended_skill"], 80110)
         self.assertEqual(recommendations[0]["current_policy_skill"], 80107)
+        self.assertEqual(recommendations[0]["current_policy_avg_death"], 2)
+        self.assertEqual(recommendations[0]["current_policy_avg_enemy_tower_hp"], 2000)
         self.assertTrue(recommendations[0]["needs_policy_update"])
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -122,6 +124,7 @@ class SummonerSkillResultsTest(unittest.TestCase):
             write_recommendation_csv(recommendations, csv_path)
             write_recommendation_markdown(recommendations, md_path, "Recommendations")
             self.assertIn("recommended_skill_name", csv_path.read_text(encoding="utf-8"))
+            self.assertIn("current_policy_avg_death", csv_path.read_text(encoding="utf-8"))
             self.assertIn("needs_policy_update", md_path.read_text(encoding="utf-8"))
 
     def test_skill_rows_are_split_by_checkpoint(self):
