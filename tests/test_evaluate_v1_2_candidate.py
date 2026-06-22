@@ -22,6 +22,8 @@ class EvaluateV12CandidateTest(unittest.TestCase):
             "matchup_avg_win_rate": 0.88,
             "matchup_min_win_rate": 0.75,
             "matchup_avg_death": 2.0,
+            "matchup_avg_hurt_to_hero": 1.7,
+            "matchup_avg_hurt_by_hero": 0.5,
             "matchup_avg_enemy_tower_hp": 900,
             "matchup_groups": 9,
             "matchup_avg_push_window_tower_damage_share": 0.45,
@@ -55,6 +57,7 @@ class EvaluateV12CandidateTest(unittest.TestCase):
         self.assertEqual(statuses["matchup_coverage"], "MISSING")
         self.assertEqual(statuses["avg_death"], "FAIL")
         self.assertEqual(statuses["push_window_evidence"], "MISSING")
+        self.assertEqual(statuses["hero_damage_balance"], "WARN")
         self.assertEqual(statuses["death_tail_risk"], "WARN")
         self.assertEqual(statuses["self_tower_tail_risk"], "WARN")
         self.assertEqual(statuses["timeout_rate"], "WARN")
@@ -68,6 +71,8 @@ class EvaluateV12CandidateTest(unittest.TestCase):
             "matchup_avg_win_rate": 0.88,
             "matchup_min_win_rate": 0.75,
             "matchup_avg_death": 2.0,
+            "matchup_avg_hurt_to_hero": 0.8,
+            "matchup_avg_hurt_by_hero": 0.5,
             "matchup_avg_enemy_tower_hp": 900,
             "matchup_groups": 9,
             "matchup_avg_push_window_tower_damage_share": 0.08,
@@ -86,6 +91,30 @@ class EvaluateV12CandidateTest(unittest.TestCase):
         self.assertEqual(statuses["death_tail_risk"], "WARN")
         self.assertEqual(statuses["self_tower_tail_risk"], "WARN")
         self.assertEqual(statuses["timeout_rate"], "WARN")
+
+    def test_candidate_warns_when_damage_balance_regresses(self):
+        candidate = {
+            "checkpoint_step": 20000,
+            "matchup_avg_win_rate": 0.88,
+            "matchup_min_win_rate": 0.75,
+            "matchup_avg_death": 2.0,
+            "matchup_avg_hurt_to_hero": 1.0,
+            "matchup_avg_hurt_by_hero": 0.8,
+            "matchup_avg_enemy_tower_hp": 900,
+            "matchup_groups": 9,
+            "matchup_avg_push_window_tower_damage_share": 0.45,
+            "matchup_avg_unsafe_dive_death_corr": 0.1,
+            "matchup_avg_unsafe_dive_severity": 0.2,
+            "matchup_max_death_p90": 3.0,
+            "matchup_min_self_tower_hp_p10": 3000,
+            "matchup_avg_timeout_rate": 0.05,
+        }
+
+        rows = evaluate_candidate(candidate, baseline={"best_win_hero_damage_balance": 0.67})
+        statuses = {row["gate"]: row["status"] for row in rows}
+
+        self.assertEqual(statuses["hero_damage_balance"], "WARN")
+        self.assertEqual(overall_status(rows), "WARN")
 
     def test_candidate_warns_when_matchup_episode_count_is_too_low(self):
         candidate = {
@@ -147,12 +176,15 @@ class EvaluateV12CandidateTest(unittest.TestCase):
             "checkpoint_step": 20000,
             "common_ai_win_rate": 0.88,
             "common_ai_death": 2.8,
+            "common_ai_hurt_to_hero": 1.0,
+            "common_ai_hurt_by_hero": 0.6,
             "common_ai_enemy_tower_hp": 900,
         }
         baseline = {
             "best_win_rate": 0.9,
             "best_win_enemy_tower_hp": 800,
             "late_death": 2.5,
+            "best_win_hero_damage_balance": 0.7,
         }
 
         rows = evaluate_candidate(candidate, baseline=baseline)
@@ -162,15 +194,17 @@ class EvaluateV12CandidateTest(unittest.TestCase):
         self.assertEqual(statuses["common_ai_win_rate"], "FAIL")
         self.assertEqual(statuses["enemy_tower_hp"], "WARN")
         self.assertEqual(statuses["avg_death"], "FAIL")
+        self.assertEqual(statuses["hero_damage_balance"], "WARN")
         self.assertEqual(thresholds["common_ai_win_rate"], "> 0.9")
         self.assertEqual(thresholds["enemy_tower_hp"], "< 800.0")
         self.assertEqual(thresholds["avg_death"], "< 2.5")
+        self.assertEqual(thresholds["hero_damage_balance"], ">= 0.7")
 
     def test_read_baseline_uses_json_when_available(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "baseline.json"
             path.write_text(
-                '{"source_log_dir":"logs/v1.1","best_win_rate":0.91,"best_win_enemy_tower_hp":777,"late_death":2.25}\n',
+                '{"source_log_dir":"logs/v1.1","best_win_rate":0.91,"best_win_enemy_tower_hp":777,"late_death":2.25,"best_win_hero_damage_balance":0.42}\n',
                 encoding="utf-8",
             )
 
@@ -179,6 +213,7 @@ class EvaluateV12CandidateTest(unittest.TestCase):
             self.assertEqual(baseline["best_win_rate"], 0.91)
             self.assertEqual(baseline["best_win_enemy_tower_hp"], 777.0)
             self.assertEqual(baseline["late_death"], 2.25)
+            self.assertEqual(baseline["best_win_hero_damage_balance"], 0.42)
             self.assertEqual(baseline["source"], "logs/v1.1")
 
 

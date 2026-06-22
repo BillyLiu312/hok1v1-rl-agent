@@ -14,6 +14,7 @@ from pathlib import Path
 V1_1_BEST_WIN_RATE = 0.84
 V1_1_BEST_ENEMY_TOWER_HP = 1401.0
 V1_1_LATE_DEATH = 3.09
+V1_1_BEST_HERO_DAMAGE_BALANCE = 0.67
 MIN_EXPECTED_MATCHUPS = 9
 MIN_EPISODES_PER_MATCHUP = 20
 MIN_MATCHUP_WIN_RATE_GAP = 0.25
@@ -27,6 +28,7 @@ DEFAULT_BASELINE = {
     "best_win_rate": V1_1_BEST_WIN_RATE,
     "best_win_enemy_tower_hp": V1_1_BEST_ENEMY_TOWER_HP,
     "late_death": V1_1_LATE_DEATH,
+    "best_win_hero_damage_balance": V1_1_BEST_HERO_DAMAGE_BALANCE,
 }
 
 
@@ -49,6 +51,10 @@ def read_baseline(path: Path | None) -> dict:
         baseline["best_win_enemy_tower_hp"],
     )
     baseline["late_death"] = to_float(data.get("late_death"), baseline["late_death"])
+    baseline["best_win_hero_damage_balance"] = to_float(
+        data.get("best_win_hero_damage_balance"),
+        baseline["best_win_hero_damage_balance"],
+    )
     baseline["source"] = data.get("source_log_dir", path.as_posix())
     return baseline
 
@@ -103,6 +109,14 @@ def get_metric(candidate: dict, primary_key: str, fallback_key: str | None = Non
     return value
 
 
+def get_damage_balance(candidate: dict):
+    hurt_to_hero = get_metric(candidate, "matchup_avg_hurt_to_hero", "common_ai_hurt_to_hero")
+    hurt_by_hero = get_metric(candidate, "matchup_avg_hurt_by_hero", "common_ai_hurt_by_hero")
+    if hurt_to_hero is None or hurt_by_hero is None:
+        return None
+    return hurt_to_hero - hurt_by_hero
+
+
 def gate(status: str, name: str, observed, threshold: str, detail: str) -> dict:
     return {
         "status": status,
@@ -121,6 +135,7 @@ def evaluate_candidate(candidate: dict, matchup_rows: list[dict] | None = None, 
     best_win_rate = to_float(baseline.get("best_win_rate"), V1_1_BEST_WIN_RATE)
     best_enemy_tower_hp = to_float(baseline.get("best_win_enemy_tower_hp"), V1_1_BEST_ENEMY_TOWER_HP)
     late_death = to_float(baseline.get("late_death"), V1_1_LATE_DEATH)
+    best_damage_balance = to_float(baseline.get("best_win_hero_damage_balance"), V1_1_BEST_HERO_DAMAGE_BALANCE)
     gates = []
     win_rate = get_metric(candidate, "matchup_avg_win_rate", "common_ai_win_rate")
     death = get_metric(candidate, "matchup_avg_death", "common_ai_death")
@@ -133,6 +148,7 @@ def evaluate_candidate(candidate: dict, matchup_rows: list[dict] | None = None, 
     death_p90 = to_float(candidate.get("matchup_max_death_p90"))
     self_tower_hp_p10 = to_float(candidate.get("matchup_min_self_tower_hp_p10"))
     timeout_rate = to_float(candidate.get("matchup_avg_timeout_rate"))
+    damage_balance = get_damage_balance(candidate)
 
     if win_rate is None:
         gates.append(gate("MISSING", "common_ai_win_rate", "", f"> {best_win_rate}", "Win rate is unavailable."))
@@ -186,6 +202,37 @@ def evaluate_candidate(candidate: dict, matchup_rows: list[dict] | None = None, 
         gates.append(gate("PASS", "avg_death", death, f"< {late_death}", "Death is below v1.1 late-training level."))
     else:
         gates.append(gate("FAIL", "avg_death", death, f"< {late_death}", "Death remains too high."))
+
+    if damage_balance is None:
+        gates.append(
+            gate(
+                "WARN",
+                "hero_damage_balance",
+                "",
+                f">= {best_damage_balance}",
+                "Missing hero damage balance; cannot compare outgoing and incoming hero damage against the v1.1 peak.",
+            )
+        )
+    elif damage_balance >= best_damage_balance:
+        gates.append(
+            gate(
+                "PASS",
+                "hero_damage_balance",
+                damage_balance,
+                f">= {best_damage_balance}",
+                "Hero damage balance is at least as strong as the v1.1 best-win checkpoint.",
+            )
+        )
+    else:
+        gates.append(
+            gate(
+                "WARN",
+                "hero_damage_balance",
+                damage_balance,
+                f">= {best_damage_balance}",
+                "Candidate may be winning with weaker hero damage exchange quality than the v1.1 peak.",
+            )
+        )
 
     if push_window_tower_damage_share is None:
         gates.append(

@@ -221,6 +221,7 @@ def check_evidence_chain_fields(root: Path) -> list[dict]:
         "utils/evaluate_v1_2_candidate.py": [
             "read_baseline",
             "matchup_min_episodes",
+            "hero_damage_balance",
             "death_tail_risk",
             "timeout_rate",
             "unsafe_dive_severity",
@@ -228,6 +229,7 @@ def check_evidence_chain_fields(root: Path) -> list[dict]:
         "utils/v1_2_baseline.py": [
             "best_win_rate",
             "best_win_enemy_tower_hp",
+            "best_win_hero_damage_balance",
             "late_death",
         ],
         "agent_ppo/workflow/train_workflow.py": [

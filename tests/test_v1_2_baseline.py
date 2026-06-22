@@ -23,6 +23,8 @@ class V12BaselineTest(unittest.TestCase):
 - win_rate: 0.84
 - enemy_tower_hp: 1400.59
 - death: 2.72
+- hurt_to_hero: 1.88
+- hurt_by_hero: 1.21
 """,
                 encoding="utf-8",
             )
@@ -48,6 +50,9 @@ class V12BaselineTest(unittest.TestCase):
             self.assertEqual(baseline["rows"], 2)
             self.assertEqual(baseline["best_win_step"], 15000)
             self.assertEqual(baseline["best_win_rate"], 0.84)
+            self.assertEqual(baseline["best_win_hurt_to_hero"], 1.88)
+            self.assertEqual(baseline["best_win_hurt_by_hero"], 1.21)
+            self.assertAlmostEqual(baseline["best_win_hero_damage_balance"], 0.67)
             self.assertEqual(baseline["best_tower_step"], 15000)
             self.assertEqual(baseline["best_enemy_tower_hp"], 1400.59)
             self.assertEqual(baseline["late_step"], 17057)
@@ -58,6 +63,7 @@ class V12BaselineTest(unittest.TestCase):
             write_json(baseline, json_path)
             write_markdown(baseline, md_path)
             self.assertIn("best_win_rate", json_path.read_text(encoding="utf-8"))
+            self.assertIn("best_win_hero_damage_balance", json_path.read_text(encoding="utf-8"))
             self.assertIn("# v1.1 Baseline For v1.2", md_path.read_text(encoding="utf-8"))
 
     def test_missing_common_ai_rows_is_reported(self):

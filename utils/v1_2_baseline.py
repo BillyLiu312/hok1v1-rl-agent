@@ -27,6 +27,14 @@ def metric(row: dict, key: str):
     return value if value not in ("", None) else None
 
 
+def metric_delta(row: dict, positive_key: str, negative_key: str):
+    positive = metric(row, positive_key)
+    negative = metric(row, negative_key)
+    if positive is None or negative is None:
+        return None
+    return positive - negative
+
+
 def build_baseline(log_dir: Path = DEFAULT_LOG_DIR) -> dict:
     rows = collect_rows(log_dir)
     common_ai_rows = [row for row in rows if metric(row, "common_ai_win_rate") is not None]
@@ -54,6 +62,13 @@ def build_baseline(log_dir: Path = DEFAULT_LOG_DIR) -> dict:
         "best_win_rate": best_win_row.get("common_ai_win_rate"),
         "best_win_enemy_tower_hp": best_win_row.get("common_ai_enemy_tower_hp"),
         "best_win_death": best_win_row.get("common_ai_death"),
+        "best_win_hurt_to_hero": best_win_row.get("common_ai_hurt_to_hero"),
+        "best_win_hurt_by_hero": best_win_row.get("common_ai_hurt_by_hero"),
+        "best_win_hero_damage_balance": metric_delta(
+            best_win_row,
+            "common_ai_hurt_to_hero",
+            "common_ai_hurt_by_hero",
+        ),
         "best_tower_step": best_tower_row.get("step"),
         "best_enemy_tower_hp": best_tower_row.get("common_ai_enemy_tower_hp"),
         "late_step": last_step_row.get("step"),
@@ -85,6 +100,9 @@ def write_markdown(data: dict, output_path: Path):
         ("best_win_rate", data.get("best_win_rate")),
         ("best_win_enemy_tower_hp", data.get("best_win_enemy_tower_hp")),
         ("best_win_death", data.get("best_win_death")),
+        ("best_win_hurt_to_hero", data.get("best_win_hurt_to_hero")),
+        ("best_win_hurt_by_hero", data.get("best_win_hurt_by_hero")),
+        ("best_win_hero_damage_balance", data.get("best_win_hero_damage_balance")),
         ("best_tower_step", data.get("best_tower_step")),
         ("best_enemy_tower_hp", data.get("best_enemy_tower_hp")),
         ("late_step", data.get("late_step")),
