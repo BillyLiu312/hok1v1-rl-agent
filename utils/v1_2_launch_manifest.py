@@ -48,6 +48,15 @@ def git_value(args: list[str]) -> str:
         return ""
 
 
+def build_commands(stage: str) -> dict:
+    return {
+        "preflight": "python3 utils/v1_2_preflight.py --md logs/v1.2/preflight.md --csv logs/v1.2/preflight.csv",
+        "pack": "python3 utils/offline_sync.py pack --preset v1.2 --note v1.2-a-ready -o sync_package.txt",
+        "experiment_plan": f"python3 utils/v1_2_experiment_plan.py --stage {stage} --json logs/v1.2/experiment_plan.json --md logs/v1.2/experiment_plan.md",
+        "report": "python3 utils/build_experiment_report.py --log-dir logs/v1.2 --record-dir logs/run_records/v1.2-a --launch-manifest logs/v1.2/launch_manifest.json --experiment-plan logs/v1.2/experiment_plan.json --experiment-name v1.2 --output-dir logs/v1.2/report --checkpoints 15000,17057 --heroes 112,133,199 --repeats 20",
+    }
+
+
 def build_manifest(sync_package: Path, run_id: str, stage: str, reward_profile: str) -> dict:
     preflight_rows = collect_preflight_rows()
     env = dict(DEFAULT_ENV)
@@ -70,11 +79,7 @@ def build_manifest(sync_package: Path, run_id: str, stage: str, reward_profile: 
         "preflight_status": preflight_status(preflight_rows),
         "preflight_checks": len(preflight_rows),
         "env": env,
-        "commands": {
-            "preflight": "python3 utils/v1_2_preflight.py --md logs/v1.2/preflight.md --csv logs/v1.2/preflight.csv",
-            "pack": "python3 utils/offline_sync.py pack --preset v1.2 --note v1.2-a-ready -o sync_package.txt",
-            "report": "python3 utils/build_experiment_report.py --log-dir logs/v1.2 --record-dir logs/run_records/v1.2-a --launch-manifest logs/v1.2/launch_manifest.json --output-dir logs/v1.2/report --checkpoints 15000,17057 --heroes 112,133,199 --repeats 20",
-        },
+        "commands": build_commands(stage),
     }
 
 

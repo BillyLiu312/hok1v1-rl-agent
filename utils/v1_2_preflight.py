@@ -215,6 +215,30 @@ def check_experiment_plan() -> list[dict]:
     return rows
 
 
+def check_launch_manifest_commands(root: Path) -> list[dict]:
+    from utils.v1_2_launch_manifest import build_commands
+
+    commands = build_commands("v1.2-a")
+    report_command = commands["report"]
+    experiment_plan_command = commands["experiment_plan"]
+    return [
+        row(
+            "PASS" if "utils/v1_2_experiment_plan.py" in experiment_plan_command else "FAIL",
+            "launch_manifest_experiment_plan_command",
+            "present" if "utils/v1_2_experiment_plan.py" in experiment_plan_command else "missing",
+            "utils/v1_2_experiment_plan.py",
+            "Launch manifest should tell the operator how to generate the experiment plan.",
+        ),
+        row(
+            "PASS" if "--experiment-plan" in report_command and "--experiment-name" in report_command else "FAIL",
+            "launch_manifest_report_binding",
+            "present" if "--experiment-plan" in report_command and "--experiment-name" in report_command else "missing",
+            "--experiment-plan and --experiment-name",
+            "Launch manifest report command should bind reports to the v1.2 experiment plan.",
+        ),
+    ]
+
+
 def collect_rows() -> list[dict]:
     root = repo_root()
     rows = []
@@ -222,6 +246,7 @@ def collect_rows() -> list[dict]:
     rows.extend(check_ppo_config())
     rows.extend(check_reward_profile())
     rows.extend(check_experiment_plan())
+    rows.extend(check_launch_manifest_commands(root))
     rows.extend(check_required_tools(root))
     rows.extend(check_sync_preset(root))
     return rows

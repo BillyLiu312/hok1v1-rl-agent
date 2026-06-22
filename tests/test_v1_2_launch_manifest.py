@@ -4,10 +4,16 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from utils.v1_2_launch_manifest import build_manifest, write_json, write_markdown
+from utils.v1_2_launch_manifest import build_commands, build_manifest, write_json, write_markdown
 
 
 class V12LaunchManifestTest(unittest.TestCase):
+    def test_build_commands_bind_experiment_plan(self):
+        commands = build_commands("v1.2-a")
+        self.assertIn("utils/v1_2_experiment_plan.py --stage v1.2-a", commands["experiment_plan"])
+        self.assertIn("--experiment-plan logs/v1.2/experiment_plan.json", commands["report"])
+        self.assertIn("--experiment-name v1.2", commands["report"])
+
     def test_build_manifest_records_sync_package_and_env(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             sync_package = Path(temp_dir) / "sync_package.txt"
@@ -19,7 +25,10 @@ class V12LaunchManifestTest(unittest.TestCase):
             self.assertEqual(manifest["sync_package_bytes"], len("package"))
             self.assertEqual(manifest["env"]["HOK_TRAINING_RUN_ID"], "unit-run")
             self.assertEqual(manifest["env"]["HOK_REWARD_PROFILE"], "v1.2")
+            self.assertIn("utils/v1_2_experiment_plan.py --stage v1.2-a", manifest["commands"]["experiment_plan"])
             self.assertIn("--launch-manifest logs/v1.2/launch_manifest.json", manifest["commands"]["report"])
+            self.assertIn("--experiment-plan logs/v1.2/experiment_plan.json", manifest["commands"]["report"])
+            self.assertIn("--experiment-name v1.2", manifest["commands"]["report"])
 
             json_path = Path(temp_dir) / "launch.json"
             md_path = Path(temp_dir) / "launch.md"
@@ -27,6 +36,7 @@ class V12LaunchManifestTest(unittest.TestCase):
             write_markdown(manifest, md_path)
             self.assertIn("sync_package_sha256", json_path.read_text(encoding="utf-8"))
             self.assertIn("unit-run", md_path.read_text(encoding="utf-8"))
+            self.assertIn("experiment_plan", md_path.read_text(encoding="utf-8"))
 
     def test_v1_2_b_sets_curriculum_defaults(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -35,6 +45,7 @@ class V12LaunchManifestTest(unittest.TestCase):
             manifest = build_manifest(sync_package, run_id="unit-b", stage="v1.2-b", reward_profile="v1.2")
             self.assertEqual(manifest["env"]["HOK_TRAINING_RECORD_DIR"], "logs/run_records/v1.2-b")
             self.assertEqual(manifest["env"]["HOK_OPPONENT_SCHEDULE"], "common_ai:4,historical:4,selfplay:2")
+            self.assertIn("--stage v1.2-b", manifest["commands"]["experiment_plan"])
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ from pathlib import Path
 from utils.v1_2_preflight import (
     REQUIRED_TOOLS,
     check_experiment_plan,
+    check_launch_manifest_commands,
     check_train_env_conf,
     collect_rows,
     overall_status,
@@ -48,6 +49,12 @@ class V12PreflightTest(unittest.TestCase):
         self.assertEqual(statuses["experiment_plan_skill_pairs"], "PASS")
         self.assertEqual(statuses["experiment_plan_success_metrics"], "PASS")
         self.assertEqual(statuses["experiment_plan_report_bindings"], "PASS")
+
+    def test_launch_manifest_commands_bind_experiment_plan(self):
+        rows = check_launch_manifest_commands(Path.cwd())
+        statuses = {row["check"]: row["status"] for row in rows}
+        self.assertEqual(statuses["launch_manifest_experiment_plan_command"], "PASS")
+        self.assertEqual(statuses["launch_manifest_report_binding"], "PASS")
 
     def test_required_tools_cover_v1_2_evidence_chain(self):
         expected = {
