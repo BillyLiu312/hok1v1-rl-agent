@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 from utils.v1_2_preflight import (
+    REQUIRED_TOOLS,
     check_train_env_conf,
     collect_rows,
     overall_status,
@@ -36,6 +37,18 @@ class V12PreflightTest(unittest.TestCase):
         rows = collect_rows()
         self.assertEqual(overall_status(rows), "PASS")
         self.assertGreater(len(rows), 10)
+
+    def test_required_tools_cover_v1_2_evidence_chain(self):
+        expected = {
+            "utils/build_experiment_report.py",
+            "utils/checkpoint_matrix.py",
+            "utils/compare_experiment_reports.py",
+            "utils/run_metadata_summary.py",
+            "utils/summoner_skill_grid.py",
+            "utils/summoner_skill_results.py",
+            "utils/v1_2_launch_manifest.py",
+        }
+        self.assertTrue(expected.issubset(set(REQUIRED_TOOLS)))
 
     def test_write_outputs(self):
         rows = collect_rows()

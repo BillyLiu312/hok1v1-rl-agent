@@ -25,12 +25,17 @@ REQUIRED_TOOLS = [
     "utils/analyze_training_logs.py",
     "utils/analyze_run_records.py",
     "utils/build_experiment_report.py",
+    "utils/checkpoint_matrix.py",
+    "utils/compare_experiment_reports.py",
     "utils/evaluate_v1_2_candidate.py",
     "utils/evaluation_matrix.py",
     "utils/evaluation_config_export.py",
+    "utils/run_metadata_summary.py",
     "utils/select_checkpoint.py",
+    "utils/summoner_skill_grid.py",
     "utils/summoner_skill_results.py",
     "utils/offline_sync.py",
+    "utils/v1_2_launch_manifest.py",
 ]
 
 
