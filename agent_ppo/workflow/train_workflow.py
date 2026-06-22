@@ -52,6 +52,10 @@ def workflow(envs, agents, logger=None, monitor=None, *args, **kwargs):
         extra={
             "agent": "agent_ppo",
             "workflow": "agent_ppo/workflow/train_workflow.py",
+            "reward_profile": GameConfig.REWARD_PROFILE,
+            "reward_weight_dict": GameConfig.REWARD_WEIGHT_DICT,
+            "reward_weight_overrides": os.environ.get("HOK_REWARD_WEIGHT_OVERRIDES", ""),
+            "opponent_schedule": os.environ.get("HOK_OPPONENT_SCHEDULE", ""),
         },
     )
 

@@ -3,7 +3,7 @@
 
 import unittest
 
-from agent_ppo.conf.conf import Config
+from agent_ppo.conf.conf import Config, GameConfig, build_reward_weight_dict, parse_reward_weight_overrides
 from agent_ppo.conf.summoner_skill import (
     DEFAULT_SUMMONER_SKILL_BY_HERO,
     MATCHUP_SUMMONER_SKILL_OVERRIDES,
@@ -178,6 +178,30 @@ class PpoOptimizationTest(unittest.TestCase):
         self.assertEqual(Config.CLIP_PARAM, 0.2)
         self.assertTrue(Config.USE_GRAD_CLIP)
         self.assertEqual(Config.GRAD_CLIP_RANGE, 0.5)
+
+    def test_reward_profile_defaults_to_v1_2_weights(self):
+        self.assertEqual(GameConfig.REWARD_PROFILE, "v1.2")
+        self.assertEqual(GameConfig.REWARD_WEIGHT_DICT["win_result"], 20.0)
+        self.assertEqual(GameConfig.REWARD_WEIGHT_DICT["push_window_tower_damage"], 2.0)
+        self.assertEqual(GameConfig.REWARD_WEIGHT_DICT["unsafe_dive"], 2.0)
+
+    def test_reward_profiles_support_ablation_weights(self):
+        no_window = build_reward_weight_dict(profile="no_window_reward")
+        self.assertEqual(no_window["push_window_tower_damage"], 0.0)
+        self.assertEqual(no_window["unsafe_dive"], 0.0)
+        self.assertEqual(no_window["win_result"], 20.0)
+
+        no_terminal = build_reward_weight_dict(profile="no_terminal_reward")
+        self.assertEqual(no_terminal["win_result"], 0.0)
+        self.assertEqual(no_terminal["timeout_tower_gap"], 0.0)
+        self.assertEqual(no_terminal["push_window_tower_damage"], 2.0)
+
+    def test_reward_weight_overrides_are_scoped_to_known_keys(self):
+        overrides = parse_reward_weight_overrides("death:5,unknown:99,bad,push_window_tower_damage:x,money:0.25")
+        self.assertEqual(overrides, {"death": 5.0, "money": 0.25})
+
+        weights = build_reward_weight_dict(profile="no_window_reward", raw_overrides="push_window_tower_damage:1.5")
+        self.assertEqual(weights["push_window_tower_damage"], 1.5)
 
 
 if __name__ == "__main__":
