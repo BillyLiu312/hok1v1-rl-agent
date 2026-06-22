@@ -104,6 +104,19 @@ def test_reward_manager_emits_all_reward_items():
     assert reward_2["damage_to_enemy"] > reward_1["damage_to_enemy"]
 
 
+def test_reward_manager_handles_tower_risk_rewards():
+    frame_state = fake_frame_state(enemy_hp=900, frame_no=2)
+    frame_state["hero_states"][0]["hp"] = 200
+    frame_state["hero_states"][0]["location"] = {"x": 29500, "z": 0}
+
+    manager = GameRewardManager(main_hero_runtime_id=1)
+    reward = manager.result(frame_state)
+
+    assert "retreat_low_hp" in reward
+    assert "under_enemy_tower" in reward
+    assert reward["under_enemy_tower"] > 0.0
+
+
 def test_ppo_learn_accepts_fake_sample():
     model = Model()
     optimizer = torch.optim.Adam(model.parameters(), lr=Config.INIT_LEARNING_RATE_START)
@@ -120,4 +133,5 @@ if __name__ == "__main__":
     test_config_shapes_are_consistent()
     test_feature_process_outputs_configured_dim()
     test_reward_manager_emits_all_reward_items()
+    test_reward_manager_handles_tower_risk_rewards()
     test_ppo_learn_accepts_fake_sample()

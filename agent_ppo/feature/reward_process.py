@@ -222,7 +222,8 @@ class GameRewardManager:
                     - self.m_main_calc_frame_map[reward_name].cur_frame_value,
                 )
             elif reward_name in ("retreat_low_hp", "under_enemy_tower"):
-                reward_struct.value = self.m_main_calc_frame_map[reward_name].cur_frame_value
+                risk_gate = 1.0
+                reward_struct.value = self.m_main_calc_frame_map[reward_name].cur_frame_value * risk_gate
             else:
                 # Calculate zero-sum reward
                 # 计算零和奖励
