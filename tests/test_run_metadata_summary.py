@@ -23,6 +23,8 @@ class RunMetadataSummaryTest(unittest.TestCase):
                         "reward_profile": "v1.2",
                         "reward_weight_overrides": "",
                         "opponent_schedule": "common_ai:4,historical:4,selfplay:2",
+                        "model_pool_count": 2,
+                        "model_pool": ["15000", "17057"],
                         "workflow": "agent_ppo/workflow/train_workflow.py",
                     },
                     "files": [
@@ -49,6 +51,8 @@ class RunMetadataSummaryTest(unittest.TestCase):
             self.assertEqual(len(rows), 1)
             self.assertEqual(rows[0]["run_id"], "v1.2-a-001")
             self.assertEqual(rows[0]["reward_profile"], "v1.2")
+            self.assertEqual(rows[0]["model_pool_count"], 2)
+            self.assertEqual(rows[0]["model_pool"], "15000,17057")
             self.assertEqual(rows[0]["train_env_conf_sha"], "a" * 12)
             self.assertEqual(rows[0]["conf_py_sha"], "b" * 12)
             self.assertEqual(rows[0]["missing_files"], "kaiwu.json")

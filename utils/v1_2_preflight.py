@@ -33,6 +33,7 @@ REQUIRED_TOOLS = [
     "utils/evaluation_matrix.py",
     "utils/evaluation_config_export.py",
     "utils/run_metadata_summary.py",
+    "utils/opponent_curriculum_summary.py",
     "utils/select_checkpoint.py",
     "utils/summoner_skill_grid.py",
     "utils/summoner_skill_policy_patch.py",
@@ -184,6 +185,11 @@ def check_evidence_chain_fields(root: Path) -> list[dict]:
             "filter_fixed_eval_rows_for_checkpoint",
             "summoner_skill_policy_patch",
             "recommended_death_p90",
+            "opponent_curriculum_summary",
+        ],
+        "utils/opponent_curriculum_summary.py": [
+            "opponent_source",
+            "configured_opponent_agent",
         ],
         "utils/compare_experiment_reports.py": [
             "research_story_verdict",

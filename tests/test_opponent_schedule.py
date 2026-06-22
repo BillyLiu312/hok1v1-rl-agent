@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from agent_ppo.conf.opponent_schedule import (
     apply_opponent_agent,
+    classify_opponent_source,
     load_model_pool,
     load_opponent_schedule,
     parse_schedule,
@@ -36,6 +37,12 @@ class OpponentScheduleTest(unittest.TestCase):
         usr_conf = {"episode": {"opponent_agent": "selfplay"}}
         apply_opponent_agent(usr_conf, "common_ai")
         self.assertEqual(usr_conf["episode"]["opponent_agent"], "common_ai")
+
+    def test_classify_opponent_source(self):
+        self.assertEqual(classify_opponent_source("common_ai", ["100"]), "common_ai")
+        self.assertEqual(classify_opponent_source("selfplay", ["100"]), "selfplay")
+        self.assertEqual(classify_opponent_source("100", ["100", "200"]), "historical")
+        self.assertEqual(classify_opponent_source("999", ["100", "200"]), "custom")
 
     def test_load_model_pool_reads_kaiwu_json(self):
         with tempfile.TemporaryDirectory() as temp_dir:

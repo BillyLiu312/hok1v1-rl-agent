@@ -31,6 +31,9 @@ from utils.evaluate_v1_2_candidate import evaluate_candidate
 from utils.evaluate_v1_2_candidate import overall_status as candidate_gate_status
 from utils.evaluate_v1_2_candidate import write_csv as write_candidate_gate_csv
 from utils.evaluate_v1_2_candidate import write_markdown as write_candidate_gate_markdown
+from utils.opponent_curriculum_summary import collect_rows as collect_opponent_curriculum_rows
+from utils.opponent_curriculum_summary import write_csv as write_opponent_curriculum_csv
+from utils.opponent_curriculum_summary import write_markdown as write_opponent_curriculum_markdown
 from utils.select_checkpoint import attach_matchup_metrics, collect_candidates, is_truthy, rank_candidates
 from utils.select_checkpoint import write_csv as write_checkpoint_csv
 from utils.select_checkpoint import write_markdown as write_checkpoint_markdown
@@ -98,6 +101,18 @@ def build_report(
         write_metadata_markdown(metadata_rows, metadata_md, f"Run Metadata Summary: {record_dir.as_posix()}")
         artifacts["run_metadata_summary_csv"] = metadata_csv
         artifacts["run_metadata_summary_md"] = metadata_md
+
+        opponent_curriculum_rows = collect_opponent_curriculum_rows(record_dir)
+        opponent_curriculum_csv = output_dir / "opponent_curriculum_summary.csv"
+        opponent_curriculum_md = output_dir / "opponent_curriculum_summary.md"
+        write_opponent_curriculum_csv(opponent_curriculum_rows, opponent_curriculum_csv)
+        write_opponent_curriculum_markdown(
+            opponent_curriculum_rows,
+            opponent_curriculum_md,
+            f"Opponent Curriculum Summary: {record_dir.as_posix()}",
+        )
+        artifacts["opponent_curriculum_summary_csv"] = opponent_curriculum_csv
+        artifacts["opponent_curriculum_summary_md"] = opponent_curriculum_md
 
         checkpoint_matrix_rows, checkpoint_elo_rows = build_checkpoint_matrix(record_dir)
         checkpoint_matrix_csv = output_dir / "checkpoint_matrix.csv"

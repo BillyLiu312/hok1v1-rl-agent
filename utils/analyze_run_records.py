@@ -51,6 +51,20 @@ def first_non_empty(values):
     return ""
 
 
+def collect_unique_tokens(rows: list[dict], key: str) -> str:
+    values = []
+    seen = set()
+    for row in rows:
+        raw_value = row.get(key)
+        if raw_value in ("", None):
+            continue
+        token = str(raw_value)
+        if token not in seen:
+            seen.add(token)
+            values.append(token)
+    return ",".join(values)
+
+
 def pearson_corr(x_values, y_values):
     pairs = [(x, y) for x, y in zip(x_values, y_values) if x is not None and y is not None]
     if len(pairs) < 2:
@@ -116,6 +130,8 @@ def summarize_episode(payload: dict) -> dict:
         "matchup": f"{monitor_hero_id}_vs_{opponent_hero_id}",
         "is_eval": payload.get("is_eval"),
         "opponent_agent": payload.get("opponent_agent"),
+        "opponent_source": payload.get("opponent_source"),
+        "configured_opponent_agent": payload.get("configured_opponent_agent"),
         "win": agent.get("win"),
         "frame_no": payload.get("frame_no"),
         "is_timeout": 1 if (payload.get("frame_no") or 0) >= TIMEOUT_FRAME else 0,
@@ -145,21 +161,23 @@ def collect_rows(record_dir: Path) -> list[dict]:
             episode["matchup"],
             episode["is_eval"],
             episode["opponent_agent"],
+            episode["opponent_source"],
         )
         groups[key].append(episode)
 
     rows = []
     def group_sort_key(item):
-        checkpoint_step, matchup, is_eval, opponent_agent = item[0]
+        checkpoint_step, matchup, is_eval, opponent_agent, opponent_source = item[0]
         return (
             checkpoint_step is None,
             str(checkpoint_step),
             str(matchup),
             str(is_eval),
             str(opponent_agent),
+            str(opponent_source),
         )
 
-    for (checkpoint_step, matchup, is_eval, opponent_agent), items in sorted(groups.items(), key=group_sort_key):
+    for (checkpoint_step, matchup, is_eval, opponent_agent, opponent_source), items in sorted(groups.items(), key=group_sort_key):
         avg_enemy_tower_down = avg([item["reward_enemy_tower_hp_down"] for item in items])
         avg_push_window_tower_damage = avg([item["reward_push_window_tower_damage"] for item in items])
         avg_unsafe_dive_active_frames = avg([item["unsafe_dive_active_frames"] for item in items])
@@ -180,6 +198,8 @@ def collect_rows(record_dir: Path) -> list[dict]:
                 "matchup": matchup,
                 "is_eval": is_eval,
                 "opponent_agent": opponent_agent,
+                "opponent_source": opponent_source,
+                "configured_opponent_agents": collect_unique_tokens(items, "configured_opponent_agent"),
                 "episodes": len(items),
                 "win_rate": avg([item["win"] for item in items]),
                 "avg_frame": avg([item["frame_no"] for item in items]),
@@ -229,6 +249,8 @@ def write_csv(rows: list[dict], output_path: Path):
         "matchup",
         "is_eval",
         "opponent_agent",
+        "opponent_source",
+        "configured_opponent_agents",
         "episodes",
         "win_rate",
         "avg_frame",
@@ -268,6 +290,7 @@ def write_markdown(rows: list[dict], output_path: Path, title: str):
         "matchup",
         "is_eval",
         "opponent_agent",
+        "opponent_source",
         "episodes",
         "win_rate",
         "avg_enemy_tower_hp",

@@ -26,6 +26,7 @@
 - `utils/v1_2_experiment_plan.py`：生成 v1.2 科研主线、消融组、固定矩阵、成功指标和比较命令。
 - `utils/v1_2_launch_manifest.py`：生成训练启动清单，记录 commit、同步包 hash、环境变量、reward/profile 覆盖和报告命令。
 - `utils/run_metadata_summary.py`：汇总训练启动配置快照、reward profile、对手课程和关键配置 hash。
+- `utils/opponent_curriculum_summary.py`：按实际对手来源统计 v1.2-b 课程采样比例、胜率、死亡和塔血。
 - `utils/checkpoint_matrix.py`：生成 checkpoint-vs-opponent 胜率矩阵和 Elo 排名。
 - `utils/summoner_skill_results.py`：按 matchup 和召唤师技能选择聚合胜率、死亡和推塔指标，并输出技能推荐。
 - `utils/summoner_skill_policy_patch.py`：把技能推荐导出为可审阅的 matchup-conditioned 规则表草案。

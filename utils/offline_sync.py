@@ -47,6 +47,7 @@ V1_2_REQUIRED_FILES = [
     "utils/evaluate_v1_2_candidate.py",
     "utils/evaluation_config_export.py",
     "utils/evaluation_matrix.py",
+    "utils/opponent_curriculum_summary.py",
     "utils/select_checkpoint.py",
     "utils/run_metadata_summary.py",
     "utils/summoner_skill_grid.py",

@@ -201,6 +201,8 @@ class BuildExperimentReportTest(unittest.TestCase):
                     "opponent_hero_id": 133,
                     "is_eval": True,
                     "opponent_agent": "common_ai",
+                    "opponent_source": "common_ai",
+                    "configured_opponent_agent": "curriculum",
                     "checkpoint": {"actual_train_global_step": 15039},
                     "usr_conf": {
                         "lineups": {
@@ -247,6 +249,7 @@ class BuildExperimentReportTest(unittest.TestCase):
             )
 
             self.assertTrue(artifacts["matchup_summary_csv"].exists())
+            self.assertTrue(artifacts["opponent_curriculum_summary_csv"].exists())
             self.assertTrue(artifacts["checkpoint_matrix_csv"].exists())
             self.assertTrue(artifacts["summoner_skill_results_csv"].exists())
             self.assertTrue(artifacts["summoner_skill_policy_patch_py"].exists())
@@ -257,11 +260,16 @@ class BuildExperimentReportTest(unittest.TestCase):
                 artifacts["matchup_summary_csv"].read_text(encoding="utf-8"),
             )
             self.assertIn(
+                "opponent_source",
+                artifacts["opponent_curriculum_summary_csv"].read_text(encoding="utf-8"),
+            )
+            self.assertIn(
                 "matchup_avg_unsafe_dive_death_corr",
                 artifacts["checkpoint_ranking_csv"].read_text(encoding="utf-8"),
             )
             manifest = artifacts["manifest"].read_text(encoding="utf-8")
             self.assertIn("checkpoint_matrix_csv", manifest)
+            self.assertIn("opponent_curriculum_summary_csv", manifest)
             self.assertIn("summoner_skill_results_csv", manifest)
             self.assertIn("summoner_skill_policy_patch_py", manifest)
             self.assertIn("recommended_matchup_rows", manifest)

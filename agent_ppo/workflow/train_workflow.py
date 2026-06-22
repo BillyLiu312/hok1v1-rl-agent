@@ -22,6 +22,7 @@ from agent_ppo.conf.conf import GameConfig
 from agent_ppo.conf.evaluation_config import camp_has_preset_skills
 from agent_ppo.conf.opponent_schedule import (
     apply_opponent_agent,
+    classify_opponent_source,
     load_model_pool,
     load_opponent_schedule,
     select_curriculum_opponent,
@@ -39,6 +40,7 @@ def workflow(envs, agents, logger=None, monitor=None, *args, **kwargs):
     do_learns = [True, True]
     last_save_model_time = time.time()
     training_recorder = TrainingRecorder(logger=logger)
+    startup_model_pool = load_model_pool()
     training_recorder.record_config_snapshot(
         name="ppo_training_start",
         paths=[
@@ -56,6 +58,8 @@ def workflow(envs, agents, logger=None, monitor=None, *args, **kwargs):
             "reward_weight_dict": GameConfig.REWARD_WEIGHT_DICT,
             "reward_weight_overrides": os.environ.get("HOK_REWARD_WEIGHT_OVERRIDES", ""),
             "opponent_schedule": os.environ.get("HOK_OPPONENT_SCHEDULE", ""),
+            "model_pool": startup_model_pool,
+            "model_pool_count": len(startup_model_pool),
         },
     )
 
@@ -190,7 +194,15 @@ class EpisodeRunner:
             lineup = next(self.lineup_iterator)
             usr_conf, is_eval, monitor_side = self.env_conf_manager.update_config(lineup)
             configured_opponent_agent = self.env_conf_manager.get_opponent_agent()
-            current_opponent_agent = self._select_episode_opponent(configured_opponent_agent, is_eval)
+            opponent_schedule = load_opponent_schedule()
+            model_pool = load_model_pool()
+            current_opponent_agent = self._select_episode_opponent(
+                configured_opponent_agent,
+                is_eval,
+                model_pool=model_pool,
+                schedule=opponent_schedule,
+            )
+            opponent_source = classify_opponent_source(current_opponent_agent, model_pool=model_pool)
             apply_opponent_agent(usr_conf, current_opponent_agent)
             self.current_opponent_agent = current_opponent_agent
 
@@ -238,6 +250,9 @@ class EpisodeRunner:
                     "monitor_side": monitor_side,
                     "configured_opponent_agent": configured_opponent_agent,
                     "opponent_agent": current_opponent_agent,
+                    "opponent_source": opponent_source,
+                    "opponent_schedule": opponent_schedule,
+                    "model_pool": model_pool,
                     "checkpoint": self._extract_checkpoint_snapshot(),
                     "usr_conf": usr_conf,
                 },
@@ -328,6 +343,10 @@ class EpisodeRunner:
                         truncated=truncated,
                         reward_sum_list=reward_sum_list,
                         reward_detail_sum_list=reward_detail_sum_list,
+                        configured_opponent_agent=configured_opponent_agent,
+                        opponent_source=opponent_source,
+                        opponent_schedule=opponent_schedule,
+                        model_pool=model_pool,
                     )
                     self.training_recorder.record("episode_end", episode_record)
                     self.logger.info(
@@ -459,6 +478,10 @@ class EpisodeRunner:
         truncated,
         reward_sum_list,
         reward_detail_sum_list,
+        configured_opponent_agent=None,
+        opponent_source=None,
+        opponent_schedule=None,
+        model_pool=None,
     ):
         return {
             "episode_cnt": self.episode_cnt,
@@ -471,7 +494,11 @@ class EpisodeRunner:
             "monitor_agent_index": monitor_side,
             "monitor_hero_id": self._first_or_none(blue_hero_ids if monitor_side == 0 else red_hero_ids),
             "opponent_hero_id": self._first_or_none(red_hero_ids if monitor_side == 0 else blue_hero_ids),
+            "configured_opponent_agent": configured_opponent_agent,
             "opponent_agent": self.current_opponent_agent or self.env_conf_manager.get_opponent_agent(),
+            "opponent_source": opponent_source,
+            "opponent_schedule": opponent_schedule,
+            "model_pool": model_pool or [],
             "checkpoint": self._extract_checkpoint_snapshot(),
             "evaluation": self._extract_evaluation_metadata(usr_conf),
             "usr_conf": usr_conf,
@@ -493,12 +520,12 @@ class EpisodeRunner:
         evaluation = usr_conf.get("evaluation")
         return evaluation if isinstance(evaluation, dict) else {}
 
-    def _select_episode_opponent(self, configured_opponent_agent, is_eval):
+    def _select_episode_opponent(self, configured_opponent_agent, is_eval, model_pool=None, schedule=None):
         if is_eval or configured_opponent_agent != "curriculum":
             return configured_opponent_agent
         return select_curriculum_opponent(
-            model_pool=load_model_pool(),
-            schedule=load_opponent_schedule(),
+            model_pool=model_pool,
+            schedule=schedule,
             rng=random,
         )
 

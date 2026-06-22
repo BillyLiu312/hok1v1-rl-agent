@@ -20,6 +20,8 @@ class AnalyzeRunRecordsTest(unittest.TestCase):
                     "opponent_hero_id": 133,
                     "is_eval": True,
                     "opponent_agent": "common_ai",
+                    "opponent_source": "common_ai",
+                    "configured_opponent_agent": "curriculum",
                     "checkpoint": {"actual_train_global_step": 15000},
                     "evaluation": {"eval_id": 7, "checkpoint_step": 15000, "repeat_index": 1},
                     "frame_no": 12000,
@@ -70,6 +72,8 @@ class AnalyzeRunRecordsTest(unittest.TestCase):
             self.assertEqual(rows[0]["evaluation_checkpoint_step"], 15000)
             self.assertEqual(rows[0]["repeat_indices"], "1,2")
             self.assertEqual(rows[0]["matchup"], "199_vs_133")
+            self.assertEqual(rows[0]["opponent_source"], "common_ai")
+            self.assertEqual(rows[0]["configured_opponent_agents"], "curriculum")
             self.assertEqual(rows[0]["win_rate"], 1.0)
             self.assertEqual(rows[0]["avg_enemy_tower_hp"], 0)
             self.assertEqual(rows[0]["death_p90"], 3)
@@ -90,6 +94,7 @@ class AnalyzeRunRecordsTest(unittest.TestCase):
             markdown = md_path.read_text(encoding="utf-8")
             self.assertIn("199_vs_133", markdown)
             self.assertIn("eval_ids", markdown)
+            self.assertIn("opponent_source", markdown)
             self.assertIn("avg_push_window_tower_damage", markdown)
             self.assertIn("push_window_tower_damage_share", markdown)
             self.assertIn("unsafe_dive_death_corr", markdown)

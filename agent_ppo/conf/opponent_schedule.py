@@ -87,6 +87,16 @@ def select_curriculum_opponent(model_pool=None, schedule=None, rng=None):
     return rng.choices(candidates, weights=weights, k=1)[0]
 
 
+def classify_opponent_source(opponent_agent, model_pool=None):
+    opponent_agent = str(opponent_agent)
+    if opponent_agent in ("common_ai", "selfplay"):
+        return opponent_agent
+    model_pool = {str(model_id) for model_id in (model_pool or [])}
+    if opponent_agent in model_pool:
+        return "historical"
+    return "custom"
+
+
 def apply_opponent_agent(usr_conf, opponent_agent):
     usr_conf.setdefault("episode", {})
     usr_conf["episode"]["opponent_agent"] = str(opponent_agent)
