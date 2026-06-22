@@ -20,6 +20,7 @@
 - `utils/evaluation_config_export.py`：把评估矩阵导出为 `usr_conf` JSONL 和 TOML 配置片段。
 - `utils/analyze_run_records.py`：聚合训练账本中的 episode/matchup/reward 分解。
 - `utils/select_checkpoint.py`：根据训练摘要和矩阵评估结果排序 checkpoint。
+- `utils/compare_experiment_reports.py`：横向比较多个 v1.2 证据包，用于 reward/课程/技能消融。
 - `utils/evaluate_v1_2_candidate.py`：根据 v1.2 验收标准逐项判定候选 checkpoint。
 - `utils/v1_2_preflight.py`：训练前一次性检查 v1.2-a 配置、reward、工具和同步 preset。
 - `utils/run_metadata_summary.py`：汇总训练启动配置快照、reward profile、对手课程和关键配置 hash。
