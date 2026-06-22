@@ -73,6 +73,7 @@ class SelectCheckpointTest(unittest.TestCase):
                         "checkpoint_step,matchup,is_eval,opponent_agent,episodes,win_rate,avg_frame,avg_self_tower_hp,avg_enemy_tower_hp,avg_kill,avg_death,avg_money_cnt,avg_reward_sum,avg_push_window_tower_damage,avg_unsafe_dive,avg_push_window_active_frames,avg_unsafe_dive_active_frames,push_window_tower_damage_share,unsafe_dive_death_corr",
                         "100,112_vs_112,True,common_ai,20,0.5,10000,6000,3000,1,4,5000,1,0.1,-2,3,20,0.2,0.8",
                         "200,112_vs_112,True,common_ai,20,0.9,9000,8000,1000,2,1,6000,5,0.4,-0.5,12,2,0.75,0.1",
+                        "200,112_vs_112,True,17057,20,0.8,9500,7000,1200,2,2,5800,4,0.2,-0.7,10,4,0.5,0.2",
                     ]
                 )
                 + "\n",
@@ -83,12 +84,14 @@ class SelectCheckpointTest(unittest.TestCase):
             attach_matchup_metrics(candidates, matchup_csv)
             rows = rank_candidates(candidates)
             self.assertEqual(rows[0]["checkpoint_step"], 200)
-            self.assertEqual(rows[0]["matchup_min_win_rate"], 0.9)
-            self.assertEqual(rows[0]["matchup_avg_push_window_tower_damage"], 0.4)
-            self.assertEqual(rows[0]["matchup_avg_push_window_active_frames"], 12)
-            self.assertEqual(rows[0]["matchup_avg_unsafe_dive_active_frames"], 2)
-            self.assertEqual(rows[0]["matchup_avg_push_window_tower_damage_share"], 0.75)
-            self.assertEqual(rows[0]["matchup_avg_unsafe_dive_death_corr"], 0.1)
+            self.assertEqual(rows[0]["matchup_groups"], 1)
+            self.assertEqual(rows[0]["matchup_rows"], 2)
+            self.assertEqual(rows[0]["matchup_min_win_rate"], 0.8)
+            self.assertAlmostEqual(rows[0]["matchup_avg_push_window_tower_damage"], 0.3)
+            self.assertEqual(rows[0]["matchup_avg_push_window_active_frames"], 11)
+            self.assertEqual(rows[0]["matchup_avg_unsafe_dive_active_frames"], 3)
+            self.assertEqual(rows[0]["matchup_avg_push_window_tower_damage_share"], 0.625)
+            self.assertAlmostEqual(rows[0]["matchup_avg_unsafe_dive_death_corr"], 0.15)
 
     def test_matchup_actual_step_maps_to_target_step(self):
         with tempfile.TemporaryDirectory() as temp_dir:

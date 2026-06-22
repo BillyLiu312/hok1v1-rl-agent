@@ -148,6 +148,7 @@ class BuildExperimentReportTest(unittest.TestCase):
             manifest = artifacts["manifest"].read_text(encoding="utf-8")
             self.assertIn("checkpoint_matrix_csv", manifest)
             self.assertIn("summoner_skill_results_csv", manifest)
+            self.assertIn("recommended_matchup_rows", manifest)
             self.assertIn("recommended_push_window_tower_damage_share", manifest)
 
     def test_build_report_can_expand_skill_grid_matrix(self):

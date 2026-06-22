@@ -238,6 +238,8 @@ def write_manifest(
         best = checkpoint_rows[0]
         lines.append(f"- recommended_checkpoint: {best.get('checkpoint_step')}")
         lines.append(f"- checkpoint_score: {best.get('score'):.4g}")
+        lines.append(f"- recommended_matchup_groups: {best.get('matchup_groups') or ''}")
+        lines.append(f"- recommended_matchup_rows: {best.get('matchup_rows') or ''}")
         lines.append(f"- recommended_win_rate: {best.get('matchup_avg_win_rate') or best.get('common_ai_win_rate') or ''}")
         lines.append(f"- recommended_min_win_rate: {best.get('matchup_min_win_rate') or ''}")
         lines.append(f"- recommended_death: {best.get('matchup_avg_death') or best.get('common_ai_death') or ''}")

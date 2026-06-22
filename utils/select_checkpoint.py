@@ -103,6 +103,7 @@ def attach_matchup_metrics(candidates: dict[int, dict], matchup_csv: Path | None
 
     for step, rows in grouped.items():
         candidate = candidates.setdefault(step, {"checkpoint_step": step, "source": ""})
+        unique_matchups = {row.get("matchup") for row in rows if row.get("matchup")}
         win_rates = [to_float(row.get("win_rate")) for row in rows]
         win_rates = [value for value in win_rates if value is not None]
         deaths = [to_float(row.get("avg_death")) for row in rows]
@@ -126,7 +127,8 @@ def attach_matchup_metrics(candidates: dict[int, dict], matchup_csv: Path | None
 
         candidate.update(
             {
-                "matchup_groups": len(rows),
+                "matchup_groups": len(unique_matchups),
+                "matchup_rows": len(rows),
                 "matchup_avg_win_rate": avg(win_rates),
                 "matchup_min_win_rate": min(win_rates) if win_rates else None,
                 "matchup_avg_death": avg(deaths),
@@ -231,6 +233,7 @@ def write_csv(rows: list[dict], output_path: Path):
         "selfplay_win_rate",
         "reward",
         "matchup_groups",
+        "matchup_rows",
         "matchup_avg_win_rate",
         "matchup_min_win_rate",
         "matchup_avg_death",
@@ -259,6 +262,7 @@ def write_markdown(rows: list[dict], output_path: Path, title: str):
         "common_ai_enemy_tower_hp",
         "common_ai_death",
         "matchup_groups",
+        "matchup_rows",
         "matchup_avg_win_rate",
         "matchup_min_win_rate",
         "matchup_avg_death",
