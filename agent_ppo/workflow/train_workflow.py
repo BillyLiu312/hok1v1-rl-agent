@@ -10,7 +10,6 @@ Author: Tencent AI Arena Authors
 
 import os
 import time
-import random
 from agent_ppo.feature.definition import (
     sample_process,
     build_frame,
@@ -19,6 +18,7 @@ from agent_ppo.feature.definition import (
     lineup_iterator_roundrobin_camp_heroes,
 )
 from agent_ppo.conf.conf import GameConfig
+from utils.training_recorder import TrainingRecorder
 from tools.env_conf_manager import EnvConfManager
 from tools.model_pool_utils import get_valid_model_pool
 from tools.metrics_utils import get_training_metrics
@@ -30,6 +30,22 @@ def workflow(envs, agents, logger=None, monitor=None, *args, **kwargs):
     # 智能体是否进行训练
     do_learns = [True, True]
     last_save_model_time = time.time()
+    training_recorder = TrainingRecorder(logger=logger)
+    training_recorder.record_config_snapshot(
+        name="ppo_training_start",
+        paths=[
+            "agent_ppo/conf/train_env_conf.toml",
+            "agent_ppo/conf/conf.py",
+            "conf/configure_app.toml",
+            "conf/algo_conf_hok1v1.toml",
+            "conf/app_conf_hok1v1.toml",
+            "kaiwu.json",
+        ],
+        extra={
+            "agent": "agent_ppo",
+            "workflow": "agent_ppo/workflow/train_workflow.py",
+        },
+    )
 
     # Create environment configuration manager instance
     # 创建对局配置管理器实例
@@ -51,6 +67,7 @@ def workflow(envs, agents, logger=None, monitor=None, *args, **kwargs):
         monitor=monitor,
         env_conf_manager=env_conf_manager,
         lineup_iterator=lineup_iterator,
+        training_recorder=training_recorder,
     )
 
     while True:
@@ -67,17 +84,25 @@ def workflow(envs, agents, logger=None, monitor=None, *args, **kwargs):
             now = time.time()
             if now - last_save_model_time > GameConfig.MODEL_SAVE_INTERVAL:
                 agents[0].save_model()
+                training_recorder.record(
+                    "model_save",
+                    {
+                        "episode_cnt": episode_runner.episode_cnt,
+                        "save_interval_seconds": GameConfig.MODEL_SAVE_INTERVAL,
+                    },
+                )
                 last_save_model_time = now
 
 
 class EpisodeRunner:
-    def __init__(self, env, agents, logger, monitor, env_conf_manager, lineup_iterator):
+    def __init__(self, env, agents, logger, monitor, env_conf_manager, lineup_iterator, training_recorder):
         self.env = env
         self.agents = agents
         self.logger = logger
         self.monitor = monitor
         self.env_conf_manager = env_conf_manager
         self.lineup_iterator = lineup_iterator
+        self.training_recorder = training_recorder
         self.agent_num = len(agents)
         self.episode_cnt = 0
         self.last_report_monitor_time = 0
@@ -126,6 +151,13 @@ class EpisodeRunner:
             # 获取训练中的指标
             training_metrics = get_training_metrics()
             if training_metrics:
+                self.training_recorder.record(
+                    "metrics",
+                    {
+                        "episode_cnt": self.episode_cnt,
+                        "training_metrics": training_metrics,
+                    },
+                )
                 for key, value in training_metrics.items():
                     if key == "env":
                         for env_key, env_value in value.items():
@@ -142,6 +174,7 @@ class EpisodeRunner:
             # Call init_config on agents to get summoner skill selections
             # 调用 agent 的 init_config 获取召唤师技能选择，注入 usr_conf
             self._call_init_config(usr_conf)
+            blue_hero_ids, red_hero_ids = EnvConfManager.extract_hero_ids_from_usr_conf(usr_conf)
 
             # Start a new environment
             # 启动新对局，返回初始环境状态
@@ -171,6 +204,19 @@ class EpisodeRunner:
             reward_detail_sum_list = [dict() for _ in range(self.agent_num)]
             is_train_test = os.environ.get("is_train_test", "False").lower() == "true"
             self.logger.info(f"Episode {self.episode_cnt} start, usr_conf is {usr_conf}")
+            self.training_recorder.record(
+                "episode_start",
+                {
+                    "episode_cnt": self.episode_cnt,
+                    "lineup": lineup,
+                    "blue_hero_ids": blue_hero_ids,
+                    "red_hero_ids": red_hero_ids,
+                    "is_eval": is_eval,
+                    "monitor_side": monitor_side,
+                    "opponent_agent": self.env_conf_manager.get_opponent_agent(),
+                    "usr_conf": usr_conf,
+                },
+            )
 
             # Reward initialization
             # 回报初始化
@@ -228,6 +274,21 @@ class EpisodeRunner:
                 # 正常结束或超时退出，运行train_test时会提前退出
                 is_gameover = terminated or truncated or (is_train_test and frame_no >= 1000)
                 if is_gameover:
+                    episode_record = self._build_episode_record(
+                        observation=observation,
+                        usr_conf=usr_conf,
+                        lineup=lineup,
+                        blue_hero_ids=blue_hero_ids,
+                        red_hero_ids=red_hero_ids,
+                        is_eval=is_eval,
+                        monitor_side=monitor_side,
+                        frame_no=frame_no,
+                        terminated=terminated,
+                        truncated=truncated,
+                        reward_sum_list=reward_sum_list,
+                        reward_detail_sum_list=reward_detail_sum_list,
+                    )
+                    self.training_recorder.record("episode_end", episode_record)
                     self.logger.info(
                         f"episode_{self.episode_cnt} terminated in fno_{frame_no}, truncated:{truncated}, eval:{is_eval}, reward_sum:{reward_sum_list[monitor_side]}"
                     )
@@ -266,6 +327,14 @@ class EpisodeRunner:
                     # 进行样本处理，准备训练
                     if len(frame_collector) > 0 and not is_eval:
                         list_agents_samples = sample_process(frame_collector)
+                        self.training_recorder.record(
+                            "sample_batch",
+                            {
+                                "episode_cnt": self.episode_cnt,
+                                "is_eval": is_eval,
+                                "sample_counts": [len(agent_samples) for agent_samples in list_agents_samples],
+                            },
+                        )
                         yield list_agents_samples
                     break
 
@@ -324,3 +393,130 @@ class EpisodeRunner:
             if key == "reward_sum":
                 continue
             reward_detail[key] = reward_detail.get(key, 0.0) + value
+
+    def _build_episode_record(
+        self,
+        observation,
+        usr_conf,
+        lineup,
+        blue_hero_ids,
+        red_hero_ids,
+        is_eval,
+        monitor_side,
+        frame_no,
+        terminated,
+        truncated,
+        reward_sum_list,
+        reward_detail_sum_list,
+    ):
+        return {
+            "episode_cnt": self.episode_cnt,
+            "lineup": lineup,
+            "blue_hero_ids": blue_hero_ids,
+            "red_hero_ids": red_hero_ids,
+            "is_eval": is_eval,
+            "monitor_side": monitor_side,
+            "opponent_agent": self.env_conf_manager.get_opponent_agent(),
+            "usr_conf": usr_conf,
+            "frame_no": frame_no,
+            "terminated": terminated,
+            "truncated": truncated,
+            "reward_sum": reward_sum_list,
+            "reward_detail": reward_detail_sum_list,
+            "agents": [
+                self._summarize_observation(index, observation.get(str(index), {}))
+                for index in range(self.agent_num)
+            ],
+        }
+
+    def _summarize_observation(self, agent_index, agent_observation):
+        frame_state = agent_observation.get("frame_state", {})
+        heroes = frame_state.get("hero_states", [])
+        npcs = frame_state.get("npc_states", [])
+        player_id = agent_observation.get("player_id")
+        camp = agent_observation.get("camp", agent_observation.get("player_camp"))
+        hero = self._find_main_hero(heroes, player_id, camp)
+        enemy_hero = self._find_enemy_hero(heroes, camp)
+        tower = self._find_tower(npcs, camp)
+        enemy_tower = self._find_enemy_tower(npcs, camp)
+
+        return {
+            "agent_index": agent_index,
+            "env_id": agent_observation.get("env_id"),
+            "player_id": player_id,
+            "camp": camp,
+            "win": agent_observation.get("win"),
+            "hero": self._summarize_hero(hero),
+            "enemy_hero": self._summarize_hero(enemy_hero),
+            "tower": self._summarize_unit(tower),
+            "enemy_tower": self._summarize_unit(enemy_tower),
+        }
+
+    def _find_main_hero(self, heroes, player_id, camp):
+        for hero in heroes:
+            if player_id is not None and hero.get("runtime_id") == player_id:
+                return hero
+        for hero in heroes:
+            if camp is not None and hero.get("camp") == camp:
+                return hero
+        return None
+
+    def _find_enemy_hero(self, heroes, camp):
+        for hero in heroes:
+            if camp is not None and hero.get("camp") != camp:
+                return hero
+        return None
+
+    def _find_tower(self, npcs, camp):
+        for npc in npcs:
+            if npc.get("sub_type") == 21 and npc.get("camp") == camp:
+                return npc
+        return None
+
+    def _find_enemy_tower(self, npcs, camp):
+        for npc in npcs:
+            if npc.get("sub_type") == 21 and npc.get("camp") != camp:
+                return npc
+        return None
+
+    def _summarize_hero(self, hero):
+        if not hero:
+            return None
+        return {
+            "runtime_id": hero.get("runtime_id"),
+            "config_id": hero.get("config_id"),
+            "camp": hero.get("camp"),
+            "hp": hero.get("hp"),
+            "max_hp": hero.get("max_hp"),
+            "hp_rate": self._safe_rate(hero.get("hp"), hero.get("max_hp")),
+            "level": hero.get("level"),
+            "exp": hero.get("exp"),
+            "money": hero.get("money"),
+            "money_cnt": hero.get("money_cnt"),
+            "kill_cnt": hero.get("kill_cnt"),
+            "dead_cnt": hero.get("dead_cnt"),
+            "total_hurt": hero.get("total_hurt"),
+            "total_hurt_to_hero": hero.get("total_hurt_to_hero"),
+            "total_be_hurt_by_hero": hero.get("total_be_hurt_by_hero"),
+            "location": hero.get("location"),
+        }
+
+    def _summarize_unit(self, unit):
+        if not unit:
+            return None
+        return {
+            "runtime_id": unit.get("runtime_id"),
+            "config_id": unit.get("config_id"),
+            "camp": unit.get("camp"),
+            "sub_type": unit.get("sub_type"),
+            "hp": unit.get("hp"),
+            "max_hp": unit.get("max_hp"),
+            "hp_rate": self._safe_rate(unit.get("hp"), unit.get("max_hp")),
+            "attack_target": unit.get("attack_target"),
+            "location": unit.get("location"),
+        }
+
+    def _safe_rate(self, value, max_value):
+        if value is None or not max_value:
+            return None
+        return value / max_value

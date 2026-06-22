@@ -13,6 +13,7 @@ import numpy as np
 import os
 import time
 from agent_ppo.conf.conf import Config
+from utils.training_recorder import TrainingRecorder
 
 
 class Algorithm:
@@ -26,6 +27,27 @@ class Algorithm:
 
         self.logger = logger
         self.monitor = monitor
+        self.training_recorder = TrainingRecorder(logger=logger)
+        self.training_recorder.record(
+            "learner_config",
+            {
+                "feature_dim": Config.FEATURE_DIM,
+                "lstm_time_steps": Config.LSTM_TIME_STEPS,
+                "lstm_unit_size": Config.LSTM_UNIT_SIZE,
+                "learning_rate_start": Config.INIT_LEARNING_RATE_START,
+                "target_lr": Config.TARGET_LR,
+                "target_step": Config.TARGET_STEP,
+                "beta_start": Config.BETA_START,
+                "gamma": Config.GAMMA,
+                "lamda": Config.LAMDA,
+                "clip_param": Config.CLIP_PARAM,
+                "use_grad_clip": Config.USE_GRAD_CLIP,
+                "grad_clip_range": Config.GRAD_CLIP_RANGE,
+                "data_split_shape": Config.DATA_SPLIT_SHAPE,
+                "seri_vec_split_shape": Config.SERI_VEC_SPLIT_SHAPE,
+                "data_shapes": Config.data_shapes,
+            },
+        )
 
         self.cut_points = [value[0] for value in Config.data_shapes]
         self.data_split_shape = Config.DATA_SPLIT_SHAPE
@@ -86,6 +108,7 @@ class Algorithm:
         # update the learning rate
         # 更新学习率
         self.scheduler.step(self.train_step)
+        current_lr = self.optimizer.param_groups[0]["lr"]
 
         _info_list = []
         for info in info_list:
@@ -94,10 +117,23 @@ class Algorithm:
             else:
                 _info = info.item()
             _info_list.append(_info)
+        _, (value_loss, policy_loss, entropy_loss) = _info_list
+
+        self.training_recorder.record(
+            "learner_step",
+            {
+                "train_step": self.train_step,
+                "sample_batch_size": len(list_sample_data),
+                "learning_rate": current_lr,
+                "total_loss": total_loss.item(),
+                "value_loss": value_loss,
+                "policy_loss": policy_loss,
+                "entropy_loss": entropy_loss,
+            },
+        )
 
         now = time.time()
         if now - self.last_report_monitor_time >= 60:
-            _, (value_loss, policy_loss, entropy_loss) = _info_list
             results["value_loss"] = round(value_loss, 2)
             results["policy_loss"] = round(policy_loss, 2)
             results["entropy_loss"] = round(entropy_loss, 2)
