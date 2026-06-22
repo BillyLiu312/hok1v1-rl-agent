@@ -27,6 +27,18 @@ algorithm_name = "ppo"  # 可选: "ppo" 或 "diy"
 python train_test.py
 ```
 
+## 开发文档
+
+完整文档入口见 [docs/README.md](docs/README.md)。
+
+常用入口：
+
+- [项目简介](docs/dev-guide/intro.md)：任务目标、地图、英雄、胜负规则。
+- [环境详述](docs/dev-guide/env.md)：环境配置、观测、动作空间和监控指标。
+- [智能体详述](docs/dev-guide/agent_lite.md)：特征处理、奖励设计、召唤师技能和评估模式。
+- [数据协议](docs/dev-guide/protocol.md)：原始帧状态、英雄/NPC/技能字段定义。
+- [胜率优化管线](docs/optimization-pipeline.md)：面向胜率提升的工程优化路线。
+
 ## 说明
 
 - `agent_ppo` 是默认训练方案。
