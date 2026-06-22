@@ -8,6 +8,7 @@
 2. [环境详述](dev-guide/env.md)
 3. [智能体详述](dev-guide/agent_lite.md)
 4. [数据协议](dev-guide/protocol.md)
+5. [胜率优化管线](optimization-pipeline.md)
 
 ## 腾讯开悟强化学习框架
 
