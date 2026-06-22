@@ -31,7 +31,7 @@ from utils.evaluate_v1_2_candidate import evaluate_candidate
 from utils.evaluate_v1_2_candidate import overall_status as candidate_gate_status
 from utils.evaluate_v1_2_candidate import write_csv as write_candidate_gate_csv
 from utils.evaluate_v1_2_candidate import write_markdown as write_candidate_gate_markdown
-from utils.select_checkpoint import attach_matchup_metrics, collect_candidates, rank_candidates
+from utils.select_checkpoint import attach_matchup_metrics, collect_candidates, is_truthy, rank_candidates
 from utils.select_checkpoint import write_csv as write_checkpoint_csv
 from utils.select_checkpoint import write_markdown as write_checkpoint_markdown
 from utils.run_metadata_summary import collect_rows as collect_metadata_rows
@@ -162,7 +162,7 @@ def build_report(
     artifacts["checkpoint_ranking_md"] = checkpoint_md
 
     candidate = checkpoint_rows[0] if checkpoint_rows else {}
-    candidate_matchup_rows = filter_rows_for_checkpoint(run_rows, candidate)
+    candidate_matchup_rows = filter_fixed_eval_rows_for_checkpoint(run_rows, candidate)
     candidate_gate_rows = evaluate_candidate(candidate, matchup_rows=candidate_matchup_rows)
     candidate_gate_csv = output_dir / "v1.2_candidate_gate.csv"
     candidate_gate_md = output_dir / "v1.2_candidate_gate.md"
@@ -268,6 +268,22 @@ def filter_rows_for_checkpoint(rows: list[dict] | None, candidate: dict | None) 
     return [row for row in rows if str(row.get("checkpoint_step")) in aliases]
 
 
+def filter_fixed_eval_rows_for_checkpoint(
+    rows: list[dict] | None,
+    candidate: dict | None,
+    opponent_agent="common_ai",
+) -> list[dict] | None:
+    rows = filter_rows_for_checkpoint(rows, candidate)
+    if rows is None:
+        return rows
+    return [
+        row
+        for row in rows
+        if is_truthy(row.get("is_eval"))
+        and (not opponent_agent or str(row.get("opponent_agent")) == str(opponent_agent))
+    ]
+
+
 def count_status(rows: list[dict], status: str) -> int:
     return sum(1 for row in rows if row.get("status") == status)
 
@@ -302,6 +318,7 @@ def write_manifest(
         f"- candidate_gate_warn: {count_status(candidate_gate_rows, 'WARN')}",
         f"- candidate_gate_fail: {count_status(candidate_gate_rows, 'FAIL')}",
         f"- candidate_gate_missing: {count_status(candidate_gate_rows, 'MISSING')}",
+        "- candidate_gate_matchup_filter: is_eval=True,opponent_agent=common_ai",
     ]
     if launch_metadata:
         launch_env = launch_metadata.get("env") or {}

@@ -5,7 +5,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from utils.build_experiment_report import DEFAULT_OUTPUT_DIR, build_report, filter_rows_for_checkpoint, manifest_value, resolve_experiment_metadata
+from utils.build_experiment_report import (
+    DEFAULT_OUTPUT_DIR,
+    build_report,
+    filter_fixed_eval_rows_for_checkpoint,
+    filter_rows_for_checkpoint,
+    manifest_value,
+    resolve_experiment_metadata,
+)
 
 
 class BuildExperimentReportTest(unittest.TestCase):
@@ -26,6 +33,16 @@ class BuildExperimentReportTest(unittest.TestCase):
         candidate = {"checkpoint_step": "15000", "actual_train_global_step": 15039}
         self.assertEqual(filter_rows_for_checkpoint(rows, candidate), [rows[0], rows[1]])
         self.assertEqual(filter_rows_for_checkpoint(rows, None), rows)
+
+    def test_filter_fixed_eval_rows_for_checkpoint_matches_ranking_scope(self):
+        rows = [
+            {"checkpoint_step": 15000, "matchup": "199_vs_133", "is_eval": True, "opponent_agent": "common_ai"},
+            {"checkpoint_step": 15039, "matchup": "133_vs_199", "is_eval": True, "opponent_agent": "17057"},
+            {"checkpoint_step": 15000, "matchup": "112_vs_112", "is_eval": False, "opponent_agent": "common_ai"},
+        ]
+        candidate = {"checkpoint_step": "15000", "actual_train_global_step": 15039}
+
+        self.assertEqual(filter_fixed_eval_rows_for_checkpoint(rows, candidate), [rows[0]])
 
     def test_resolve_experiment_metadata_selects_named_ablation(self):
         plan = {
