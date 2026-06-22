@@ -69,16 +69,26 @@ def build_commands(stage: str, reward_profile: str = "v1.2") -> dict:
     }
 
 
-def build_manifest(sync_package: Path, run_id: str, stage: str, reward_profile: str) -> dict:
+def build_manifest(
+    sync_package: Path,
+    run_id: str,
+    stage: str,
+    reward_profile: str,
+    reward_weight_overrides: str = "",
+    opponent_schedule: str | None = None,
+) -> dict:
     preflight_rows = collect_preflight_rows()
     env = dict(DEFAULT_ENV)
     env["HOK_TRAINING_RUN_ID"] = run_id
     env["HOK_REWARD_PROFILE"] = reward_profile
+    env["HOK_REWARD_WEIGHT_OVERRIDES"] = reward_weight_overrides
     ablation = ablation_for_profile(reward_profile)
     env["HOK_TRAINING_RECORD_DIR"] = ablation["record_dir"]
     if stage == "v1.2-b" and reward_profile == "v1.2":
         env["HOK_TRAINING_RECORD_DIR"] = "logs/run_records/v1.2-b"
         env["HOK_OPPONENT_SCHEDULE"] = "common_ai:4,historical:4,selfplay:2"
+    if opponent_schedule is not None:
+        env["HOK_OPPONENT_SCHEDULE"] = opponent_schedule
 
     return {
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S %z"),
@@ -136,6 +146,8 @@ def parse_args():
     parser.add_argument("--run-id", default="v1.2-a-001", help="Training run ID")
     parser.add_argument("--stage", choices=["v1.2-a", "v1.2-b"], default="v1.2-a", help="Training stage")
     parser.add_argument("--reward-profile", default="v1.2", help="Reward profile for this launch")
+    parser.add_argument("--reward-weight-overrides", default="", help="Value for HOK_REWARD_WEIGHT_OVERRIDES")
+    parser.add_argument("--opponent-schedule", default=None, help="Value for HOK_OPPONENT_SCHEDULE; defaults to stage preset")
     parser.add_argument("--json", type=Path, default=Path("logs/v1.2/launch_manifest.json"), help="JSON output path")
     parser.add_argument("--md", type=Path, default=Path("logs/v1.2/launch_manifest.md"), help="Markdown output path")
     return parser.parse_args()
@@ -143,7 +155,14 @@ def parse_args():
 
 def main():
     args = parse_args()
-    manifest = build_manifest(args.sync_package, args.run_id, args.stage, args.reward_profile)
+    manifest = build_manifest(
+        args.sync_package,
+        args.run_id,
+        args.stage,
+        args.reward_profile,
+        reward_weight_overrides=args.reward_weight_overrides,
+        opponent_schedule=args.opponent_schedule,
+    )
     write_json(manifest, args.json)
     write_markdown(manifest, args.md)
     print(f"wrote v1.2 launch manifest to {args.json} and {args.md}")

@@ -69,6 +69,28 @@ class V12LaunchManifestTest(unittest.TestCase):
             self.assertIn("--output-dir logs/v1.2/report-no-window", manifest["commands"]["report"])
             self.assertIn("--experiment-name no_window_reward", manifest["commands"]["report"])
 
+    def test_build_manifest_records_explicit_schedule_and_weight_overrides(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            sync_package = Path(temp_dir) / "sync_package.txt"
+            sync_package.write_text("package", encoding="utf-8")
+            manifest = build_manifest(
+                sync_package,
+                run_id="unit-overrides",
+                stage="v1.2-a",
+                reward_profile="v1.2",
+                reward_weight_overrides="death:5,push_window_tower_damage:0",
+                opponent_schedule="common_ai:1,selfplay:1",
+            )
+
+            self.assertEqual(manifest["env"]["HOK_REWARD_WEIGHT_OVERRIDES"], "death:5,push_window_tower_damage:0")
+            self.assertEqual(manifest["env"]["HOK_OPPONENT_SCHEDULE"], "common_ai:1,selfplay:1")
+
+            md_path = Path(temp_dir) / "launch.md"
+            write_markdown(manifest, md_path)
+            md_text = md_path.read_text(encoding="utf-8")
+            self.assertIn("HOK_REWARD_WEIGHT_OVERRIDES", md_text)
+            self.assertIn("common_ai:1,selfplay:1", md_text)
+
 
 if __name__ == "__main__":
     unittest.main()
