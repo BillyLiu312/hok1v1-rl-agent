@@ -11,6 +11,9 @@ venv/
 logs/
 output/
 
+# Local validation scratch tests
+tests/test_ppo_optimization.py
+
 # Model checkpoints and training artifacts
 *.pt
 *.pth
