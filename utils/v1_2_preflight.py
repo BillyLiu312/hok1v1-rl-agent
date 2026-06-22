@@ -205,6 +205,8 @@ def check_evidence_chain_fields(root: Path) -> list[dict]:
         ],
         "utils/evaluation_config_export.py": [
             '"evaluation": build_eval_metadata(row)',
+            "write_toml_metadata",
+            "toml_metadata.csv",
         ],
         "utils/analyze_run_records.py": [
             "eval_ids",

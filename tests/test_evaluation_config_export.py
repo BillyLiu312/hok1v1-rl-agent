@@ -44,6 +44,7 @@ class EvaluationConfigExportTest(unittest.TestCase):
 
             self.assertEqual(artifacts["rows"], 4)
             self.assertEqual(artifacts["toml_count"], 1)
+            self.assertEqual(artifacts["toml_metadata_rows"], 1)
             jsonl_lines = artifacts["jsonl"].read_text(encoding="utf-8").splitlines()
             self.assertEqual(len(jsonl_lines), 4)
             first_event = json.loads(jsonl_lines[0])
@@ -51,8 +52,19 @@ class EvaluationConfigExportTest(unittest.TestCase):
             self.assertEqual(first_event["evaluation"]["blue_select_skill"], 80115)
             self.assertEqual(first_event["evaluation"]["red_select_skill"], 80115)
             self.assertEqual(first_event["usr_conf"]["evaluation"], first_event["evaluation"])
-            self.assertIn("toml_files: 1", artifacts["manifest"].read_text(encoding="utf-8"))
-            self.assertIn("skill_pairs: 1", artifacts["manifest"].read_text(encoding="utf-8"))
+            metadata_csv = artifacts["toml_metadata_csv"].read_text(encoding="utf-8")
+            metadata_jsonl = artifacts["toml_metadata_jsonl"].read_text(encoding="utf-8").splitlines()
+            self.assertIn("eval_id", metadata_csv)
+            self.assertIn("usr_conf_json", metadata_csv)
+            self.assertEqual(len(metadata_jsonl), 1)
+            metadata_event = json.loads(metadata_jsonl[0])
+            self.assertEqual(metadata_event["eval_id"], first_event["eval_id"])
+            self.assertEqual(json.loads(metadata_event["usr_conf_json"])["evaluation"], first_event["evaluation"])
+            manifest = artifacts["manifest"].read_text(encoding="utf-8")
+            self.assertIn("toml_files: 1", manifest)
+            self.assertIn("skill_pairs: 1", manifest)
+            self.assertIn("toml_metadata_csv: toml_metadata.csv", manifest)
+            self.assertIn("toml_metadata_jsonl: toml_metadata.jsonl", manifest)
 
     def test_export_configs_preserves_skill_grid_metadata(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -70,6 +82,7 @@ class EvaluationConfigExportTest(unittest.TestCase):
 
             artifacts = export_configs(matrix_csv, output_dir, toml_limit=1)
 
+            self.assertEqual(artifacts["toml_metadata_rows"], 1)
             jsonl_lines = artifacts["jsonl"].read_text(encoding="utf-8").splitlines()
             self.assertEqual(len(jsonl_lines), 8)
             events = [json.loads(line) for line in jsonl_lines]

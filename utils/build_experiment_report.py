@@ -192,6 +192,8 @@ def build_report(
 
     eval_config_artifacts = export_configs(eval_csv, output_dir / "evaluation_configs")
     artifacts["evaluation_usr_conf_jsonl"] = eval_config_artifacts["jsonl"]
+    artifacts["evaluation_toml_metadata_csv"] = eval_config_artifacts["toml_metadata_csv"]
+    artifacts["evaluation_toml_metadata_jsonl"] = eval_config_artifacts["toml_metadata_jsonl"]
     artifacts["evaluation_config_manifest"] = eval_config_artifacts["manifest"]
 
     skill_rows = build_skill_rows(hero_ids=heroes, candidate_skills=skills)

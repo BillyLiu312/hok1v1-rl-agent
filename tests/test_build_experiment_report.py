@@ -165,6 +165,8 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertIn("experiment_success_metrics: avg_win_rate,avg_death", manifest)
             self.assertIn("checkpoint_ranking_csv", manifest)
             self.assertIn("v1.2_candidate_gate_csv", manifest)
+            self.assertIn("evaluation_toml_metadata_csv", manifest)
+            self.assertIn("evaluation_toml_metadata_jsonl", manifest)
 
     def test_build_report_includes_run_record_artifacts(self):
         with tempfile.TemporaryDirectory() as temp_dir:

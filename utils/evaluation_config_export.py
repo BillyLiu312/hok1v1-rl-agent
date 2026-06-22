@@ -132,6 +132,48 @@ def write_toml_files(rows: list[dict], output_dir: Path, limit: int | None = Non
     return paths
 
 
+def write_toml_metadata(rows: list[dict], toml_paths: list[Path], output_csv: Path, output_jsonl: Path):
+    output_csv.parent.mkdir(parents=True, exist_ok=True)
+    selected_rows = rows[: len(toml_paths)]
+    metadata_rows = []
+    for row, toml_path in zip(selected_rows, toml_paths):
+        metadata = build_eval_metadata(row)
+        metadata_rows.append(
+            {
+                "toml_path": toml_path.as_posix(),
+                **metadata,
+                "usr_conf_json": json.dumps(build_usr_conf(row), ensure_ascii=False, sort_keys=True),
+            }
+        )
+
+    fieldnames = [
+        "toml_path",
+        "eval_id",
+        "checkpoint_step",
+        "opponent_agent",
+        "matchup",
+        "repeat_index",
+        "monitor_side",
+        "monitor_hero_id",
+        "opponent_hero_id",
+        "blue_hero_id",
+        "red_hero_id",
+        "blue_select_skill",
+        "red_select_skill",
+        "usr_conf_json",
+    ]
+    with output_csv.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(metadata_rows)
+
+    with output_jsonl.open("w", encoding="utf-8") as handle:
+        for item in metadata_rows:
+            handle.write(json.dumps(item, ensure_ascii=False, sort_keys=True))
+            handle.write("\n")
+    return metadata_rows
+
+
 def write_manifest(rows: list[dict], output_path: Path, toml_paths: list[Path]):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     checkpoints = sorted({to_int(row["checkpoint_step"]) for row in rows})
@@ -147,7 +189,9 @@ def write_manifest(rows: list[dict], output_path: Path, toml_paths: list[Path]):
         f"- opponent_agents: {', '.join(opponent_agents)}",
         f"- skill_pairs: {len(skill_pairs)}",
         f"- toml_files: {len(toml_paths)}",
-        "- note: TOML files contain only platform train_env_conf fields; evaluation metadata is kept in eval_usr_conf.jsonl and filenames.",
+        "- toml_metadata_csv: toml_metadata.csv",
+        "- toml_metadata_jsonl: toml_metadata.jsonl",
+        "- note: TOML files contain only platform train_env_conf fields; evaluation metadata is kept in eval_usr_conf.jsonl, toml_metadata.* and filenames.",
         "",
         "## TOML Preview",
         "",
@@ -166,12 +210,18 @@ def export_configs(matrix_csv: Path, output_dir: Path, toml_limit: int | None = 
     jsonl_path = output_dir / "eval_usr_conf.jsonl"
     toml_dir = output_dir / "toml"
     manifest_path = output_dir / "manifest.md"
+    toml_metadata_csv = output_dir / "toml_metadata.csv"
+    toml_metadata_jsonl = output_dir / "toml_metadata.jsonl"
     write_jsonl(rows, jsonl_path)
     toml_paths = write_toml_files(rows, toml_dir, limit=toml_limit)
+    toml_metadata_rows = write_toml_metadata(rows, toml_paths, toml_metadata_csv, toml_metadata_jsonl)
     write_manifest(rows, manifest_path, toml_paths)
     return {
         "jsonl": jsonl_path,
         "toml_dir": toml_dir,
+        "toml_metadata_csv": toml_metadata_csv,
+        "toml_metadata_jsonl": toml_metadata_jsonl,
+        "toml_metadata_rows": len(toml_metadata_rows),
         "manifest": manifest_path,
         "toml_count": len(toml_paths),
         "rows": len(rows),

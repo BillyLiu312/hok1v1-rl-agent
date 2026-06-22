@@ -17,7 +17,7 @@
 
 - `utils/analyze_training_logs.py`：汇总 `logs/v*/step-*.md` 为训练摘要。
 - `utils/evaluation_matrix.py`：生成 checkpoint x matchup x 换边 x 召唤师技能的固定评估清单。
-- `utils/evaluation_config_export.py`：把评估矩阵导出为 `usr_conf` JSONL 和 TOML 配置片段。
+- `utils/evaluation_config_export.py`：把评估矩阵导出为 `usr_conf` JSONL、TOML 配置片段和 TOML metadata sidecar。
 - `utils/analyze_run_records.py`：聚合训练账本中的 episode/matchup/reward 分解。
 - `utils/select_checkpoint.py`：根据训练摘要和矩阵评估结果排序 checkpoint。
 - `utils/compare_experiment_reports.py`：横向比较多个 v1.2 证据包，输出 baseline delta、消融判读和 Markdown 摘要。
