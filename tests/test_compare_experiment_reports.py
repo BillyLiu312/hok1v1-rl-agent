@@ -77,6 +77,11 @@ def make_report(
                 f"- experiment_hypothesis: hypothesis for {profile}",
                 "- experiment_success_metric_count: 7",
                 "- experiment_success_metrics: avg_win_rate,avg_death",
+                "- baseline_source: logs/v1.1",
+                "- baseline_best_win_rate: 0.84",
+                "- baseline_best_enemy_tower_hp: 1400.59",
+                "- baseline_late_death: 3.09",
+                "- baseline_best_hero_damage_balance: 0.67",
                 "",
             ]
         ),
@@ -99,6 +104,11 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertEqual(rows[0]["experiment_hypothesis"], "hypothesis for v1.2")
             self.assertEqual(rows[0]["success_metric_count"], "7")
             self.assertEqual(rows[0]["success_metrics"], "avg_win_rate,avg_death")
+            self.assertEqual(rows[0]["baseline_source"], "logs/v1.1")
+            self.assertEqual(rows[0]["baseline_best_win_rate"], 0.84)
+            self.assertEqual(rows[0]["baseline_best_enemy_tower_hp"], 1400.59)
+            self.assertEqual(rows[0]["baseline_late_death"], 3.09)
+            self.assertEqual(rows[0]["baseline_best_hero_damage_balance"], 0.67)
             self.assertEqual(rows[0]["baseline_experiment"], "v1.2")
             self.assertEqual(rows[0]["ablation_interpretation"], "baseline")
             self.assertEqual(rows[0]["research_story_verdict"], "baseline_reference")
@@ -143,6 +153,8 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertIn("launch_run_id", csv_path.read_text(encoding="utf-8"))
             self.assertIn("experiment_hypothesis", csv_path.read_text(encoding="utf-8"))
             self.assertIn("success_metric_count", csv_path.read_text(encoding="utf-8"))
+            self.assertIn("baseline_source", csv_path.read_text(encoding="utf-8"))
+            self.assertIn("baseline_best_hero_damage_balance", csv_path.read_text(encoding="utf-8"))
             self.assertIn("ablation_interpretation", csv_path.read_text(encoding="utf-8"))
             self.assertIn("research_story_verdict", csv_path.read_text(encoding="utf-8"))
             self.assertIn("candidate_gate_matchup_filter", csv_path.read_text(encoding="utf-8"))
@@ -161,6 +173,8 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertIn("no_window: supports_baseline", md_path.read_text(encoding="utf-8"))
             self.assertIn("no_window_reward", md_path.read_text(encoding="utf-8"))
             self.assertIn("hypothesis for v1.2", md_path.read_text(encoding="utf-8"))
+            self.assertIn("logs/v1.1", md_path.read_text(encoding="utf-8"))
+            self.assertIn("0.67", md_path.read_text(encoding="utf-8"))
             self.assertIn("supports_baseline", md_path.read_text(encoding="utf-8"))
             self.assertIn("supports_push_window_modeling", md_path.read_text(encoding="utf-8"))
             self.assertIn("is_eval=True,opponent_agent=common_ai", md_path.read_text(encoding="utf-8"))

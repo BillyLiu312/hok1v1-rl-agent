@@ -206,6 +206,8 @@ def check_evidence_chain_fields(root: Path) -> list[dict]:
             "research_story_verdict",
             "candidate_gate_matchup_filter",
             "matchup_filter_opponent_agent",
+            "baseline_source",
+            "baseline_best_hero_damage_balance",
             "matchup_eval_ids",
             "max_death_p90",
             "hero_damage_balance",
