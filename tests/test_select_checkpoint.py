@@ -70,9 +70,9 @@ class SelectCheckpointTest(unittest.TestCase):
             matchup_csv.write_text(
                 "\n".join(
                     [
-                        "checkpoint_step,matchup,is_eval,opponent_agent,episodes,win_rate,avg_frame,avg_self_tower_hp,avg_enemy_tower_hp,avg_kill,avg_death,avg_money_cnt,avg_reward_sum,avg_push_window_tower_damage,avg_unsafe_dive,avg_push_window_active_frames,avg_unsafe_dive_active_frames",
-                        "100,112_vs_112,True,common_ai,20,0.5,10000,6000,3000,1,4,5000,1,0.1,-2,3,20",
-                        "200,112_vs_112,True,common_ai,20,0.9,9000,8000,1000,2,1,6000,5,0.4,-0.5,12,2",
+                        "checkpoint_step,matchup,is_eval,opponent_agent,episodes,win_rate,avg_frame,avg_self_tower_hp,avg_enemy_tower_hp,avg_kill,avg_death,avg_money_cnt,avg_reward_sum,avg_push_window_tower_damage,avg_unsafe_dive,avg_push_window_active_frames,avg_unsafe_dive_active_frames,push_window_tower_damage_share,unsafe_dive_death_corr",
+                        "100,112_vs_112,True,common_ai,20,0.5,10000,6000,3000,1,4,5000,1,0.1,-2,3,20,0.2,0.8",
+                        "200,112_vs_112,True,common_ai,20,0.9,9000,8000,1000,2,1,6000,5,0.4,-0.5,12,2,0.75,0.1",
                     ]
                 )
                 + "\n",
@@ -87,6 +87,8 @@ class SelectCheckpointTest(unittest.TestCase):
             self.assertEqual(rows[0]["matchup_avg_push_window_tower_damage"], 0.4)
             self.assertEqual(rows[0]["matchup_avg_push_window_active_frames"], 12)
             self.assertEqual(rows[0]["matchup_avg_unsafe_dive_active_frames"], 2)
+            self.assertEqual(rows[0]["matchup_avg_push_window_tower_damage_share"], 0.75)
+            self.assertEqual(rows[0]["matchup_avg_unsafe_dive_death_corr"], 0.1)
 
     def test_matchup_actual_step_maps_to_target_step(self):
         with tempfile.TemporaryDirectory() as temp_dir:

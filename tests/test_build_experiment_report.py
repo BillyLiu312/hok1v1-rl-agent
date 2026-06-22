@@ -118,6 +118,14 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertTrue(artifacts["checkpoint_matrix_csv"].exists())
             self.assertTrue(artifacts["summoner_skill_results_csv"].exists())
             self.assertTrue(artifacts["v1.2_candidate_gate_csv"].exists())
+            self.assertIn(
+                "push_window_tower_damage_share",
+                artifacts["matchup_summary_csv"].read_text(encoding="utf-8"),
+            )
+            self.assertIn(
+                "matchup_avg_unsafe_dive_death_corr",
+                artifacts["checkpoint_ranking_csv"].read_text(encoding="utf-8"),
+            )
             manifest = artifacts["manifest"].read_text(encoding="utf-8")
             self.assertIn("checkpoint_matrix_csv", manifest)
             self.assertIn("summoner_skill_results_csv", manifest)

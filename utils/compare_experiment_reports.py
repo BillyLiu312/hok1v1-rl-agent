@@ -80,6 +80,8 @@ def summarize_report(report_dir: Path) -> dict:
         "avg_enemy_tower_hp": to_float(ranking.get("matchup_avg_enemy_tower_hp") or ranking.get("common_ai_enemy_tower_hp"), ""),
         "avg_push_window_active_frames": to_float(ranking.get("matchup_avg_push_window_active_frames"), ""),
         "avg_unsafe_dive_active_frames": to_float(ranking.get("matchup_avg_unsafe_dive_active_frames"), ""),
+        "avg_push_window_tower_damage_share": to_float(ranking.get("matchup_avg_push_window_tower_damage_share"), ""),
+        "avg_unsafe_dive_death_corr": to_float(ranking.get("matchup_avg_unsafe_dive_death_corr"), ""),
     }
 
 
@@ -107,6 +109,8 @@ def write_csv(rows: list[dict], output_path: Path):
         "avg_enemy_tower_hp",
         "avg_push_window_active_frames",
         "avg_unsafe_dive_active_frames",
+        "avg_push_window_tower_damage_share",
+        "avg_unsafe_dive_death_corr",
     ]
     with output_path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
@@ -127,6 +131,8 @@ def write_markdown(rows: list[dict], output_path: Path, title="v1.2 Experiment C
         "avg_enemy_tower_hp",
         "avg_push_window_active_frames",
         "avg_unsafe_dive_active_frames",
+        "avg_push_window_tower_damage_share",
+        "avg_unsafe_dive_death_corr",
     ]
     lines = [f"# {title}", "", f"- reports: {len(rows)}", ""]
     lines.extend(["| " + " | ".join(columns) + " |", "| " + " | ".join(["---"] * len(columns)) + " |"])

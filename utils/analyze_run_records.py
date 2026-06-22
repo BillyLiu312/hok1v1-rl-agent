@@ -25,6 +25,28 @@ def avg(values):
     return sum(values) / len(values) if values else ""
 
 
+def safe_ratio(numerator, denominator):
+    if numerator in ("", None) or denominator in ("", None):
+        return ""
+    if denominator == 0:
+        return ""
+    return numerator / denominator
+
+
+def pearson_corr(x_values, y_values):
+    pairs = [(x, y) for x, y in zip(x_values, y_values) if x is not None and y is not None]
+    if len(pairs) < 2:
+        return ""
+    x_mean = sum(x for x, _ in pairs) / len(pairs)
+    y_mean = sum(y for _, y in pairs) / len(pairs)
+    x_var = sum((x - x_mean) ** 2 for x, _ in pairs)
+    y_var = sum((y - y_mean) ** 2 for _, y in pairs)
+    if x_var <= 0 or y_var <= 0:
+        return ""
+    cov = sum((x - x_mean) * (y - y_mean) for x, y in pairs)
+    return cov / ((x_var * y_var) ** 0.5)
+
+
 def get_agent(payload: dict, index: int):
     agents = payload.get("agents", [])
     if 0 <= index < len(agents):
@@ -114,6 +136,9 @@ def collect_rows(record_dir: Path) -> list[dict]:
         )
 
     for (checkpoint_step, matchup, is_eval, opponent_agent), items in sorted(groups.items(), key=group_sort_key):
+        avg_enemy_tower_down = avg([item["reward_enemy_tower_hp_down"] for item in items])
+        avg_push_window_tower_damage = avg([item["reward_push_window_tower_damage"] for item in items])
+        avg_unsafe_dive_active_frames = avg([item["unsafe_dive_active_frames"] for item in items])
         rows.append(
             {
                 "checkpoint_step": checkpoint_step,
@@ -129,12 +154,17 @@ def collect_rows(record_dir: Path) -> list[dict]:
                 "avg_death": avg([item["death"] for item in items]),
                 "avg_money_cnt": avg([item["money_cnt"] for item in items]),
                 "avg_reward_sum": avg([item["reward_sum"] for item in items]),
-                "avg_reward_enemy_tower_hp_down": avg([item["reward_enemy_tower_hp_down"] for item in items]),
+                "avg_reward_enemy_tower_hp_down": avg_enemy_tower_down,
                 "avg_reward_self_tower_hp_down": avg([item["reward_self_tower_hp_down"] for item in items]),
-                "avg_push_window_tower_damage": avg([item["reward_push_window_tower_damage"] for item in items]),
+                "avg_push_window_tower_damage": avg_push_window_tower_damage,
                 "avg_unsafe_dive": avg([item["reward_unsafe_dive"] for item in items]),
                 "avg_push_window_active_frames": avg([item["push_window_active_frames"] for item in items]),
-                "avg_unsafe_dive_active_frames": avg([item["unsafe_dive_active_frames"] for item in items]),
+                "avg_unsafe_dive_active_frames": avg_unsafe_dive_active_frames,
+                "push_window_tower_damage_share": safe_ratio(avg_push_window_tower_damage, avg_enemy_tower_down),
+                "unsafe_dive_death_corr": pearson_corr(
+                    [item["unsafe_dive_active_frames"] for item in items],
+                    [item["death"] for item in items],
+                ),
                 "avg_win_result": avg([item["reward_win_result"] for item in items]),
                 "avg_timeout_tower_gap": avg([item["reward_timeout_tower_gap"] for item in items]),
             }
@@ -172,6 +202,8 @@ def write_csv(rows: list[dict], output_path: Path):
         "avg_unsafe_dive",
         "avg_push_window_active_frames",
         "avg_unsafe_dive_active_frames",
+        "push_window_tower_damage_share",
+        "unsafe_dive_death_corr",
         "avg_win_result",
         "avg_timeout_tower_gap",
     ]
@@ -195,6 +227,8 @@ def write_markdown(rows: list[dict], output_path: Path, title: str):
         "avg_death",
         "avg_push_window_tower_damage",
         "avg_unsafe_dive",
+        "push_window_tower_damage_share",
+        "unsafe_dive_death_corr",
         "avg_push_window_active_frames",
         "avg_unsafe_dive_active_frames",
         "avg_frame",

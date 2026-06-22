@@ -119,6 +119,10 @@ def attach_matchup_metrics(candidates: dict[int, dict], matchup_csv: Path | None
         push_window_active_frames = [value for value in push_window_active_frames if value is not None]
         unsafe_dive_active_frames = [to_float(row.get("avg_unsafe_dive_active_frames")) for row in rows]
         unsafe_dive_active_frames = [value for value in unsafe_dive_active_frames if value is not None]
+        push_window_tower_damage_share = [to_float(row.get("push_window_tower_damage_share")) for row in rows]
+        push_window_tower_damage_share = [value for value in push_window_tower_damage_share if value is not None]
+        unsafe_dive_death_corr = [to_float(row.get("unsafe_dive_death_corr")) for row in rows]
+        unsafe_dive_death_corr = [value for value in unsafe_dive_death_corr if value is not None]
 
         candidate.update(
             {
@@ -132,6 +136,8 @@ def attach_matchup_metrics(candidates: dict[int, dict], matchup_csv: Path | None
                 "matchup_avg_unsafe_dive": avg(unsafe_dive),
                 "matchup_avg_push_window_active_frames": avg(push_window_active_frames),
                 "matchup_avg_unsafe_dive_active_frames": avg(unsafe_dive_active_frames),
+                "matchup_avg_push_window_tower_damage_share": avg(push_window_tower_damage_share),
+                "matchup_avg_unsafe_dive_death_corr": avg(unsafe_dive_death_corr),
             }
         )
 
@@ -166,6 +172,12 @@ def compute_score(candidate: dict) -> float:
     unsafe_dive_active_frames = candidate.get("matchup_avg_unsafe_dive_active_frames")
     if unsafe_dive_active_frames is not None:
         score -= unsafe_dive_active_frames * 0.05
+    push_window_tower_damage_share = candidate.get("matchup_avg_push_window_tower_damage_share")
+    if push_window_tower_damage_share is not None:
+        score += push_window_tower_damage_share * 2.0
+    unsafe_dive_death_corr = candidate.get("matchup_avg_unsafe_dive_death_corr")
+    if unsafe_dive_death_corr is not None and unsafe_dive_death_corr > 0:
+        score -= unsafe_dive_death_corr * 2.0
     score += min(candidate.get("matchup_groups") or 0, 9) * 0.5
     return score
 
@@ -199,6 +211,9 @@ def recommendation_reason(row: dict) -> str:
     unsafe_dive_active_frames = row.get("matchup_avg_unsafe_dive_active_frames")
     if unsafe_dive_active_frames is not None:
         parts.append(f"unsafe_dive_active_frames={fmt(unsafe_dive_active_frames)}")
+    push_window_tower_damage_share = row.get("matchup_avg_push_window_tower_damage_share")
+    if push_window_tower_damage_share is not None:
+        parts.append(f"push_window_tower_damage_share={fmt(push_window_tower_damage_share)}")
     return ", ".join(parts)
 
 
@@ -225,6 +240,8 @@ def write_csv(rows: list[dict], output_path: Path):
         "matchup_avg_unsafe_dive",
         "matchup_avg_push_window_active_frames",
         "matchup_avg_unsafe_dive_active_frames",
+        "matchup_avg_push_window_tower_damage_share",
+        "matchup_avg_unsafe_dive_death_corr",
         "source",
     ]
     with output_path.open("w", encoding="utf-8", newline="") as handle:
@@ -247,6 +264,8 @@ def write_markdown(rows: list[dict], output_path: Path, title: str):
         "matchup_avg_death",
         "matchup_avg_push_window_active_frames",
         "matchup_avg_unsafe_dive_active_frames",
+        "matchup_avg_push_window_tower_damage_share",
+        "matchup_avg_unsafe_dive_death_corr",
     ]
     lines = [f"# {title}", "", f"- candidates: {len(rows)}"]
     if rows:

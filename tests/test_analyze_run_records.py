@@ -48,7 +48,15 @@ class AnalyzeRunRecordsTest(unittest.TestCase):
                     ],
                 },
             }
-            (record_dir / "episode_end-unit-1.jsonl").write_text(json.dumps(event) + "\n", encoding="utf-8")
+            event_2 = json.loads(json.dumps(event))
+            event_2["payload"]["agents"][0]["hero"]["dead_cnt"] = 3
+            event_2["payload"]["reward_detail"][0]["enemy_tower_hp_down"] = 0.1
+            event_2["payload"]["reward_detail"][0]["push_window_tower_damage"] = 0.1
+            event_2["payload"]["reward_detail"][0]["unsafe_dive_active"] = 9.0
+            (record_dir / "episode_end-unit-1.jsonl").write_text(
+                json.dumps(event) + "\n" + json.dumps(event_2) + "\n",
+                encoding="utf-8",
+            )
 
             rows = collect_rows(record_dir)
             self.assertEqual(len(rows), 1)
@@ -56,10 +64,12 @@ class AnalyzeRunRecordsTest(unittest.TestCase):
             self.assertEqual(rows[0]["matchup"], "199_vs_133")
             self.assertEqual(rows[0]["win_rate"], 1.0)
             self.assertEqual(rows[0]["avg_enemy_tower_hp"], 0)
-            self.assertEqual(rows[0]["avg_push_window_tower_damage"], 0.2)
+            self.assertAlmostEqual(rows[0]["avg_push_window_tower_damage"], 0.15)
             self.assertEqual(rows[0]["avg_unsafe_dive"], -1.0)
             self.assertEqual(rows[0]["avg_push_window_active_frames"], 12.0)
-            self.assertEqual(rows[0]["avg_unsafe_dive_active_frames"], 3.0)
+            self.assertEqual(rows[0]["avg_unsafe_dive_active_frames"], 6.0)
+            self.assertAlmostEqual(rows[0]["push_window_tower_damage_share"], 0.75)
+            self.assertAlmostEqual(rows[0]["unsafe_dive_death_corr"], 1.0)
 
             csv_path = record_dir / "summary.csv"
             md_path = record_dir / "summary.md"
@@ -68,6 +78,8 @@ class AnalyzeRunRecordsTest(unittest.TestCase):
             markdown = md_path.read_text(encoding="utf-8")
             self.assertIn("199_vs_133", markdown)
             self.assertIn("avg_push_window_tower_damage", markdown)
+            self.assertIn("push_window_tower_damage_share", markdown)
+            self.assertIn("unsafe_dive_death_corr", markdown)
             self.assertIn("avg_unsafe_dive_active_frames", markdown)
 
     def test_collect_handles_missing_reward_sum_for_monitor_side(self):
