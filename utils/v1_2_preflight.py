@@ -208,6 +208,7 @@ def check_evidence_chain_fields(root: Path) -> list[dict]:
             "matchup_filter_opponent_agent",
             "baseline_source",
             "baseline_best_hero_damage_balance",
+            "reward_weight_dict_sha",
             "matchup_eval_ids",
             "max_death_p90",
             "hero_damage_balance",

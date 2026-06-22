@@ -30,8 +30,8 @@ def make_report(
     (report_dir / "run_metadata_summary.csv").write_text(
         "\n".join(
             [
-                "run_id,reward_profile,reward_weight_overrides,opponent_schedule",
-                f"{name},{profile},,common_ai:4",
+                "run_id,reward_profile,reward_weight_overrides,reward_weight_dict,reward_weight_dict_sha,opponent_schedule",
+                f"{name},{profile},,death=4.0;win_result=20.0,{profile[:12]:0<12},common_ai:4",
             ]
         )
         + "\n",
@@ -100,6 +100,8 @@ class CompareExperimentReportsTest(unittest.TestCase):
             rows = collect_rows([report_a, report_b])
             self.assertEqual(len(rows), 2)
             self.assertEqual(rows[0]["reward_profile"], "v1.2")
+            self.assertEqual(rows[0]["reward_weight_dict"], "death=4.0;win_result=20.0")
+            self.assertEqual(rows[0]["reward_weight_dict_sha"], "v1.200000000")
             self.assertEqual(rows[0]["experiment_name"], "v1.2")
             self.assertEqual(rows[0]["experiment_hypothesis"], "hypothesis for v1.2")
             self.assertEqual(rows[0]["success_metric_count"], "7")
@@ -157,6 +159,8 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertIn("baseline_best_hero_damage_balance", csv_path.read_text(encoding="utf-8"))
             self.assertIn("ablation_interpretation", csv_path.read_text(encoding="utf-8"))
             self.assertIn("research_story_verdict", csv_path.read_text(encoding="utf-8"))
+            self.assertIn("reward_weight_dict", csv_path.read_text(encoding="utf-8"))
+            self.assertIn("reward_weight_dict_sha", csv_path.read_text(encoding="utf-8"))
             self.assertIn("candidate_gate_matchup_filter", csv_path.read_text(encoding="utf-8"))
             self.assertIn("matchup_filter_opponent_agent", csv_path.read_text(encoding="utf-8"))
             self.assertIn("matchup_eval_ids", csv_path.read_text(encoding="utf-8"))
@@ -168,6 +172,8 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertIn("avg_unsafe_dive_severity_delta_vs_baseline", csv_path.read_text(encoding="utf-8"))
             self.assertIn("reward_profile", csv_path.read_text(encoding="utf-8"))
             self.assertIn("v1.2-run", md_path.read_text(encoding="utf-8"))
+            self.assertIn("reward_weight_dict_sha", md_path.read_text(encoding="utf-8"))
+            self.assertIn("v1.200000000", md_path.read_text(encoding="utf-8"))
             self.assertIn("## Interpretation Summary", md_path.read_text(encoding="utf-8"))
             self.assertIn("supports_baseline: 1", md_path.read_text(encoding="utf-8"))
             self.assertIn("no_window: supports_baseline", md_path.read_text(encoding="utf-8"))
