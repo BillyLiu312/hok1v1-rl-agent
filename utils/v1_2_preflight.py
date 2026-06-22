@@ -40,6 +40,7 @@ REQUIRED_TOOLS = [
     "utils/summoner_skill_policy_patch.py",
     "utils/summoner_skill_results.py",
     "utils/offline_sync.py",
+    "utils/v1_2_baseline.py",
     "utils/v1_2_experiment_plan.py",
     "utils/v1_2_launch_manifest.py",
 ]
@@ -185,6 +186,7 @@ def check_evidence_chain_fields(root: Path) -> list[dict]:
         "utils/build_experiment_report.py": [
             "candidate_gate_matchup_filter",
             "filter_fixed_eval_rows_for_checkpoint",
+            "read_candidate_baseline",
             "summoner_skill_policy_patch",
             "summoner_skill_policy_gate",
             "recommended_death_p90",
@@ -214,10 +216,16 @@ def check_evidence_chain_fields(root: Path) -> list[dict]:
             "matchup_max_death_p90",
         ],
         "utils/evaluate_v1_2_candidate.py": [
+            "read_baseline",
             "matchup_min_episodes",
             "death_tail_risk",
             "timeout_rate",
             "unsafe_dive_severity",
+        ],
+        "utils/v1_2_baseline.py": [
+            "best_win_rate",
+            "best_win_enemy_tower_hp",
+            "late_death",
         ],
         "agent_ppo/workflow/train_workflow.py": [
             "_extract_evaluation_metadata",
@@ -324,8 +332,16 @@ def check_launch_manifest_commands(root: Path) -> list[dict]:
 
     commands = build_commands("v1.2-a")
     report_command = commands["report"]
+    baseline_command = commands["baseline"]
     experiment_plan_command = commands["experiment_plan"]
     return [
+        row(
+            "PASS" if "utils/v1_2_baseline.py" in baseline_command else "FAIL",
+            "launch_manifest_baseline_command",
+            "present" if "utils/v1_2_baseline.py" in baseline_command else "missing",
+            "utils/v1_2_baseline.py",
+            "Launch manifest should tell the operator how to derive v1.1 baseline gates.",
+        ),
         row(
             "PASS" if "utils/v1_2_experiment_plan.py" in experiment_plan_command else "FAIL",
             "launch_manifest_experiment_plan_command",
@@ -339,6 +355,13 @@ def check_launch_manifest_commands(root: Path) -> list[dict]:
             "present" if "--experiment-plan" in report_command and "--experiment-name" in report_command else "missing",
             "--experiment-plan and --experiment-name",
             "Launch manifest report command should bind reports to the v1.2 experiment plan.",
+        ),
+        row(
+            "PASS" if "--baseline-json logs/v1.2/baseline_v1.1.json" in report_command else "FAIL",
+            "launch_manifest_report_baseline",
+            "logs/v1.2/baseline_v1.1.json" if "--baseline-json logs/v1.2/baseline_v1.1.json" in report_command else "missing",
+            "--baseline-json logs/v1.2/baseline_v1.1.json",
+            "Report command should bind candidate gates to the generated v1.1 baseline.",
         ),
         row(
             "PASS" if "--record-dir logs/run_records/v1.2-a" in report_command else "FAIL",

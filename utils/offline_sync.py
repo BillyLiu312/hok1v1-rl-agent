@@ -55,6 +55,7 @@ V1_2_REQUIRED_FILES = [
     "utils/summoner_skill_policy_patch.py",
     "utils/summoner_skill_results.py",
     "utils/training_recorder.py",
+    "utils/v1_2_baseline.py",
     "utils/v1_2_experiment_plan.py",
     "utils/v1_2_launch_manifest.py",
     "utils/v1_2_preflight.py",

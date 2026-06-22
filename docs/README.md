@@ -21,6 +21,7 @@
 - `utils/analyze_run_records.py`：聚合训练账本中的 episode/matchup/reward 分解，并输出死亡高分位、己塔低分位和超时率等风险尾部指标。
 - `utils/select_checkpoint.py`：根据训练摘要、矩阵评估结果和风险尾部指标排序 checkpoint。
 - `utils/compare_experiment_reports.py`：横向比较多个 v1.2 证据包，输出 baseline delta、消融判读和 Markdown 摘要。
+- `utils/v1_2_baseline.py`：从 `logs/v1.1/step-*.md` 自动生成 v1.2 验收门槛使用的 v1.1 baseline JSON/Markdown。
 - `utils/evaluate_v1_2_candidate.py`：根据 v1.2 验收标准逐项判定候选 checkpoint。
 - `utils/evaluate_summoner_skill_policy.py`：检查召唤师技能推荐是否有足够样本、胜率增益和风险对照，决定是否进入规则表审阅。
 - `utils/v1_2_preflight.py`：训练前一次性检查 v1.2-a 配置、reward、实验方案、启动清单命令、工具和同步 preset。

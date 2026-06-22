@@ -64,8 +64,9 @@ def build_commands(stage: str, reward_profile: str = "v1.2") -> dict:
     return {
         "preflight": "python3 utils/v1_2_preflight.py --md logs/v1.2/preflight.md --csv logs/v1.2/preflight.csv",
         "pack": "python3 utils/offline_sync.py pack --preset v1.2 --note v1.2-a-ready -o sync_package.txt",
+        "baseline": "python3 utils/v1_2_baseline.py --log-dir logs/v1.1 --json logs/v1.2/baseline_v1.1.json --md logs/v1.2/baseline_v1.1.md",
         "experiment_plan": f"python3 utils/v1_2_experiment_plan.py --stage {stage} --json logs/v1.2/experiment_plan.json --md logs/v1.2/experiment_plan.md",
-        "report": f"python3 utils/build_experiment_report.py --log-dir logs/v1.2 --record-dir {record_dir} --launch-manifest logs/v1.2/launch_manifest.json --experiment-plan logs/v1.2/experiment_plan.json --experiment-name {experiment_name} --output-dir {output_dir} --checkpoints 15000,17057 --heroes 112,133,199 --repeats 20",
+        "report": f"python3 utils/build_experiment_report.py --log-dir logs/v1.2 --record-dir {record_dir} --launch-manifest logs/v1.2/launch_manifest.json --experiment-plan logs/v1.2/experiment_plan.json --experiment-name {experiment_name} --baseline-json logs/v1.2/baseline_v1.1.json --output-dir {output_dir} --checkpoints 15000,17057 --heroes 112,133,199 --repeats 20",
     }
 
 

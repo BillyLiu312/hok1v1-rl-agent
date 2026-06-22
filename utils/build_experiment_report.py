@@ -29,6 +29,7 @@ from utils.evaluation_matrix import write_markdown as write_eval_markdown
 from utils.evaluation_config_export import export_configs
 from utils.evaluate_v1_2_candidate import evaluate_candidate
 from utils.evaluate_v1_2_candidate import overall_status as candidate_gate_status
+from utils.evaluate_v1_2_candidate import read_baseline as read_candidate_baseline
 from utils.evaluate_v1_2_candidate import write_csv as write_candidate_gate_csv
 from utils.evaluate_v1_2_candidate import write_markdown as write_candidate_gate_markdown
 from utils.evaluate_summoner_skill_policy import evaluate_recommendations as evaluate_skill_policy
@@ -72,6 +73,7 @@ def build_report(
     repeats=20,
     include_skill_grid=False,
     skills=None,
+    baseline_json: Path | None = None,
 ):
     output_dir.mkdir(parents=True, exist_ok=True)
     artifacts = {}
@@ -189,7 +191,11 @@ def build_report(
 
     candidate = checkpoint_rows[0] if checkpoint_rows else {}
     candidate_matchup_rows = filter_fixed_eval_rows_for_checkpoint(run_rows, candidate)
-    candidate_gate_rows = evaluate_candidate(candidate, matchup_rows=candidate_matchup_rows)
+    candidate_gate_rows = evaluate_candidate(
+        candidate,
+        matchup_rows=candidate_matchup_rows,
+        baseline=read_candidate_baseline(baseline_json),
+    )
     candidate_gate_csv = output_dir / "v1.2_candidate_gate.csv"
     candidate_gate_md = output_dir / "v1.2_candidate_gate.md"
     write_candidate_gate_csv(candidate_gate_rows, candidate_gate_csv)
@@ -403,6 +409,7 @@ def parse_args():
     parser.add_argument("--launch-manifest", type=Path, default=Path("logs/v1.2/launch_manifest.json"), help="JSON from utils/v1_2_launch_manifest.py")
     parser.add_argument("--experiment-plan", type=Path, default=Path("logs/v1.2/experiment_plan.json"), help="JSON from utils/v1_2_experiment_plan.py")
     parser.add_argument("--experiment-name", default=None, help="Ablation name in the experiment plan")
+    parser.add_argument("--baseline-json", type=Path, default=Path("logs/v1.2/baseline_v1.1.json"), help="JSON from utils/v1_2_baseline.py")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help="Output directory")
     parser.add_argument("--checkpoints", default="15000,17057", help="Comma-separated checkpoint steps for eval matrix")
     parser.add_argument("--heroes", default="112,133,199", help="Comma-separated hero IDs")
@@ -420,6 +427,7 @@ def main():
         launch_manifest=args.launch_manifest,
         experiment_plan=args.experiment_plan,
         experiment_name=args.experiment_name,
+        baseline_json=args.baseline_json,
         output_dir=args.output_dir,
         checkpoints=parse_ids(args.checkpoints),
         heroes=parse_ids(args.heroes),

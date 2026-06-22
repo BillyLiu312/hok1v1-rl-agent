@@ -8,6 +8,7 @@ from utils.evaluate_v1_2_candidate import (
     evaluate_candidate,
     find_candidate,
     overall_status,
+    read_baseline,
     read_csv_rows,
     write_csv,
     write_markdown,
@@ -140,6 +141,45 @@ class EvaluateV12CandidateTest(unittest.TestCase):
             write_markdown(gate_rows, md_path, "Gate", find_candidate(rows, 200))
             self.assertIn("checkpoint_selection", csv_path.read_text(encoding="utf-8"))
             self.assertIn("overall_status", md_path.read_text(encoding="utf-8"))
+
+    def test_custom_baseline_tightens_candidate_gate(self):
+        candidate = {
+            "checkpoint_step": 20000,
+            "common_ai_win_rate": 0.88,
+            "common_ai_death": 2.8,
+            "common_ai_enemy_tower_hp": 900,
+        }
+        baseline = {
+            "best_win_rate": 0.9,
+            "best_win_enemy_tower_hp": 800,
+            "late_death": 2.5,
+        }
+
+        rows = evaluate_candidate(candidate, baseline=baseline)
+        statuses = {row["gate"]: row["status"] for row in rows}
+        thresholds = {row["gate"]: row["threshold"] for row in rows}
+
+        self.assertEqual(statuses["common_ai_win_rate"], "FAIL")
+        self.assertEqual(statuses["enemy_tower_hp"], "WARN")
+        self.assertEqual(statuses["avg_death"], "FAIL")
+        self.assertEqual(thresholds["common_ai_win_rate"], "> 0.9")
+        self.assertEqual(thresholds["enemy_tower_hp"], "< 800.0")
+        self.assertEqual(thresholds["avg_death"], "< 2.5")
+
+    def test_read_baseline_uses_json_when_available(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "baseline.json"
+            path.write_text(
+                '{"source_log_dir":"logs/v1.1","best_win_rate":0.91,"best_win_enemy_tower_hp":777,"late_death":2.25}\n',
+                encoding="utf-8",
+            )
+
+            baseline = read_baseline(path)
+
+            self.assertEqual(baseline["best_win_rate"], 0.91)
+            self.assertEqual(baseline["best_win_enemy_tower_hp"], 777.0)
+            self.assertEqual(baseline["late_death"], 2.25)
+            self.assertEqual(baseline["source"], "logs/v1.1")
 
 
 if __name__ == "__main__":

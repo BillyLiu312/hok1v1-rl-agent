@@ -10,9 +10,11 @@ from utils.v1_2_launch_manifest import ablation_for_profile, build_commands, bui
 class V12LaunchManifestTest(unittest.TestCase):
     def test_build_commands_bind_experiment_plan(self):
         commands = build_commands("v1.2-a", "v1.2")
+        self.assertIn("utils/v1_2_baseline.py", commands["baseline"])
         self.assertIn("utils/v1_2_experiment_plan.py --stage v1.2-a", commands["experiment_plan"])
         self.assertIn("--record-dir logs/run_records/v1.2-a", commands["report"])
         self.assertIn("--output-dir logs/v1.2/report-v1.2", commands["report"])
+        self.assertIn("--baseline-json logs/v1.2/baseline_v1.1.json", commands["report"])
         self.assertIn("--experiment-plan logs/v1.2/experiment_plan.json", commands["report"])
         self.assertIn("--experiment-name v1.2", commands["report"])
 
@@ -35,7 +37,9 @@ class V12LaunchManifestTest(unittest.TestCase):
             self.assertEqual(manifest["env"]["HOK_TRAINING_RUN_ID"], "unit-run")
             self.assertEqual(manifest["env"]["HOK_REWARD_PROFILE"], "v1.2")
             self.assertIn("utils/v1_2_experiment_plan.py --stage v1.2-a", manifest["commands"]["experiment_plan"])
+            self.assertIn("utils/v1_2_baseline.py", manifest["commands"]["baseline"])
             self.assertIn("--launch-manifest logs/v1.2/launch_manifest.json", manifest["commands"]["report"])
+            self.assertIn("--baseline-json logs/v1.2/baseline_v1.1.json", manifest["commands"]["report"])
             self.assertIn("--experiment-plan logs/v1.2/experiment_plan.json", manifest["commands"]["report"])
             self.assertIn("--experiment-name v1.2", manifest["commands"]["report"])
 
@@ -45,6 +49,7 @@ class V12LaunchManifestTest(unittest.TestCase):
             write_markdown(manifest, md_path)
             self.assertIn("sync_package_sha256", json_path.read_text(encoding="utf-8"))
             self.assertIn("unit-run", md_path.read_text(encoding="utf-8"))
+            self.assertIn("baseline", md_path.read_text(encoding="utf-8"))
             self.assertIn("experiment_plan", md_path.read_text(encoding="utf-8"))
 
     def test_v1_2_b_sets_curriculum_defaults(self):

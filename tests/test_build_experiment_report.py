@@ -130,6 +130,17 @@ class BuildExperimentReportTest(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
+            baseline_json = root / "baseline_v1.1.json"
+            baseline_json.write_text(
+                json.dumps(
+                    {
+                        "best_win_rate": 0.85,
+                        "best_win_enemy_tower_hp": 1200,
+                        "late_death": 2.5,
+                    }
+                ),
+                encoding="utf-8",
+            )
 
             artifacts = build_report(
                 log_dir=log_dir,
@@ -137,6 +148,7 @@ class BuildExperimentReportTest(unittest.TestCase):
                 launch_manifest=launch_manifest,
                 experiment_plan=experiment_plan,
                 experiment_name="v1.2",
+                baseline_json=baseline_json,
                 checkpoints=[15000],
                 heroes=[112],
                 repeats=1,
@@ -167,6 +179,9 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertIn("v1.2_candidate_gate_csv", manifest)
             self.assertIn("evaluation_toml_metadata_csv", manifest)
             self.assertIn("evaluation_toml_metadata_jsonl", manifest)
+            gate_md = artifacts["v1.2_candidate_gate_md"].read_text(encoding="utf-8")
+            self.assertIn("> 0.85", gate_md)
+            self.assertIn("< 1200.0", gate_md)
 
     def test_build_report_includes_run_record_artifacts(self):
         with tempfile.TemporaryDirectory() as temp_dir:

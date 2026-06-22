@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 from pathlib import Path
 
 
@@ -22,11 +23,34 @@ MAX_UNSAFE_DIVE_SEVERITY = 1.0
 MAX_DEATH_P90 = 4.0
 MIN_SELF_TOWER_HP_P10 = 1000.0
 MAX_TIMEOUT_RATE = 0.15
+DEFAULT_BASELINE = {
+    "best_win_rate": V1_1_BEST_WIN_RATE,
+    "best_win_enemy_tower_hp": V1_1_BEST_ENEMY_TOWER_HP,
+    "late_death": V1_1_LATE_DEATH,
+}
 
 
 def read_csv_rows(path: Path) -> list[dict]:
     with path.open(encoding="utf-8", newline="") as handle:
         return list(csv.DictReader(handle))
+
+
+def read_baseline(path: Path | None) -> dict:
+    baseline = dict(DEFAULT_BASELINE)
+    if not path:
+        return baseline
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return baseline
+    baseline["best_win_rate"] = to_float(data.get("best_win_rate"), baseline["best_win_rate"])
+    baseline["best_win_enemy_tower_hp"] = to_float(
+        data.get("best_win_enemy_tower_hp"),
+        baseline["best_win_enemy_tower_hp"],
+    )
+    baseline["late_death"] = to_float(data.get("late_death"), baseline["late_death"])
+    baseline["source"] = data.get("source_log_dir", path.as_posix())
+    return baseline
 
 
 def to_float(value, default=None):
@@ -89,10 +113,14 @@ def gate(status: str, name: str, observed, threshold: str, detail: str) -> dict:
     }
 
 
-def evaluate_candidate(candidate: dict, matchup_rows: list[dict] | None = None) -> list[dict]:
+def evaluate_candidate(candidate: dict, matchup_rows: list[dict] | None = None, baseline: dict | None = None) -> list[dict]:
     if not candidate:
         return [gate("MISSING", "candidate", "", "checkpoint exists", "No checkpoint candidate found.")]
 
+    baseline = baseline or DEFAULT_BASELINE
+    best_win_rate = to_float(baseline.get("best_win_rate"), V1_1_BEST_WIN_RATE)
+    best_enemy_tower_hp = to_float(baseline.get("best_win_enemy_tower_hp"), V1_1_BEST_ENEMY_TOWER_HP)
+    late_death = to_float(baseline.get("late_death"), V1_1_LATE_DEATH)
     gates = []
     win_rate = get_metric(candidate, "matchup_avg_win_rate", "common_ai_win_rate")
     death = get_metric(candidate, "matchup_avg_death", "common_ai_death")
@@ -107,21 +135,21 @@ def evaluate_candidate(candidate: dict, matchup_rows: list[dict] | None = None) 
     timeout_rate = to_float(candidate.get("matchup_avg_timeout_rate"))
 
     if win_rate is None:
-        gates.append(gate("MISSING", "common_ai_win_rate", "", f"> {V1_1_BEST_WIN_RATE}", "Win rate is unavailable."))
-    elif win_rate > V1_1_BEST_WIN_RATE:
-        gates.append(gate("PASS", "common_ai_win_rate", win_rate, f"> {V1_1_BEST_WIN_RATE}", "Beats v1.1 step-15000 win rate."))
-    elif death is not None and death < V1_1_LATE_DEATH:
+        gates.append(gate("MISSING", "common_ai_win_rate", "", f"> {best_win_rate}", "Win rate is unavailable."))
+    elif win_rate > best_win_rate:
+        gates.append(gate("PASS", "common_ai_win_rate", win_rate, f"> {best_win_rate}", "Beats v1.1 best win-rate baseline."))
+    elif death is not None and death < late_death:
         gates.append(
             gate(
                 "WARN",
                 "common_ai_win_rate",
                 win_rate,
-                f"> {V1_1_BEST_WIN_RATE} or lower death",
+                f"> {best_win_rate} or lower death",
                 "Win rate does not beat v1.1 best, but death improved; keep as candidate only with matchup evidence.",
             )
         )
     else:
-        gates.append(gate("FAIL", "common_ai_win_rate", win_rate, f"> {V1_1_BEST_WIN_RATE}", "Does not beat v1.1 best win rate."))
+        gates.append(gate("FAIL", "common_ai_win_rate", win_rate, f"> {best_win_rate}", "Does not beat v1.1 best win-rate baseline."))
 
     if matchup_groups >= MIN_EXPECTED_MATCHUPS:
         gates.append(gate("PASS", "matchup_coverage", matchup_groups, f">= {MIN_EXPECTED_MATCHUPS}", "All 9 hero matchups are covered."))
@@ -146,18 +174,18 @@ def evaluate_candidate(candidate: dict, matchup_rows: list[dict] | None = None) 
         )
 
     if enemy_tower_hp is None:
-        gates.append(gate("MISSING", "enemy_tower_hp", "", f"< {V1_1_BEST_ENEMY_TOWER_HP}", "Enemy tower HP is unavailable."))
-    elif enemy_tower_hp < V1_1_BEST_ENEMY_TOWER_HP:
-        gates.append(gate("PASS", "enemy_tower_hp", enemy_tower_hp, f"< {V1_1_BEST_ENEMY_TOWER_HP}", "Improves v1.1 tower pressure."))
+        gates.append(gate("MISSING", "enemy_tower_hp", "", f"< {best_enemy_tower_hp}", "Enemy tower HP is unavailable."))
+    elif enemy_tower_hp < best_enemy_tower_hp:
+        gates.append(gate("PASS", "enemy_tower_hp", enemy_tower_hp, f"< {best_enemy_tower_hp}", "Improves v1.1 tower pressure."))
     else:
-        gates.append(gate("WARN", "enemy_tower_hp", enemy_tower_hp, f"< {V1_1_BEST_ENEMY_TOWER_HP}", "Tower pressure does not beat v1.1 best."))
+        gates.append(gate("WARN", "enemy_tower_hp", enemy_tower_hp, f"< {best_enemy_tower_hp}", "Tower pressure does not beat v1.1 best."))
 
     if death is None:
-        gates.append(gate("MISSING", "avg_death", "", f"< {V1_1_LATE_DEATH}", "Death metric is unavailable."))
-    elif death < V1_1_LATE_DEATH:
-        gates.append(gate("PASS", "avg_death", death, f"< {V1_1_LATE_DEATH}", "Death is below v1.1 late-training level."))
+        gates.append(gate("MISSING", "avg_death", "", f"< {late_death}", "Death metric is unavailable."))
+    elif death < late_death:
+        gates.append(gate("PASS", "avg_death", death, f"< {late_death}", "Death is below v1.1 late-training level."))
     else:
-        gates.append(gate("FAIL", "avg_death", death, f"< {V1_1_LATE_DEATH}", "Death remains too high."))
+        gates.append(gate("FAIL", "avg_death", death, f"< {late_death}", "Death remains too high."))
 
     if push_window_tower_damage_share is None:
         gates.append(
@@ -395,6 +423,7 @@ def parse_args():
     parser.add_argument("--ranking-csv", type=Path, required=True, help="CSV produced by utils/select_checkpoint.py")
     parser.add_argument("--matchup-csv", type=Path, default=None, help="CSV produced by utils/analyze_run_records.py")
     parser.add_argument("--checkpoint-step", default=None, help="Checkpoint step to evaluate; defaults to top ranked row")
+    parser.add_argument("--baseline-json", type=Path, default=None, help="Optional JSON produced by utils/v1_2_baseline.py")
     parser.add_argument("--csv", type=Path, default=Path("logs/v1.2_candidate_gate.csv"), help="CSV output path")
     parser.add_argument("--md", type=Path, default=Path("logs/v1.2_candidate_gate.md"), help="Markdown output path")
     return parser.parse_args()
@@ -412,7 +441,7 @@ def main():
             matchup_rows = matchup_index.get(str(candidate.get("checkpoint_step")), [])
         else:
             matchup_rows = []
-    rows = evaluate_candidate(candidate, matchup_rows=matchup_rows)
+    rows = evaluate_candidate(candidate, matchup_rows=matchup_rows, baseline=read_baseline(args.baseline_json))
     write_csv(rows, args.csv)
     write_markdown(rows, args.md, "v1.2 Candidate Gate", candidate)
     print(f"{overall_status(rows)} v1.2 candidate gate -> {args.csv} and {args.md}")

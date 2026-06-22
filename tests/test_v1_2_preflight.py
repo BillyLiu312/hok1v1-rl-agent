@@ -60,7 +60,9 @@ class V12PreflightTest(unittest.TestCase):
         rows = check_launch_manifest_commands(Path.cwd())
         statuses = {row["check"]: row["status"] for row in rows}
         self.assertEqual(statuses["launch_manifest_experiment_plan_command"], "PASS")
+        self.assertEqual(statuses["launch_manifest_baseline_command"], "PASS")
         self.assertEqual(statuses["launch_manifest_report_binding"], "PASS")
+        self.assertEqual(statuses["launch_manifest_report_baseline"], "PASS")
         self.assertEqual(statuses["launch_manifest_report_record_dir"], "PASS")
         self.assertEqual(statuses["launch_manifest_report_output_dir"], "PASS")
 
@@ -73,6 +75,7 @@ class V12PreflightTest(unittest.TestCase):
             "utils/summoner_skill_grid.py",
             "utils/summoner_skill_policy_patch.py",
             "utils/summoner_skill_results.py",
+            "utils/v1_2_baseline.py",
             "utils/v1_2_launch_manifest.py",
         }
         self.assertTrue(expected.issubset(set(REQUIRED_TOOLS)))
