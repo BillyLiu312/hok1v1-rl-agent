@@ -12,9 +12,11 @@ class BuildExperimentReportTest(unittest.TestCase):
     def test_filter_rows_for_checkpoint_matches_exact_step(self):
         rows = [
             {"checkpoint_step": 15000, "matchup": "199_vs_133"},
+            {"checkpoint_step": 15039, "matchup": "133_vs_199"},
             {"checkpoint_step": "17057", "matchup": "112_vs_112"},
         ]
-        self.assertEqual(filter_rows_for_checkpoint(rows, "15000"), [rows[0]])
+        candidate = {"checkpoint_step": "15000", "actual_train_global_step": 15039}
+        self.assertEqual(filter_rows_for_checkpoint(rows, candidate), [rows[0], rows[1]])
         self.assertEqual(filter_rows_for_checkpoint(rows, None), rows)
 
     def test_build_report_writes_expected_artifacts(self):
@@ -109,7 +111,7 @@ class BuildExperimentReportTest(unittest.TestCase):
                     "opponent_hero_id": 133,
                     "is_eval": True,
                     "opponent_agent": "17057",
-                    "checkpoint": {"actual_train_global_step": 15000},
+                    "checkpoint": {"actual_train_global_step": 15039},
                     "usr_conf": {
                         "lineups": {
                             "blue_camp": [{"hero_id": 199, "select_skill": "80107"}],

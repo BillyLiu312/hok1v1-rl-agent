@@ -145,7 +145,7 @@ def build_report(
     artifacts["checkpoint_ranking_md"] = checkpoint_md
 
     candidate = checkpoint_rows[0] if checkpoint_rows else {}
-    candidate_matchup_rows = filter_rows_for_checkpoint(run_rows, candidate.get("checkpoint_step") if candidate else None)
+    candidate_matchup_rows = filter_rows_for_checkpoint(run_rows, candidate)
     candidate_gate_rows = evaluate_candidate(candidate, matchup_rows=candidate_matchup_rows)
     candidate_gate_csv = output_dir / "v1.2_candidate_gate.csv"
     candidate_gate_md = output_dir / "v1.2_candidate_gate.md"
@@ -200,10 +200,17 @@ def read_launch_manifest(path: Path | None) -> dict:
         return {}
 
 
-def filter_rows_for_checkpoint(rows: list[dict] | None, checkpoint_step) -> list[dict] | None:
-    if rows is None or checkpoint_step in ("", None):
+def filter_rows_for_checkpoint(rows: list[dict] | None, candidate: dict | None) -> list[dict] | None:
+    if rows is None or not candidate:
         return rows
-    return [row for row in rows if str(row.get("checkpoint_step")) == str(checkpoint_step)]
+    aliases = {
+        str(value)
+        for value in (candidate.get("checkpoint_step"), candidate.get("actual_train_global_step"))
+        if value not in ("", None)
+    }
+    if not aliases:
+        return rows
+    return [row for row in rows if str(row.get("checkpoint_step")) in aliases]
 
 
 def count_status(rows: list[dict], status: str) -> int:
