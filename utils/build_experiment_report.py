@@ -6,6 +6,7 @@ Build a local experiment evidence package for v1.2 training runs.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import sys
 from pathlib import Path
@@ -212,6 +213,14 @@ def build_report(
     artifacts["v1.2_candidate_gate_csv"] = candidate_gate_csv
     artifacts["v1.2_candidate_gate_md"] = candidate_gate_md
 
+    research_story_rows = build_research_story_rows(candidate, candidate_gate_rows, experiment_metadata, baseline_metadata, metadata_rows)
+    research_story_csv = output_dir / "research_story_summary.csv"
+    research_story_md = output_dir / "research_story_summary.md"
+    write_research_story_csv(research_story_rows, research_story_csv)
+    write_research_story_markdown(research_story_rows, research_story_md)
+    artifacts["research_story_summary_csv"] = research_story_csv
+    artifacts["research_story_summary_md"] = research_story_md
+
     eval_rows = build_eval_rows(
         checkpoints=checkpoints,
         hero_ids=heroes,
@@ -326,6 +335,121 @@ def filter_fixed_eval_rows_for_checkpoint(
 
 def count_status(rows: list[dict], status: str) -> int:
     return sum(1 for row in rows if row.get("status") == status)
+
+
+def first_gate_status(rows: list[dict], gate_name: str) -> str:
+    for row in rows:
+        if row.get("gate") == gate_name:
+            return row.get("status", "")
+    return ""
+
+
+def first_metadata_row(metadata_rows: list[dict] | None) -> dict:
+    return metadata_rows[0] if metadata_rows else {}
+
+
+def gate_summary(rows: list[dict]) -> str:
+    return ",".join(
+        f"{status}:{count_status(rows, status)}"
+        for status in ("PASS", "WARN", "FAIL", "MISSING")
+        if count_status(rows, status)
+    )
+
+
+def build_research_story_rows(
+    candidate: dict,
+    candidate_gate_rows: list[dict],
+    experiment_metadata: dict | None = None,
+    baseline_metadata: dict | None = None,
+    metadata_rows: list[dict] | None = None,
+) -> list[dict]:
+    metadata = first_metadata_row(metadata_rows)
+    return [
+        {
+            "experiment_name": (experiment_metadata or {}).get("experiment_name", ""),
+            "experiment_hypothesis": (experiment_metadata or {}).get("experiment_hypothesis", ""),
+            "checkpoint_step": candidate.get("checkpoint_step", ""),
+            "gate_status": candidate_gate_status(candidate_gate_rows),
+            "gate_summary": gate_summary(candidate_gate_rows),
+            "baseline_source": (baseline_metadata or {}).get("source", ""),
+            "baseline_best_win_rate": (baseline_metadata or {}).get("best_win_rate", ""),
+            "baseline_late_death": (baseline_metadata or {}).get("late_death", ""),
+            "resolved_reward_profile": metadata.get("reward_profile", ""),
+            "resolved_reward_weight_dict_sha": metadata.get("reward_weight_dict_sha", ""),
+            "matchup_groups": candidate.get("matchup_groups", ""),
+            "matchup_rows": candidate.get("matchup_rows", ""),
+            "matchup_eval_ids": candidate.get("matchup_eval_ids", ""),
+            "avg_win_rate": manifest_value(candidate.get("matchup_avg_win_rate") if candidate.get("matchup_avg_win_rate") is not None else candidate.get("common_ai_win_rate")),
+            "min_win_rate": manifest_value(candidate.get("matchup_min_win_rate")),
+            "avg_death": manifest_value(candidate.get("matchup_avg_death") if candidate.get("matchup_avg_death") is not None else candidate.get("common_ai_death")),
+            "death_p90": manifest_value(candidate.get("matchup_max_death_p90")),
+            "self_tower_hp_p10": manifest_value(candidate.get("matchup_min_self_tower_hp_p10")),
+            "timeout_rate": manifest_value(candidate.get("matchup_avg_timeout_rate")),
+            "push_window_evidence_status": first_gate_status(candidate_gate_rows, "push_window_evidence"),
+            "push_window_tower_damage_share": manifest_value(candidate.get("matchup_avg_push_window_tower_damage_share")),
+            "unsafe_dive_risk_status": first_gate_status(candidate_gate_rows, "unsafe_dive_risk"),
+            "unsafe_dive_severity_status": first_gate_status(candidate_gate_rows, "unsafe_dive_severity"),
+            "unsafe_dive_death_corr": manifest_value(candidate.get("matchup_avg_unsafe_dive_death_corr")),
+            "unsafe_dive_severity": manifest_value(candidate.get("matchup_avg_unsafe_dive_severity")),
+            "death_tail_status": first_gate_status(candidate_gate_rows, "death_tail_risk"),
+            "self_tower_tail_status": first_gate_status(candidate_gate_rows, "self_tower_tail_risk"),
+            "timeout_status": first_gate_status(candidate_gate_rows, "timeout_rate"),
+            "hero_damage_balance_status": first_gate_status(candidate_gate_rows, "hero_damage_balance"),
+        }
+    ]
+
+
+def write_research_story_csv(rows: list[dict], output_path: Path):
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = list(rows[0].keys()) if rows else []
+    with output_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def write_research_story_markdown(rows: list[dict], output_path: Path):
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    row = rows[0] if rows else {}
+    lines = [
+        "# v1.2 Research Story Summary",
+        "",
+        f"- experiment_name: {manifest_value(row.get('experiment_name'))}",
+        f"- experiment_hypothesis: {manifest_value(row.get('experiment_hypothesis'))}",
+        f"- checkpoint_step: {manifest_value(row.get('checkpoint_step'))}",
+        f"- gate_status: {manifest_value(row.get('gate_status'))}",
+        f"- gate_summary: {manifest_value(row.get('gate_summary'))}",
+        f"- baseline_source: {manifest_value(row.get('baseline_source'))}",
+        f"- resolved_reward_profile: {manifest_value(row.get('resolved_reward_profile'))}",
+        f"- resolved_reward_weight_dict_sha: {manifest_value(row.get('resolved_reward_weight_dict_sha'))}",
+        "",
+        "## Tactical Window Evidence",
+        "",
+        f"- push_window_evidence_status: {manifest_value(row.get('push_window_evidence_status'))}",
+        f"- push_window_tower_damage_share: {manifest_value(row.get('push_window_tower_damage_share'))}",
+        f"- unsafe_dive_risk_status: {manifest_value(row.get('unsafe_dive_risk_status'))}",
+        f"- unsafe_dive_death_corr: {manifest_value(row.get('unsafe_dive_death_corr'))}",
+        f"- unsafe_dive_severity_status: {manifest_value(row.get('unsafe_dive_severity_status'))}",
+        f"- unsafe_dive_severity: {manifest_value(row.get('unsafe_dive_severity'))}",
+        "",
+        "## Stability Evidence",
+        "",
+        f"- matchup_groups: {manifest_value(row.get('matchup_groups'))}",
+        f"- matchup_rows: {manifest_value(row.get('matchup_rows'))}",
+        f"- matchup_eval_ids: {manifest_value(row.get('matchup_eval_ids'))}",
+        f"- avg_win_rate: {manifest_value(row.get('avg_win_rate'))}",
+        f"- min_win_rate: {manifest_value(row.get('min_win_rate'))}",
+        f"- avg_death: {manifest_value(row.get('avg_death'))}",
+        f"- death_tail_status: {manifest_value(row.get('death_tail_status'))}",
+        f"- death_p90: {manifest_value(row.get('death_p90'))}",
+        f"- self_tower_tail_status: {manifest_value(row.get('self_tower_tail_status'))}",
+        f"- self_tower_hp_p10: {manifest_value(row.get('self_tower_hp_p10'))}",
+        f"- timeout_status: {manifest_value(row.get('timeout_status'))}",
+        f"- timeout_rate: {manifest_value(row.get('timeout_rate'))}",
+        f"- hero_damage_balance_status: {manifest_value(row.get('hero_damage_balance_status'))}",
+        "",
+    ]
+    output_path.write_text("\n".join(str(line) for line in lines), encoding="utf-8")
 
 
 def manifest_value(value):
