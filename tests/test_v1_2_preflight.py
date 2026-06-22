@@ -7,6 +7,7 @@ from pathlib import Path
 from utils.v1_2_preflight import (
     REQUIRED_TOOLS,
     check_experiment_plan,
+    check_evidence_chain_fields,
     check_launch_manifest_commands,
     check_train_env_conf,
     collect_rows,
@@ -50,6 +51,11 @@ class V12PreflightTest(unittest.TestCase):
         self.assertEqual(statuses["experiment_plan_success_metrics"], "PASS")
         self.assertEqual(statuses["experiment_plan_report_bindings"], "PASS")
 
+    def test_evidence_chain_fields_cover_report_protocol(self):
+        rows = check_evidence_chain_fields(Path.cwd())
+        self.assertTrue(rows)
+        self.assertTrue(all(row["status"] == "PASS" for row in rows))
+
     def test_launch_manifest_commands_bind_experiment_plan(self):
         rows = check_launch_manifest_commands(Path.cwd())
         statuses = {row["check"]: row["status"] for row in rows}
@@ -65,6 +71,7 @@ class V12PreflightTest(unittest.TestCase):
             "utils/compare_experiment_reports.py",
             "utils/run_metadata_summary.py",
             "utils/summoner_skill_grid.py",
+            "utils/summoner_skill_policy_patch.py",
             "utils/summoner_skill_results.py",
             "utils/v1_2_launch_manifest.py",
         }

@@ -177,6 +177,43 @@ def check_required_tools(root: Path) -> list[dict]:
     return rows
 
 
+def check_evidence_chain_fields(root: Path) -> list[dict]:
+    required_fields = {
+        "utils/build_experiment_report.py": [
+            "candidate_gate_matchup_filter",
+            "filter_fixed_eval_rows_for_checkpoint",
+            "summoner_skill_policy_patch",
+        ],
+        "utils/compare_experiment_reports.py": [
+            "research_story_verdict",
+            "candidate_gate_matchup_filter",
+            "matchup_filter_opponent_agent",
+        ],
+        "utils/select_checkpoint.py": [
+            "matchup_filter_eval_only",
+            "matchup_filter_opponent_agent",
+        ],
+        "utils/evaluate_v1_2_candidate.py": [
+            "matchup_min_episodes",
+        ],
+    }
+    rows = []
+    for path, fields in required_fields.items():
+        full_path = root / path
+        text = full_path.read_text(encoding="utf-8") if full_path.exists() else ""
+        missing = [field for field in fields if field not in text]
+        rows.append(
+            row(
+                "PASS" if not missing else "FAIL",
+                f"evidence_fields:{path}",
+                "present" if not missing else ",".join(missing),
+                ",".join(fields),
+                "v1.2 evidence reports should preserve filtering, gate, story and skill-policy fields.",
+            )
+        )
+    return rows
+
+
 def check_sync_preset(root: Path) -> list[dict]:
     readiness = v1_2_readiness(root, preset_include_patterns("v1.2"), [])
     return [
@@ -293,6 +330,7 @@ def collect_rows() -> list[dict]:
     rows.extend(check_experiment_plan())
     rows.extend(check_launch_manifest_commands(root))
     rows.extend(check_required_tools(root))
+    rows.extend(check_evidence_chain_fields(root))
     rows.extend(check_sync_preset(root))
     return rows
 
