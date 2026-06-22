@@ -32,6 +32,10 @@ def make_frame_state():
         "atk_spd": 600,
         "kill_cnt": 1,
         "dead_cnt": 0,
+        "revive_time": 0,
+        "total_hurt": 3000,
+        "total_hurt_to_hero": 1500,
+        "total_be_hurt_by_hero": 800,
         "location": {"x": -12000, "z": -2000},
         "skill_state": {
             "slot_states": [
@@ -53,6 +57,10 @@ def make_frame_state():
         "money_cnt": 1500,
         "kill_cnt": 0,
         "dead_cnt": 1,
+        "revive_time": 0,
+        "total_hurt": 2000,
+        "total_hurt_to_hero": 800,
+        "total_be_hurt_by_hero": 1500,
         "location": {"x": 4000, "z": 3000},
     }
     blue_tower = {
@@ -61,6 +69,7 @@ def make_frame_state():
         "hp": 9000,
         "max_hp": 10000,
         "location": {"x": -18000, "z": 0},
+        "attack_target": 2001,
     }
     red_tower = {
         "sub_type": 21,
@@ -68,15 +77,18 @@ def make_frame_state():
         "hp": 7000,
         "max_hp": 10000,
         "location": {"x": 18000, "z": 0},
+        "attack_target": 3001,
     }
     blue_minion = {
+        "runtime_id": 3001,
         "sub_type": 1,
         "camp": 1,
         "hp": 1000,
         "max_hp": 1200,
-        "location": {"x": -2000, "z": 0},
+        "location": {"x": 15000, "z": 0},
     }
     red_minion = {
+        "runtime_id": 4001,
         "sub_type": 1,
         "camp": 2,
         "hp": 800,
@@ -101,6 +113,8 @@ class PpoOptimizationTest(unittest.TestCase):
         reward = GameRewardManager(1001).result(make_frame_state())
         for key in (
             "tower_hp_point",
+            "enemy_tower_hp_down",
+            "self_tower_hp_down",
             "tower_destroy",
             "hp_point",
             "money",
@@ -108,9 +122,24 @@ class PpoOptimizationTest(unittest.TestCase):
             "kill",
             "death",
             "forward",
+            "push_window_tower_damage",
+            "unsafe_dive",
+            "win_result",
+            "timeout_tower_gap",
             "reward_sum",
         ):
             self.assertIn(key, reward)
+
+    def test_terminal_reward_uses_win_and_timeout(self):
+        manager = GameRewardManager(1001)
+        frame_state = make_frame_state()
+        manager.result(frame_state)
+        win_reward = manager.terminal_reward(frame_state, win=1, truncated=False)
+        timeout_reward = manager.terminal_reward(frame_state, win=0, truncated=True)
+        self.assertEqual(win_reward["win_result"], 1.0)
+        self.assertEqual(win_reward["timeout_tower_gap"], 0.0)
+        self.assertGreater(timeout_reward["timeout_tower_gap"], 0.0)
+        self.assertIn("reward_sum", timeout_reward)
 
     def test_summoner_skill_tables_are_deterministic(self):
         self.assertEqual(DEFAULT_SUMMONER_SKILL_BY_HERO[112], 80115)

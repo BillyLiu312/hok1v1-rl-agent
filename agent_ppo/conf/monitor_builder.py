@@ -44,6 +44,14 @@ def build_monitor():
             expr="round(avg(reward_tower_hp_point{}), 0.01)",
         )
         .add_metric(
+            metrics_name="enemy_tower_hp_down",
+            expr="round(avg(reward_enemy_tower_hp_down{}), 0.01)",
+        )
+        .add_metric(
+            metrics_name="self_tower_hp_down",
+            expr="round(avg(reward_self_tower_hp_down{}), 0.01)",
+        )
+        .add_metric(
             metrics_name="tower_destroy",
             expr="round(avg(reward_tower_destroy{}), 0.01)",
         )
@@ -70,6 +78,22 @@ def build_monitor():
         .add_metric(
             metrics_name="forward",
             expr="round(avg(reward_forward{}), 0.01)",
+        )
+        .add_metric(
+            metrics_name="push_window_tower_damage",
+            expr="round(avg(reward_push_window_tower_damage{}), 0.01)",
+        )
+        .add_metric(
+            metrics_name="unsafe_dive",
+            expr="round(avg(reward_unsafe_dive{}), 0.01)",
+        )
+        .add_metric(
+            metrics_name="win_result",
+            expr="round(avg(reward_win_result{}), 0.01)",
+        )
+        .add_metric(
+            metrics_name="timeout_tower_gap",
+            expr="round(avg(reward_timeout_tower_gap{}), 0.01)",
         )
         .end_panel()
         .add_panel(

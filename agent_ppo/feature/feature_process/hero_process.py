@@ -24,6 +24,8 @@ MAX_ATTACK_SPEED = 3000.0
 MAX_KDA = 20.0
 MAX_COOLDOWN = 60000.0
 MAX_SKILL_SLOTS = 4
+MAX_DAMAGE = 50000.0
+MAX_REVIVE_TIME = 60000.0
 
 
 def _clip(value, min_value=0.0, max_value=1.0):
@@ -50,6 +52,7 @@ class HeroProcess:
         feature.extend(self._main_hero_feature(main_hero))
         feature.extend(self._enemy_hero_feature(main_hero, enemy_hero))
         feature.extend(self._skill_feature(main_hero))
+        feature.extend(self._matchup_feature(main_hero, enemy_hero))
         return feature
 
     def _get_heroes(self, frame_state):
@@ -123,6 +126,27 @@ class HeroProcess:
             feature.extend([0.0, 1.0])
         return feature
 
+    def _matchup_feature(self, main_hero, enemy_hero):
+        if main_hero is None or enemy_hero is None:
+            return [0.5, 0.5, 0.5, 0.5, 0.5, 0.0, 0.0, 0.0]
+
+        return [
+            self._advantage(self._hp_rate(main_hero), self._hp_rate(enemy_hero)),
+            self._advantage(main_hero.get("level", 0) / MAX_LEVEL, enemy_hero.get("level", 0) / MAX_LEVEL),
+            self._advantage(main_hero.get("money_cnt", 0) / MAX_MONEY, enemy_hero.get("money_cnt", 0) / MAX_MONEY),
+            self._advantage(
+                main_hero.get("total_hurt_to_hero", 0) / MAX_DAMAGE,
+                enemy_hero.get("total_hurt_to_hero", 0) / MAX_DAMAGE,
+            ),
+            self._advantage(
+                enemy_hero.get("total_be_hurt_by_hero", 0) / MAX_DAMAGE,
+                main_hero.get("total_be_hurt_by_hero", 0) / MAX_DAMAGE,
+            ),
+            _clip(main_hero.get("revive_time", 0) / MAX_REVIVE_TIME),
+            _clip(enemy_hero.get("revive_time", 0) / MAX_REVIVE_TIME),
+            1.0 if main_hero.get("hp", 0) < 0.35 * max(main_hero.get("max_hp", 0), 1) else 0.0,
+        ]
+
     def _hero_id_one_hot(self, hero_id):
         return [1.0 if hero_id == value else 0.0 for value in HERO_IDS]
 
@@ -168,3 +192,6 @@ class HeroProcess:
             (target_location.get("x", 0), target_location.get("z", 0)),
         )
         return _clip(dist / MAX_DISTANCE)
+
+    def _advantage(self, main_value, enemy_value):
+        return _clip((main_value - enemy_value + 1.0) / 2.0)

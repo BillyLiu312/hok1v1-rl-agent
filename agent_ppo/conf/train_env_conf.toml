@@ -11,14 +11,16 @@ monitor_side = 0
 auto_switch_monitor_side = true
 
 [episode]
-# Opponent agent, Type: string, range [selfplay, common_ai, custom model id]
+# Opponent agent, Type: string, range [selfplay, common_ai, curriculum, custom model id]
 # 1. selfplay: Indicates self-play
 # 2. common_ai: Indicates playing against a rule-based common AI
-# 3. custom_model_id: Indicates playing against a custom model specified by its model ID
-# 对手智能体，类型字符串，取值范围[selfplay, common_ai, 自定义模型id]
+# 3. curriculum: Mix common_ai, selfplay, and historical models from kaiwu.json
+# 4. custom_model_id: Indicates playing against a custom model specified by its model ID
+# 对手智能体，类型字符串，取值范围[selfplay, common_ai, curriculum, 自定义模型id]
 # 1. selfplay：自对弈
 # 2. common_ai：与基于规则的common_ai对战
-# 3. 自定义的模型id：与指定的模型对战，需要先将模型上传至模型管理，并且将模型ID配置在kaiwu.json中，然后在此处进行引用
+# 3. curriculum：按课程混合 common_ai、selfplay 和 kaiwu.json 中的历史模型
+# 4. 自定义的模型id：与指定的模型对战，需要先将模型上传至模型管理，并且将模型ID配置在kaiwu.json中，然后在此处进行引用
 opponent_agent = "selfplay"
 
 # Evaluation interval (unit: games). Type: integer, value range: integer >= 2, default: 10

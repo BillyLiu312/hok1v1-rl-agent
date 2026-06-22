@@ -12,14 +12,20 @@ class GameConfig:
     # Set the weight of each reward item and use it in reward_manager
     # 设置各个回报项的权重，在reward_manager中使用
     REWARD_WEIGHT_DICT = {
-        "tower_hp_point": 8.0,
+        "tower_hp_point": 4.0,
+        "enemy_tower_hp_down": 8.0,
+        "self_tower_hp_down": 8.0,
         "tower_destroy": 20.0,
         "hp_point": 1.0,
         "money": 0.5,
         "exp": 0.5,
         "kill": 2.0,
-        "death": 3.0,
+        "death": 4.0,
         "forward": 0.05,
+        "push_window_tower_damage": 2.0,
+        "unsafe_dive": 2.0,
+        "win_result": 20.0,
+        "timeout_tower_gap": 8.0,
     }
     # Time decay factor, used in reward_manager
     # 时间衰减因子，在reward_manager中使用
@@ -32,7 +38,7 @@ class GameConfig:
 # Dimension configuration, used when building the model
 # 维度配置，构建模型时使用
 class DimConfig:
-    DIM_OF_FEATURE = [63]
+    DIM_OF_FEATURE = [83]
 
 
 # Configuration related to model and algorithms used

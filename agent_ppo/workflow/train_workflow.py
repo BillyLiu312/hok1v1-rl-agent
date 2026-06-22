@@ -10,6 +10,7 @@ Author: Tencent AI Arena Authors
 
 import os
 import time
+import random
 from agent_ppo.feature.definition import (
     sample_process,
     build_frame,
@@ -18,6 +19,7 @@ from agent_ppo.feature.definition import (
     lineup_iterator_roundrobin_camp_heroes,
 )
 from agent_ppo.conf.conf import GameConfig
+from agent_ppo.conf.opponent_schedule import apply_opponent_agent, load_model_pool, select_curriculum_opponent
 from utils.training_recorder import TrainingRecorder
 from tools.env_conf_manager import EnvConfManager
 from tools.model_pool_utils import get_valid_model_pool
@@ -106,6 +108,7 @@ class EpisodeRunner:
         self.agent_num = len(agents)
         self.episode_cnt = 0
         self.last_report_monitor_time = 0
+        self.current_opponent_agent = None
 
     def _call_init_config(self, usr_conf):
         """Call init_config on both agents to get summoner skill selections,
@@ -170,6 +173,10 @@ class EpisodeRunner:
             # 更新对局配置, 可以用长度为2的列表传入当前对局的阵容id
             lineup = next(self.lineup_iterator)
             usr_conf, is_eval, monitor_side = self.env_conf_manager.update_config(lineup)
+            configured_opponent_agent = self.env_conf_manager.get_opponent_agent()
+            current_opponent_agent = self._select_episode_opponent(configured_opponent_agent, is_eval)
+            apply_opponent_agent(usr_conf, current_opponent_agent)
+            self.current_opponent_agent = current_opponent_agent
 
             # Call init_config on agents to get summoner skill selections
             # 调用 agent 的 init_config 获取召唤师技能选择，注入 usr_conf
@@ -213,7 +220,8 @@ class EpisodeRunner:
                     "red_hero_ids": red_hero_ids,
                     "is_eval": is_eval,
                     "monitor_side": monitor_side,
-                    "opponent_agent": self.env_conf_manager.get_opponent_agent(),
+                    "configured_opponent_agent": configured_opponent_agent,
+                    "opponent_agent": current_opponent_agent,
                     "usr_conf": usr_conf,
                 },
             )
@@ -274,6 +282,22 @@ class EpisodeRunner:
                 # 正常结束或超时退出，运行train_test时会提前退出
                 is_gameover = terminated or truncated or (is_train_test and frame_no >= 1000)
                 if is_gameover:
+                    if not (is_train_test and frame_no >= 1000 and not terminated and not truncated):
+                        for i, (do_sample, agent) in enumerate(zip(self.do_samples, self.agents)):
+                            if do_sample:
+                                current_reward = observation[str(i)]["reward"]
+                                terminal_reward = agent.reward_manager.terminal_reward(
+                                    observation[str(i)]["frame_state"],
+                                    win=observation[str(i)].get("win", 0),
+                                    truncated=bool(truncated),
+                                )
+                                combined_reward = dict(current_reward)
+                                combined_reward.update({key: value for key, value in terminal_reward.items() if key != "reward_sum"})
+                                combined_reward["reward_sum"] = current_reward["reward_sum"] + terminal_reward["reward_sum"]
+                                observation[str(i)]["reward"] = combined_reward
+                                reward_sum_list[i] += terminal_reward["reward_sum"]
+                                self._accumulate_reward_detail(reward_detail_sum_list[i], terminal_reward)
+
                     episode_record = self._build_episode_record(
                         observation=observation,
                         usr_conf=usr_conf,
@@ -307,6 +331,8 @@ class EpisodeRunner:
                         reward_detail = reward_detail_sum_list[monitor_side]
                         for key in (
                             "tower_hp_point",
+                            "enemy_tower_hp_down",
+                            "self_tower_hp_down",
                             "tower_destroy",
                             "hp_point",
                             "money",
@@ -314,6 +340,10 @@ class EpisodeRunner:
                             "kill",
                             "death",
                             "forward",
+                            "push_window_tower_damage",
+                            "unsafe_dive",
+                            "win_result",
+                            "timeout_tower_gap",
                         ):
                             if key in reward_detail:
                                 monitor_data[f"reward_{key}"] = round(reward_detail[key], 4)
@@ -340,6 +370,8 @@ class EpisodeRunner:
 
     def reset_agents(self, observation):
         opponent_agent = self.env_conf_manager.get_opponent_agent()
+        if self.current_opponent_agent is not None:
+            opponent_agent = self.current_opponent_agent
         monitor_side = self.env_conf_manager.get_monitor_side()
         is_train_test = os.environ.get("is_train_test", "False").lower() == "true"
 
@@ -414,9 +446,13 @@ class EpisodeRunner:
             "lineup": lineup,
             "blue_hero_ids": blue_hero_ids,
             "red_hero_ids": red_hero_ids,
+            "matchup": f"{blue_hero_ids[0] if blue_hero_ids else 'unknown'}_vs_{red_hero_ids[0] if red_hero_ids else 'unknown'}",
             "is_eval": is_eval,
             "monitor_side": monitor_side,
-            "opponent_agent": self.env_conf_manager.get_opponent_agent(),
+            "monitor_agent_index": monitor_side,
+            "monitor_hero_id": self._first_or_none(blue_hero_ids if monitor_side == 0 else red_hero_ids),
+            "opponent_hero_id": self._first_or_none(red_hero_ids if monitor_side == 0 else blue_hero_ids),
+            "opponent_agent": self.current_opponent_agent or self.env_conf_manager.get_opponent_agent(),
             "usr_conf": usr_conf,
             "frame_no": frame_no,
             "terminated": terminated,
@@ -428,6 +464,17 @@ class EpisodeRunner:
                 for index in range(self.agent_num)
             ],
         }
+
+    def _first_or_none(self, values):
+        return values[0] if values else None
+
+    def _select_episode_opponent(self, configured_opponent_agent, is_eval):
+        if is_eval or configured_opponent_agent != "curriculum":
+            return configured_opponent_agent
+        return select_curriculum_opponent(
+            model_pool=load_model_pool(),
+            rng=random,
+        )
 
     def _summarize_observation(self, agent_index, agent_observation):
         frame_state = agent_observation.get("frame_state", {})

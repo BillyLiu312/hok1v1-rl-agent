@@ -16,6 +16,7 @@ MAX_SOLDIER_COUNT = 8.0
 MAX_HP_SUM = 30000.0
 MAX_DISTANCE = 120000.0
 MAX_POSITION = 60000.0
+TOWER_WINDOW_DISTANCE = 9000.0
 
 
 def _clip(value, min_value=0.0, max_value=1.0):
@@ -39,8 +40,11 @@ class SoldierProcess:
     def process_vec_soldier(self, frame_state):
         main_hero = self._get_main_hero(frame_state)
         main_units, enemy_units = self._get_lane_units(frame_state)
+        enemy_tower = self._get_enemy_tower(frame_state)
         main_summary = self._summarize(main_hero, main_units)
         enemy_summary = self._summarize(main_hero, enemy_units)
+        main_enemy_tower_summary = self._summarize_near_tower(enemy_tower, main_units)
+        enemy_enemy_tower_summary = self._summarize_near_tower(enemy_tower, enemy_units)
         lane_hp_adv = _clip((main_summary["hp_sum"] - enemy_summary["hp_sum"] + MAX_HP_SUM) / (2 * MAX_HP_SUM))
 
         return [
@@ -54,6 +58,10 @@ class SoldierProcess:
             enemy_summary["forward_mean"],
             enemy_summary["lowest_hp_rate"],
             lane_hp_adv,
+            _clip(main_enemy_tower_summary["count"] / MAX_SOLDIER_COUNT),
+            _clip(main_enemy_tower_summary["hp_sum"] / MAX_HP_SUM),
+            _clip(enemy_enemy_tower_summary["count"] / MAX_SOLDIER_COUNT),
+            main_enemy_tower_summary["nearest_tower_dist"],
         ]
 
     def _get_main_hero(self, frame_state):
@@ -72,6 +80,12 @@ class SoldierProcess:
             else:
                 enemy_units.append(npc)
         return main_units, enemy_units
+
+    def _get_enemy_tower(self, frame_state):
+        for npc in frame_state["npc_states"]:
+            if npc.get("sub_type") == TOWER_SUB_TYPE and npc.get("camp") != self.main_camp:
+                return npc
+        return None
 
     def _is_lane_unit(self, npc):
         return npc.get("sub_type") != TOWER_SUB_TYPE and npc.get("hp", 0) > 0 and npc.get("camp") in (1, 2)
@@ -98,6 +112,25 @@ class SoldierProcess:
             "lowest_hp_rate": min(hp_rates) if hp_rates else 1.0,
         }
 
+    def _summarize_near_tower(self, tower, units):
+        if tower is None or not units:
+            return {"count": 0.0, "hp_sum": 0.0, "nearest_tower_dist": 1.0}
+
+        near_units = []
+        tower_distances = []
+        for unit in units:
+            dist = self._distance_between(unit, tower)
+            tower_distances.append(dist)
+            if dist <= TOWER_WINDOW_DISTANCE:
+                near_units.append(unit)
+        nearest = min(tower_distances) if tower_distances else MAX_DISTANCE
+
+        return {
+            "count": float(len(near_units)),
+            "hp_sum": float(sum(unit.get("hp", 0) for unit in near_units)),
+            "nearest_tower_dist": _clip(nearest / MAX_DISTANCE),
+        }
+
     def _distance(self, main_hero, unit):
         if main_hero is None:
             return 1.0
@@ -109,6 +142,14 @@ class SoldierProcess:
             (unit_location.get("x", 0), unit_location.get("z", 0)),
         )
         return _clip(dist / MAX_DISTANCE)
+
+    def _distance_between(self, unit_a, unit_b):
+        location_a = unit_a.get("location", {})
+        location_b = unit_b.get("location", {})
+        return math.dist(
+            (location_a.get("x", 0), location_a.get("z", 0)),
+            (location_b.get("x", 0), location_b.get("z", 0)),
+        )
 
     def _forward_position(self, unit):
         location = unit.get("location", {})
