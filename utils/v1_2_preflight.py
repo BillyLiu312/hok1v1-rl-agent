@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import os
 import re
 import sys
 from pathlib import Path
@@ -17,6 +16,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from agent_ppo.conf.conf import Config, GameConfig
+from agent_ppo.conf.runtime_config import runtime_value
 from agent_ppo.feature.feature_process import V1_2_REQUIRED_FEATURES, feature_schema
 from utils.offline_sync import preset_include_patterns, repo_root, v1_2_readiness
 from utils.v1_2_experiment_plan import build_manifest as build_experiment_plan_manifest
@@ -124,11 +124,11 @@ def check_reward_profile() -> list[dict]:
     }
     rows = [
         row(
-            "PASS" if GameConfig.REWARD_PROFILE == os.environ.get("HOK_REWARD_PROFILE", "v1.2") else "WARN",
+            "PASS" if GameConfig.REWARD_PROFILE == runtime_value("HOK_REWARD_PROFILE", "v1.2") else "WARN",
             "reward_profile",
             GameConfig.REWARD_PROFILE,
-            os.environ.get("HOK_REWARD_PROFILE", "v1.2"),
-            "Reward profile should be explicit in the training environment.",
+            runtime_value("HOK_REWARD_PROFILE", "v1.2"),
+            "Reward profile should be explicit in runtime_config.ini or the training environment.",
         )
     ]
     for key, expected in required_weights.items():

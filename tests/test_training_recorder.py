@@ -34,6 +34,13 @@ class TrainingRecorderTest(unittest.TestCase):
 
             self.assertEqual(list(Path(temp_dir).glob("*.jsonl")), [])
 
+    def test_record_uses_runtime_config_without_env(self):
+        with patch.dict(os.environ, {}, clear=True):
+            recorder = TrainingRecorder()
+            self.assertTrue(recorder.enabled)
+            self.assertEqual(recorder.record_dir.as_posix(), "logs/run_records/v1.2-a")
+            self.assertRegex(recorder.run_id, r"\d{8}-\d{6}")
+
 
 if __name__ == "__main__":
     unittest.main()

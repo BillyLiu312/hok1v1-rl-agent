@@ -15,6 +15,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from agent_ppo.conf.runtime_config import runtime_value
+
 
 DEFAULT_RECORD_DIR = "logs/run_records"
 DISABLE_VALUES = {"0", "false", "False", "no", "NO", "off", "OFF"}
@@ -23,9 +25,9 @@ DISABLE_VALUES = {"0", "false", "False", "no", "NO", "off", "OFF"}
 class TrainingRecorder:
     def __init__(self, logger=None, record_dir: str | None = None, run_id: str | None = None):
         self.logger = logger
-        self.enabled = os.environ.get("HOK_TRAINING_RECORDER", "1") not in DISABLE_VALUES
-        self.record_dir = Path(record_dir or os.environ.get("HOK_TRAINING_RECORD_DIR", DEFAULT_RECORD_DIR))
-        self.run_id = run_id or os.environ.get("HOK_TRAINING_RUN_ID") or self._make_run_id()
+        self.enabled = runtime_value("HOK_TRAINING_RECORDER", "1") not in DISABLE_VALUES
+        self.record_dir = Path(record_dir or runtime_value("HOK_TRAINING_RECORD_DIR", DEFAULT_RECORD_DIR))
+        self.run_id = run_id or runtime_value("HOK_TRAINING_RUN_ID") or self._make_run_id()
         os.environ.setdefault("HOK_TRAINING_RUN_ID", self.run_id)
         self.pid = os.getpid()
         self._warned = False

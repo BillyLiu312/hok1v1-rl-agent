@@ -7,7 +7,7 @@
 Author: Tencent AI Arena Authors
 """
 
-import os
+from agent_ppo.conf.runtime_config import runtime_value
 
 
 BASE_REWARD_WEIGHT_DICT = {
@@ -81,12 +81,12 @@ def build_reward_weight_dict(profile=None, raw_overrides=None):
 
 
 class GameConfig:
-    REWARD_PROFILE = os.environ.get("HOK_REWARD_PROFILE", "v1.2")
+    REWARD_PROFILE = runtime_value("HOK_REWARD_PROFILE", "v1.2")
     # Set the weight of each reward item and use it in reward_manager
     # 设置各个回报项的权重，在reward_manager中使用
     REWARD_WEIGHT_DICT = build_reward_weight_dict(
         profile=REWARD_PROFILE,
-        raw_overrides=os.environ.get("HOK_REWARD_WEIGHT_OVERRIDES"),
+        raw_overrides=runtime_value("HOK_REWARD_WEIGHT_OVERRIDES"),
     )
     # Time decay factor, used in reward_manager
     # 时间衰减因子，在reward_manager中使用

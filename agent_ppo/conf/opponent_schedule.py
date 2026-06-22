@@ -6,9 +6,10 @@ Opponent curriculum helpers for PPO training.
 from __future__ import annotations
 
 import json
-import os
 import random
 from pathlib import Path
+
+from agent_ppo.conf.runtime_config import runtime_value
 
 
 DEFAULT_OPPONENT_SCHEDULE = {
@@ -41,7 +42,7 @@ def parse_schedule(raw_schedule: str | None):
 
 
 def load_opponent_schedule(env_var="HOK_OPPONENT_SCHEDULE"):
-    return parse_schedule(os.environ.get(env_var))
+    return parse_schedule(runtime_value(env_var))
 
 
 def load_model_pool(path="kaiwu.json"):

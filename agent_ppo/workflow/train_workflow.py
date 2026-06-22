@@ -24,6 +24,7 @@ from agent_ppo.feature.definition import (
 )
 from agent_ppo.conf.conf import GameConfig
 from agent_ppo.conf.evaluation_config import camp_has_preset_skills
+from agent_ppo.conf.runtime_config import runtime_snapshot, runtime_value
 from agent_ppo.conf.opponent_schedule import (
     apply_opponent_agent,
     classify_opponent_source,
@@ -60,8 +61,9 @@ def workflow(envs, agents, logger=None, monitor=None, *args, **kwargs):
             "workflow": "agent_ppo/workflow/train_workflow.py",
             "reward_profile": GameConfig.REWARD_PROFILE,
             "reward_weight_dict": GameConfig.REWARD_WEIGHT_DICT,
-            "reward_weight_overrides": os.environ.get("HOK_REWARD_WEIGHT_OVERRIDES", ""),
-            "opponent_schedule": os.environ.get("HOK_OPPONENT_SCHEDULE", ""),
+            "reward_weight_overrides": runtime_value("HOK_REWARD_WEIGHT_OVERRIDES"),
+            "opponent_schedule": runtime_value("HOK_OPPONENT_SCHEDULE"),
+            "runtime_config": runtime_snapshot(),
             "model_pool": startup_model_pool,
             "model_pool_count": len(startup_model_pool),
         },

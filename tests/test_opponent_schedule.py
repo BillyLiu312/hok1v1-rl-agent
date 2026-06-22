@@ -63,6 +63,10 @@ class OpponentScheduleTest(unittest.TestCase):
         with patch.dict("os.environ", {"UNIT_OPPONENT_SCHEDULE": "common_ai:1,selfplay:3"}):
             self.assertEqual(load_opponent_schedule("UNIT_OPPONENT_SCHEDULE"), {"common_ai": 1.0, "selfplay": 3.0})
 
+    def test_load_opponent_schedule_reads_runtime_config_default(self):
+        with patch.dict("os.environ", {}, clear=True):
+            self.assertIsNone(load_opponent_schedule())
+
 
 if __name__ == "__main__":
     unittest.main()
