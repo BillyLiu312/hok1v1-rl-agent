@@ -10,6 +10,8 @@ venv/
 *.log
 logs/
 output/
+sync_package*.txt
+.offline_sync_backups/
 
 # Local validation scratch tests
 tests/test_ppo_optimization.py
