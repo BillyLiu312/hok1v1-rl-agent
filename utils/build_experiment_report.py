@@ -229,6 +229,11 @@ def resolve_experiment_metadata(plan: dict, experiment_name: str | None = None) 
         "plan_stage": plan.get("stage", ""),
         "plan_research_question": (plan.get("story") or {}).get("research_question", ""),
         "plan_main_hypothesis": (plan.get("story") or {}).get("main_hypothesis", ""),
+        "success_metrics": [
+            item.get("metric", "")
+            for item in plan.get("success_metrics", [])
+            if item.get("metric")
+        ],
         "experiment_name": selected.get("name", experiment_name or ""),
         "experiment_reward_profile": selected.get("reward_profile", ""),
         "experiment_hypothesis": selected.get("hypothesis", ""),
@@ -303,6 +308,9 @@ def write_manifest(
         lines.append(f"- experiment_hypothesis: {experiment_metadata.get('experiment_hypothesis', '')}")
         lines.append(f"- experiment_research_question: {experiment_metadata.get('plan_research_question', '')}")
         lines.append(f"- experiment_main_hypothesis: {experiment_metadata.get('plan_main_hypothesis', '')}")
+        success_metrics = experiment_metadata.get("success_metrics", [])
+        lines.append(f"- experiment_success_metric_count: {len(success_metrics)}")
+        lines.append(f"- experiment_success_metrics: {','.join(success_metrics)}")
     if checkpoint_rows:
         best = checkpoint_rows[0]
         lines.append(f"- recommended_checkpoint: {best.get('checkpoint_step')}")

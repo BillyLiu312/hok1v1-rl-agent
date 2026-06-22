@@ -40,6 +40,7 @@ class BuildExperimentReportTest(unittest.TestCase):
         self.assertEqual(metadata["experiment_name"], "no_window_reward")
         self.assertEqual(metadata["experiment_reward_profile"], "no_window_reward")
         self.assertEqual(metadata["experiment_hypothesis"], "window")
+        self.assertEqual(metadata["success_metrics"], [])
 
     def test_build_report_writes_expected_artifacts(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -101,6 +102,10 @@ class BuildExperimentReportTest(unittest.TestCase):
                                 "report_dir": "logs/v1.2/report-v1.2",
                             }
                         ],
+                        "success_metrics": [
+                            {"metric": "avg_win_rate", "target": "> 0.84"},
+                            {"metric": "avg_death", "target": "< 3.09"},
+                        ],
                     }
                 ),
                 encoding="utf-8",
@@ -136,6 +141,8 @@ class BuildExperimentReportTest(unittest.TestCase):
             self.assertIn("experiment_name: v1.2", manifest)
             self.assertIn("experiment_hypothesis: Full reward should stabilize the v1.1 peak.", manifest)
             self.assertIn("experiment_main_hypothesis: Push-window modeling improves tower pressure without extra deaths.", manifest)
+            self.assertIn("experiment_success_metric_count: 2", manifest)
+            self.assertIn("experiment_success_metrics: avg_win_rate,avg_death", manifest)
             self.assertIn("checkpoint_ranking_csv", manifest)
             self.assertIn("v1.2_candidate_gate_csv", manifest)
 

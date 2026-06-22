@@ -57,6 +57,8 @@ def make_report(root: Path, name: str, profile: str, win_rate: float, gate_statu
                 "- launch_git_commit: abc123",
                 f"- experiment_name: {name}",
                 f"- experiment_hypothesis: hypothesis for {profile}",
+                "- experiment_success_metric_count: 7",
+                "- experiment_success_metrics: avg_win_rate,avg_death",
                 "",
             ]
         ),
@@ -77,6 +79,8 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertEqual(rows[0]["reward_profile"], "v1.2")
             self.assertEqual(rows[0]["experiment_name"], "v1.2")
             self.assertEqual(rows[0]["experiment_hypothesis"], "hypothesis for v1.2")
+            self.assertEqual(rows[0]["success_metric_count"], "7")
+            self.assertEqual(rows[0]["success_metrics"], "avg_win_rate,avg_death")
             self.assertEqual(rows[0]["baseline_experiment"], "v1.2")
             self.assertEqual(rows[0]["avg_win_rate_delta_vs_baseline"], 0.0)
             self.assertEqual(rows[0]["launch_run_id"], "v1.2-run")
@@ -101,6 +105,7 @@ class CompareExperimentReportsTest(unittest.TestCase):
             write_markdown(rows, md_path)
             self.assertIn("launch_run_id", csv_path.read_text(encoding="utf-8"))
             self.assertIn("experiment_hypothesis", csv_path.read_text(encoding="utf-8"))
+            self.assertIn("success_metric_count", csv_path.read_text(encoding="utf-8"))
             self.assertIn("avg_win_rate_delta_vs_baseline", csv_path.read_text(encoding="utf-8"))
             self.assertIn("reward_profile", csv_path.read_text(encoding="utf-8"))
             self.assertIn("v1.2-run", md_path.read_text(encoding="utf-8"))
@@ -147,6 +152,8 @@ class CompareExperimentReportsTest(unittest.TestCase):
                         "- experiment_reward_profile: no_window_reward",
                         "- experiment_name: no_window_reward",
                         "- experiment_hypothesis: No window reward ablation.",
+                        "- experiment_success_metric_count: 7",
+                        "- experiment_success_metrics: avg_win_rate,avg_death",
                         "- launch_reward_weight_overrides: death:5",
                         "- launch_opponent_schedule: common_ai:4,historical:4,selfplay:2",
                         "- candidate_gate_status: PASS",
@@ -163,6 +170,7 @@ class CompareExperimentReportsTest(unittest.TestCase):
             self.assertEqual(rows[0]["opponent_schedule"], "common_ai:4,historical:4,selfplay:2")
             self.assertEqual(rows[0]["experiment_name"], "no_window_reward")
             self.assertEqual(rows[0]["experiment_hypothesis"], "No window reward ablation.")
+            self.assertEqual(rows[0]["success_metric_count"], "7")
             self.assertEqual(rows[0]["baseline_experiment"], "no_window_reward")
             self.assertEqual(rows[0]["avg_win_rate_delta_vs_baseline"], 0.0)
             self.assertEqual(rows[0]["gate_status"], "PASS")
