@@ -14,6 +14,7 @@ V1_1_BEST_WIN_RATE = 0.84
 V1_1_BEST_ENEMY_TOWER_HP = 1401.0
 V1_1_LATE_DEATH = 3.09
 MIN_EXPECTED_MATCHUPS = 9
+MIN_EPISODES_PER_MATCHUP = 20
 MIN_MATCHUP_WIN_RATE_GAP = 0.25
 MIN_PUSH_WINDOW_TOWER_DAMAGE_SHARE = 0.10
 MAX_UNSAFE_DIVE_DEATH_CORR = 0.30
@@ -215,6 +216,44 @@ def evaluate_candidate(candidate: dict, matchup_rows: list[dict] | None = None) 
             gates.append(gate("PASS", "raw_matchup_rows", actual_matchups, f">= {MIN_EXPECTED_MATCHUPS}", "Raw matchup table covers all matchup names."))
         else:
             gates.append(gate("WARN", "raw_matchup_rows", actual_matchups, f">= {MIN_EXPECTED_MATCHUPS}", "Aggregated matchup count and raw matchup names differ."))
+
+        episode_counts = [
+            to_float(row.get("episodes"), 0.0) or 0.0
+            for row in matchup_rows
+            if row.get("matchup")
+        ]
+        if not episode_counts:
+            gates.append(
+                gate(
+                    "MISSING",
+                    "matchup_min_episodes",
+                    "",
+                    f">= {MIN_EPISODES_PER_MATCHUP}",
+                    "Raw matchup rows do not include episode counts.",
+                )
+            )
+        else:
+            min_episodes = min(episode_counts)
+            if min_episodes >= MIN_EPISODES_PER_MATCHUP:
+                gates.append(
+                    gate(
+                        "PASS",
+                        "matchup_min_episodes",
+                        min_episodes,
+                        f">= {MIN_EPISODES_PER_MATCHUP}",
+                        "Every matchup has enough repeated games for the fixed matrix gate.",
+                    )
+                )
+            else:
+                gates.append(
+                    gate(
+                        "WARN",
+                        "matchup_min_episodes",
+                        min_episodes,
+                        f">= {MIN_EPISODES_PER_MATCHUP}",
+                        "At least one matchup has too few episodes; treat matchup conclusions as provisional.",
+                    )
+                )
 
     return gates
 
