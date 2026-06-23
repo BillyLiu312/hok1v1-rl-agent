@@ -104,7 +104,7 @@ def check_train_env_conf(path: Path = TRAIN_ENV_CONF) -> list[dict]:
 
 def check_ppo_config() -> list[dict]:
     return [
-        row("PASS" if Config.INIT_LEARNING_RATE_START == 5e-4 else "FAIL", "learning_rate", Config.INIT_LEARNING_RATE_START, "5e-4", "v1.2-a uses conservative PPO stability settings."),
+        row("PASS" if Config.INIT_LEARNING_RATE_START == 3e-4 else "FAIL", "learning_rate", Config.INIT_LEARNING_RATE_START, "3e-4", "v1.2-a uses conservative PPO stability settings after v1.2-a drift."),
         row("PASS" if Config.GAMMA == 0.995 else "FAIL", "gamma", Config.GAMMA, "0.995", "Keep long-horizon tower objective discounting."),
         row("PASS" if Config.BETA_START == 0.025 else "FAIL", "entropy_beta", Config.BETA_START, "0.025", "Do not change entropy at the same time as reward/features."),
         row("PASS" if Config.USE_GRAD_CLIP and Config.GRAD_CLIP_RANGE == 0.5 else "FAIL", "grad_clip", Config.GRAD_CLIP_RANGE if Config.USE_GRAD_CLIP else "disabled", "enabled:0.5", "Keep gradient clipping stable."),
@@ -113,12 +113,12 @@ def check_ppo_config() -> list[dict]:
 
 def check_reward_profile() -> list[dict]:
     required_weights = {
-        "win_result": 20.0,
-        "timeout_tower_gap": 8.0,
-        "death": 4.0,
-        "push_window_tower_damage": 2.0,
-        "unsafe_dive": 2.0,
-        "unsafe_dive_severity": 1.0,
+        "win_result": 30.0,
+        "timeout_tower_gap": 12.0,
+        "death": 3.0,
+        "push_window_tower_damage": 4.0,
+        "unsafe_dive": 1.0,
+        "unsafe_dive_severity": 0.5,
         "push_window_active": 0.0,
         "unsafe_dive_active": 0.0,
     }

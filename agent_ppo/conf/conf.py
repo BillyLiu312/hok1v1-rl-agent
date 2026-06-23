@@ -11,23 +11,23 @@ from agent_ppo.conf.runtime_config import runtime_value
 
 
 BASE_REWARD_WEIGHT_DICT = {
-    "tower_hp_point": 4.0,
-    "enemy_tower_hp_down": 8.0,
-    "self_tower_hp_down": 8.0,
-    "tower_destroy": 20.0,
+    "tower_hp_point": 2.0,
+    "enemy_tower_hp_down": 12.0,
+    "self_tower_hp_down": 4.0,
+    "tower_destroy": 30.0,
     "hp_point": 1.0,
-    "money": 0.5,
-    "exp": 0.5,
-    "kill": 2.0,
-    "death": 4.0,
+    "money": 0.25,
+    "exp": 0.25,
+    "kill": 1.0,
+    "death": 3.0,
     "forward": 0.05,
-    "push_window_tower_damage": 2.0,
-    "unsafe_dive": 2.0,
-    "unsafe_dive_severity": 1.0,
+    "push_window_tower_damage": 4.0,
+    "unsafe_dive": 1.0,
+    "unsafe_dive_severity": 0.5,
     "push_window_active": 0.0,
     "unsafe_dive_active": 0.0,
-    "win_result": 20.0,
-    "timeout_tower_gap": 8.0,
+    "win_result": 30.0,
+    "timeout_tower_gap": 12.0,
 }
 
 REWARD_PROFILE_OVERRIDES = {
@@ -93,7 +93,7 @@ class GameConfig:
     TIME_SCALE_ARG = 0
     # Model save interval configuration, used in workflow
     # 模型保存间隔配置，在workflow中使用
-    MODEL_SAVE_INTERVAL = 1800
+    MODEL_SAVE_INTERVAL = 600
 
 
 # Dimension configuration, used when building the model
@@ -137,8 +137,8 @@ class Config:
         LSTM_UNIT_SIZE,
     ]
     SERI_VEC_SPLIT_SHAPE = [(FEATURE_DIM,), (LEGAL_ACTION_DIM,)]
-    INIT_LEARNING_RATE_START = 5e-4
-    TARGET_LR = 1e-4
+    INIT_LEARNING_RATE_START = 3e-4
+    TARGET_LR = 5e-5
     TARGET_STEP = 5000
     BETA_START = 0.025
     LOG_EPSILON = 1e-6

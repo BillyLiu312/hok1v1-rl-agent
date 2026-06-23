@@ -1,0 +1,50 @@
+[patch] agent_ppo/conf/conf.py
+[patch] agent_ppo/conf/conf.py
+[patch] agent_ppo/conf/conf.py
+[insert] agent_ppo/conf/conf.py: "risk_exposure": -2.0
+[insert] agent_ppo/conf/conf.py: COMMON_AI_RATIO_START
+[patch] agent_ppo/conf/conf.py
+[patch] agent_ppo/feature/feature_process/__init__.py
+[insert] agent_ppo/feature/feature_process/__init__.py: last_state_summary
+[insert] agent_ppo/feature/feature_process/__init__.py: self.last_state_summary = None
+
+    def process_organ_feature
+[insert] agent_ppo/feature/feature_process/__init__.py: state_summary = self._state_summary
+[insert] agent_ppo/feature/feature_process/__init__.py: feature.extend(self._temporal_feature
+[insert] agent_ppo/feature/feature_process/__init__.py: def _state_summary
+[insert] agent_ppo/feature/feature_process/__init__.py: def _centered_delta
+[patch] agent_ppo/feature/reward_process.py
+[insert] agent_ppo/feature/reward_process.py: def clip(
+[insert] agent_ppo/feature/reward_process.py: self.gamma = Config.GAMMA
+[patch] agent_ppo/feature/reward_process.py
+[insert] agent_ppo/feature/reward_process.py: reward_name == "risk_exposure"
+[insert] agent_ppo/feature/reward_process.py: def calculate_risk_exposure
+[insert] agent_ppo/feature/reward_process.py: risk_gate = 1.0
+[patch] agent_ppo/feature/reward_process.py
+[patch] agent_ppo/feature/reward_process.py
+[insert] agent_ppo/feature/reward_process.py: def _potential_diff
+[skip] agent_ppo/workflow/train_workflow.py: episode_opponent_agent
+[skip] agent_ppo/workflow/train_workflow.py: already applied
+[skip] agent_ppo/workflow/train_workflow.py: behavior_stats_list
+[skip] agent_ppo/workflow/train_workflow.py: already applied
+[skip] agent_ppo/workflow/train_workflow.py: _accumulate_behavior_stats(behavior_stats_list[i], observation[str(i)], reward)
+
+            while True
+Traceback (most recent call last):
+  File "<stdin>", line 662, in <module>
+  File "<stdin>", line 284, in patch_workflow
+  File "<stdin>", line 29, in replace_once
+RuntimeError: Cannot find expected text in agent_ppo/workflow/train_workflow.py
+
+
+ learner_proxy send sample stat, succ_cnt is 0, error_cnt is 0
+2026-06-22 09:38:28
+model_file_sync pull kaiwu_checkpoint_hok1v1_ppo_0.tar.gz from modelpool to /data/ckpt/hok1v1_ppo/models/model.ckpt_hok1v1_ppo_0 success total pull from modelpool succ cnt is 2 total pull from modelpool err cnt is 0
+2026-06-22 09:38:28
+aisrv model_file_sync after sorted, sorted_model_files is [{'time_stamp_nano': 1782092184972113006, 'model_file_name': 'kaiwu_checkpoint_hok1v1_ppo_0.tar.gz', 'model_name': 'model.ckpt_hok1v1_ppo_0'}]
+
+
+"我把1.2a跑起来了目前没有报错，现在所有新的更新都在dev分支，你可以明天先配合agent看看加了哪些新功能，问问是如何使用这些功能，如何上传到服务器上跑的。
+现在这个v1.2a貌似需要改一个挑战对手来进入到v1.2b好像说是课程训练。然后里面还有很多消融用到的代码框架。明天你应该醒来就能看到v1.2a跑的结果了，你看看如何，问问agent是否需要跑v1.2b"
+
+https://tencentarena.com/p/edu/exp/2383/15823/training

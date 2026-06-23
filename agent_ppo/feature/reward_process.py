@@ -15,7 +15,8 @@ from agent_ppo.conf.conf import GameConfig
 TOWER_SUB_TYPE = 21
 MAX_MONEY_DELTA = 1000.0
 MAX_EXP_DELTA = 1000.0
-TOWER_WINDOW_DISTANCE = 9000.0
+PUSH_WINDOW_DISTANCE = 9000.0
+DIVE_DANGER_DISTANCE = 7000.0
 HERO_THREAT_DISTANCE = 7000.0
 
 
@@ -223,7 +224,7 @@ class GameRewardManager:
             return 0.0
         low_hp = self._hp_rate(main_hero) < 0.35
         no_wave = self._nearby_lane_count(frame_data, camp, enemy_tower) <= 0
-        in_tower_range = self._distance(main_hero, enemy_tower) <= TOWER_WINDOW_DISTANCE
+        in_tower_range = self._distance(main_hero, enemy_tower) <= DIVE_DANGER_DISTANCE
         enemy_threat = enemy_hero is not None and enemy_hero.get("hp", 0) > 0 and self._distance(main_hero, enemy_hero) <= HERO_THREAT_DISTANCE
         tower_targets_hero = enemy_tower.get("attack_target") == main_hero.get("runtime_id")
         if not in_tower_range or not no_wave:
@@ -242,7 +243,7 @@ class GameRewardManager:
             return False
         near_wave_count = self._nearby_lane_count(frame_data, camp, enemy_tower)
         tower_targets_wave = self._tower_targets_lane_unit(frame_data, camp, enemy_tower)
-        hero_close = self._distance(main_hero, enemy_tower) <= TOWER_WINDOW_DISTANCE
+        hero_close = self._distance(main_hero, enemy_tower) <= PUSH_WINDOW_DISTANCE
         enemy_far_or_dead = enemy_hero is None or enemy_hero.get("hp", 0) <= 0 or self._distance(main_hero, enemy_hero) > HERO_THREAT_DISTANCE
         return hero_close and near_wave_count > 0 and (tower_targets_wave or enemy_far_or_dead)
 
@@ -251,7 +252,7 @@ class GameRewardManager:
         for npc in frame_data["npc_states"]:
             if npc.get("sub_type") == TOWER_SUB_TYPE or npc.get("camp") != camp or npc.get("hp", 0) <= 0:
                 continue
-            if self._distance(npc, tower) <= TOWER_WINDOW_DISTANCE:
+            if self._distance(npc, tower) <= PUSH_WINDOW_DISTANCE:
                 count += 1
         return count
 

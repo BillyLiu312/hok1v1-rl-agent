@@ -188,8 +188,8 @@ class PpoOptimizationTest(unittest.TestCase):
         self.assertEqual(select_summoner_skill(199, 133), 80107)
 
     def test_v1_2_conservative_ppo_hyperparameters(self):
-        self.assertEqual(Config.INIT_LEARNING_RATE_START, 5e-4)
-        self.assertEqual(Config.TARGET_LR, 1e-4)
+        self.assertEqual(Config.INIT_LEARNING_RATE_START, 3e-4)
+        self.assertEqual(Config.TARGET_LR, 5e-5)
         self.assertEqual(Config.GAMMA, 0.995)
         self.assertEqual(Config.BETA_START, 0.025)
         self.assertEqual(Config.CLIP_PARAM, 0.2)
@@ -198,22 +198,25 @@ class PpoOptimizationTest(unittest.TestCase):
 
     def test_reward_profile_defaults_to_v1_2_weights(self):
         self.assertEqual(GameConfig.REWARD_PROFILE, "v1.2")
-        self.assertEqual(GameConfig.REWARD_WEIGHT_DICT["win_result"], 20.0)
-        self.assertEqual(GameConfig.REWARD_WEIGHT_DICT["push_window_tower_damage"], 2.0)
-        self.assertEqual(GameConfig.REWARD_WEIGHT_DICT["unsafe_dive"], 2.0)
-        self.assertEqual(GameConfig.REWARD_WEIGHT_DICT["unsafe_dive_severity"], 1.0)
+        self.assertEqual(GameConfig.REWARD_WEIGHT_DICT["win_result"], 30.0)
+        self.assertEqual(GameConfig.REWARD_WEIGHT_DICT["timeout_tower_gap"], 12.0)
+        self.assertEqual(GameConfig.REWARD_WEIGHT_DICT["enemy_tower_hp_down"], 12.0)
+        self.assertEqual(GameConfig.REWARD_WEIGHT_DICT["self_tower_hp_down"], 4.0)
+        self.assertEqual(GameConfig.REWARD_WEIGHT_DICT["push_window_tower_damage"], 4.0)
+        self.assertEqual(GameConfig.REWARD_WEIGHT_DICT["unsafe_dive"], 1.0)
+        self.assertEqual(GameConfig.REWARD_WEIGHT_DICT["unsafe_dive_severity"], 0.5)
 
     def test_reward_profiles_support_ablation_weights(self):
         no_window = build_reward_weight_dict(profile="no_window_reward")
         self.assertEqual(no_window["push_window_tower_damage"], 0.0)
         self.assertEqual(no_window["unsafe_dive"], 0.0)
         self.assertEqual(no_window["unsafe_dive_severity"], 0.0)
-        self.assertEqual(no_window["win_result"], 20.0)
+        self.assertEqual(no_window["win_result"], 30.0)
 
         no_terminal = build_reward_weight_dict(profile="no_terminal_reward")
         self.assertEqual(no_terminal["win_result"], 0.0)
         self.assertEqual(no_terminal["timeout_tower_gap"], 0.0)
-        self.assertEqual(no_terminal["push_window_tower_damage"], 2.0)
+        self.assertEqual(no_terminal["push_window_tower_damage"], 4.0)
 
         death_only = build_reward_weight_dict(profile="death_only_risk")
         self.assertEqual(death_only["unsafe_dive"], 0.0)
