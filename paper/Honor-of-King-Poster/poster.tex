@@ -3,6 +3,7 @@
 \usepackage[paperwidth=80cm,paperheight=120cm,margin=0cm]{geometry}
 \usepackage{graphicx}
 \usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,calc}
 \usepackage{tabularx}
 \usepackage{booktabs}
 \usepackage{array}
@@ -43,6 +44,8 @@
 \definecolor{paleBlue}{HTML}{EAF2FF}
 \definecolor{paleTeal}{HTML}{E8F8F6}
 \definecolor{paleWarn}{HTML}{FFF4E8}
+\definecolor{paleGreen}{HTML}{EAF7EF}
+\definecolor{paleInk}{HTML}{F4F6FA}
 \definecolor{green}{HTML}{16845F}
 \definecolor{orange}{HTML}{D4742A}
 \definecolor{red}{HTML}{B6423C}
@@ -55,16 +58,16 @@
 
 \setlist[itemize]{
   leftmargin=1.05em,
-  itemsep=0.36cm,
-  topsep=0.22cm,
+  itemsep=0.24cm,
+  topsep=0.16cm,
   parsep=0cm
 }
 
 \newcommand{\BlockTitle}[1]{%
   {\fontsize{36}{42}\selectfont\bfseries\color{ink}#1}\par
-  \vspace{0.26cm}
+  \vspace{0.18cm}
   {\color{rule}\rule{\linewidth}{1.9pt}}\par
-  \vspace{0.62cm}
+  \vspace{0.42cm}
 }
 
 \newcommand{\PosterBlock}[2]{%
@@ -82,19 +85,274 @@
       line width=1.45pt,
       fill=#4!8,
       text width=#1,
-      minimum height=10.5cm,
+      minimum height=9.1cm,
       inner xsep=0.85cm,
       inner ysep=0.78cm,
       anchor=north west
     ] at (0,0) {
-      {\fontsize{64}{68}\selectfont\bfseries\color{#4}#2}\par
-      \vspace{0.42cm}
+      {\fontsize{58}{62}\selectfont\bfseries\color{#4}#2}\par
+      \vspace{0.28cm}
       {\fontsize{20.5}{25.5}\selectfont\color{muted}#3}
     };
   \end{tikzpicture}
 }
 
 \newcommand{\Status}[2]{\textcolor{#1}{\textbf{#2}}}
+
+\newcommand{\NetNode}[5]{%
+  \node[
+    rounded corners=2.4mm,
+    draw=#4,
+    fill=#4!8,
+    line width=1.25pt,
+    text width=#3,
+    minimum height=#5,
+    inner xsep=0.32cm,
+    inner ysep=0.28cm,
+    align=center
+  ] (#1) {#2};
+}
+
+\newcommand{\ActorCriticDiagram}{%
+\begin{tikzpicture}[
+  x=1cm,y=1cm,
+  >=Latex,
+  flow/.style={-{Latex[length=3.2mm,width=2.0mm]},line width=1.15pt,draw=muted},
+  small/.style={font=\fontsize{19.5}{23}\selectfont\color{ink}},
+  tiny/.style={font=\fontsize{16.3}{19.5}\selectfont\color{muted}}
+]
+  \node[rounded corners=2.4mm,draw=siiBlue,fill=siiBlue!8,line width=1.25pt,
+    text width=5.8cm,minimum height=2.18cm,inner xsep=0.26cm,inner ysep=0.24cm,
+    align=center,anchor=north west] (feat) at (0,0)
+    {\small\textbf{State feature stack}\\[-0.05cm]\tiny hero, tower, lane, matchup};
+  \node[rounded corners=2.4mm,draw=siiTeal,fill=siiTeal!8,line width=1.25pt,
+    text width=5.8cm,minimum height=2.18cm,inner xsep=0.26cm,inner ysep=0.24cm,
+    align=center,anchor=north west] (mask) at (0,-2.72)
+    {\small\textbf{Legal-action mask}\\[-0.05cm]\tiny filters unavailable commands};
+  \node[rounded corners=2.4mm,draw=ink,fill=paleInk,line width=1.25pt,
+    text width=4.95cm,minimum height=2.28cm,inner xsep=0.26cm,inner ysep=0.24cm,
+    align=center,anchor=north west] (mlp) at (7.65,-1.32)
+    {\small\textbf{Shared encoder}\\[-0.05cm]\tiny concat MLP: 256 + 256};
+  \node[rounded corners=2.4mm,draw=siiBlue,fill=siiBlue!8,line width=1.25pt,
+    text width=5.1cm,minimum height=2.18cm,inner xsep=0.26cm,inner ysep=0.24cm,
+    align=center,anchor=north west] (policy) at (15.45,0)
+    {\small\textbf{Policy heads}\\[-0.05cm]\tiny multi-label action logits};
+  \node[rounded corners=2.4mm,draw=green,fill=green!8,line width=1.25pt,
+    text width=5.1cm,minimum height=2.18cm,inner xsep=0.26cm,inner ysep=0.24cm,
+    align=center,anchor=north west] (value) at (15.45,-2.72)
+    {\small\textbf{Value head}\\[-0.05cm]\tiny scalar state value};
+  \node[rounded corners=2.4mm,draw=orange,fill=orange!8,line width=1.25pt,
+    text width=11.0cm,minimum height=2.18cm,inner xsep=0.3cm,inner ysep=0.24cm,
+    align=center,anchor=north west] (loss) at (5.3,-5.62)
+    {\small\textbf{PPO update}\\[-0.05cm]\tiny clipped policy + value + entropy};
+
+  \draw[flow] (feat.east) -- (mlp.west);
+  \draw[flow] (mask.east) -- (mlp.west);
+  \draw[flow] (mlp.east) -- (policy.west);
+  \draw[flow] (mlp.east) -- (value.west);
+  \draw[flow] (policy.south) |- (loss.east);
+  \draw[flow] (value.south) |- (loss.east);
+  \draw[flow,dashed,draw=siiTeal] (mask.east) to[bend left=18] node[above,tiny]{masked softmax} (policy.west);
+
+  \node[
+    rounded corners=2mm,
+    draw=rule,
+    fill=white,
+    line width=1pt,
+    text width=20.0cm,
+    align=left,
+    inner xsep=0.44cm,
+    inner ysep=0.24cm
+  ] at (10.7,-8.52) {%
+    {\fontsize{20}{24}\selectfont\color{ink}\textbf{Architectural contribution.}}
+    {\fontsize{18}{21.5}\selectfont\color{muted} Tactical features expose tower danger and push timing.}
+  };
+\end{tikzpicture}%
+}
+
+\newcommand{\CheckpointBarChart}{%
+\begin{tikzpicture}[
+  x=1cm,y=1cm,
+  bar/.style={rounded corners=1.2mm,draw=none},
+  label/.style={font=\fontsize{22.5}{26.5}\selectfont\color{ink}},
+  value/.style={font=\fontsize{21.5}{25.5}\selectfont\bfseries\color{ink}},
+  small/.style={font=\fontsize{17.8}{21}\selectfont\color{muted}}
+]
+  \node[anchor=west,label] at (0,0.55) {Step};
+  \node[anchor=west,label] at (4.0,0.55) {Composite};
+  \node[anchor=west,label] at (15.45,0.55) {Score};
+  \node[anchor=east,label] at (21.45,0.55) {W/D};
+  \draw[rule,line width=1pt] (0,0.05) -- (21.35,0.05);
+
+  \foreach \step/\score/\win/\death/\width/\col/\y in {
+    15003/75.79/0.78/0.47/10.55/siiBlue/-1.00,
+    17617/48.50/0.53/0.53/6.75/siiTeal/-2.15,
+    15977/48.35/0.53/0.69/6.73/siiTeal/-3.30,
+    10004/47.66/0.53/0.59/6.64/siiTeal/-4.45,
+    17022/41.09/0.47/0.56/5.73/orange/-5.60
+  }{
+    \node[anchor=east,label] at (2.85,\y) {\step};
+    \draw[bar,fill=\col!18] (4.0,\y-0.32) rectangle (14.25,\y+0.32);
+    \draw[bar,fill=\col] (4.0,\y-0.32) rectangle (4.0+\width,\y+0.32);
+    \node[anchor=west,value] at (15.45,\y) {\score};
+    \node[anchor=east,small] at (21.45,\y) {\win/\death};
+  }
+
+  \node[anchor=west,small] at (4.0,-6.65) {bar length = checkpoint score; right label = win/death};
+\end{tikzpicture}%
+}
+
+\newcommand{\TrainingLineChart}{%
+\begin{tikzpicture}[
+  x=1cm,y=1cm,
+  axis/.style={draw=rule,line width=1pt},
+  grid/.style={draw=rule!55,line width=0.55pt},
+  winline/.style={draw=siiBlue,line width=2.4pt},
+  towerline/.style={draw=orange,line width=2.4pt},
+  dot/.style={circle,inner sep=0pt,minimum size=3.0pt},
+  tick/.style={font=\fontsize{18.5}{22}\selectfont\color{muted}},
+  label/.style={font=\fontsize{21.5}{25.5}\selectfont\color{ink}},
+  small/.style={font=\fontsize{18.8}{22.5}\selectfont\color{muted}}
+]
+  \draw[axis] (0,0) -- (20.4,0);
+  \draw[axis] (0,0) -- (0,8.0);
+  \foreach \y/\lab in {0/0,2/0.25,4/0.50,6/0.75,8/1.00}{
+    \draw[grid] (0,\y) -- (20.4,\y);
+    \node[anchor=east,tick] at (-0.25,\y) {\lab};
+  }
+  \foreach \x/\lab in {0/0,5.69/5k,11.37/10k,17.06/15k,20.04/17.6k}{
+    \draw[grid] (\x,0) -- (\x,8.0);
+    \node[anchor=north,tick] at (\x,-0.24) {\lab};
+  }
+
+  % common-AI win rate
+  \draw[winline]
+    (0.00,0.00) -- (1.13,0.00) -- (2.29,0.24) -- (3.39,1.28) --
+    (4.58,0.72) -- (5.69,3.04) -- (6.79,1.76) -- (7.99,3.76) --
+    (9.09,2.24) -- (10.28,3.04) -- (11.37,4.24) -- (12.48,3.52) --
+    (13.68,3.28) -- (14.78,3.28) -- (15.88,3.28) -- (17.06,6.24) --
+    (18.17,4.24) -- (19.37,3.76) -- (20.04,4.24);
+  % tower pressure = 1 - enemy tower hp / 12000
+  \draw[towerline]
+    (0.00,0.00) -- (1.13,0.17) -- (2.29,0.46) -- (3.39,1.65) --
+    (4.58,1.46) -- (5.69,4.20) -- (6.79,3.06) -- (7.99,4.61) --
+    (9.09,2.68) -- (10.28,3.68) -- (11.37,4.84) -- (12.48,4.36) --
+    (13.68,4.31) -- (14.78,4.31) -- (15.88,3.99) -- (17.06,6.58) --
+    (18.17,5.35) -- (19.37,4.38) -- (20.04,5.26);
+
+  \foreach \x/\y in {0.00/0.00,1.13/0.00,2.29/0.24,3.39/1.28,4.58/0.72,5.69/3.04,6.79/1.76,7.99/3.76,9.09/2.24,10.28/3.04,11.37/4.24,12.48/3.52,13.68/3.28,14.78/3.28,15.88/3.28,17.06/6.24,18.17/4.24,19.37/3.76,20.04/4.24}{
+    \node[dot,fill=siiBlue] at (\x,\y) {};
+  }
+  \foreach \x/\y in {0.00/0.00,1.13/0.17,2.29/0.46,3.39/1.65,4.58/1.46,5.69/4.20,6.79/3.06,7.99/4.61,9.09/2.68,10.28/3.68,11.37/4.84,12.48/4.36,13.68/4.31,14.78/4.31,15.88/3.99,17.06/6.58,18.17/5.35,19.37/4.38,20.04/5.26}{
+    \node[dot,fill=orange] at (\x,\y) {};
+  }
+
+  \node[anchor=west,label] at (0.1,8.55) {Training step};
+  \node[anchor=west,small] at (6.6,8.55) {\textcolor{siiBlue}{win rate} \quad \textcolor{orange}{tower pressure}};
+  \node[anchor=west,small] at (16.35,6.92) {step-15003};
+  \draw[draw=green,line width=1pt,dashed] (17.06,0) -- (17.06,7.2);
+\end{tikzpicture}%
+}
+
+\newcommand{\TrainingLoopDiagram}{%
+\begin{tikzpicture}[
+  x=1cm,y=1cm,
+  >=Latex,
+  flow/.style={-{Latex[length=4.0mm,width=2.5mm]},line width=1.35pt,draw=muted},
+  feedback/.style={-{Latex[length=4.0mm,width=2.5mm]},line width=1.2pt,draw=orange,dashed},
+  box/.style={rounded corners=2.7mm,line width=1.35pt,inner xsep=0.45cm,inner ysep=0.38cm,align=center},
+  note/.style={font=\fontsize{18.5}{22}\selectfont\color{muted}}
+]
+  \node[box,draw=siiBlue,fill=paleBlue,text width=10.2cm,minimum height=3.75cm] (obs) at (5.3,7.9)
+    {{\fontsize{26}{31}\selectfont\bfseries\color{ink}Frame State}\\[0.18cm]{\fontsize{19.5}{23.5}\selectfont\color{ink}hero stats\\tower states\\lane units}};
+  \node[box,draw=siiTeal,fill=paleTeal,text width=12.2cm,minimum height=3.75cm] (feat) at (19.2,7.9)
+    {{\fontsize{26}{31}\selectfont\bfseries\color{ink}Feature Process}\\[0.18cm]{\fontsize{19.5}{23.5}\selectfont\color{ink}HeroProcess\\OrganProcess\\SoldierProcess}};
+  \node[box,draw=ink,fill=paleInk,text width=11.2cm,minimum height=3.75cm] (ppo) at (34.1,7.9)
+    {{\fontsize{26}{31}\selectfont\bfseries\color{ink}PPO Actor-Critic}\\[0.18cm]{\fontsize{19.5}{23.5}\selectfont\color{ink}shared encoder\\policy/value heads}};
+  \node[box,draw=green,fill=paleGreen,text width=11.2cm,minimum height=3.75cm] (act) at (48.4,7.9)
+    {{\fontsize{26}{31}\selectfont\bfseries\color{ink}Masked Action}\\[0.18cm]{\fontsize{19.5}{23.5}\selectfont\color{ink}legal branches\\executed command}};
+  \node[box,draw=orange,fill=paleWarn,text width=12.3cm,minimum height=3.75cm] (env) at (63.0,7.9)
+    {{\fontsize{26}{31}\selectfont\bfseries\color{ink}Game Transition}\\[0.18cm]{\fontsize{19.5}{23.5}\selectfont\color{ink}combat result\\tower progress}};
+
+  \node[box,draw=orange,fill=white,text width=17.6cm,minimum height=3.55cm] (reward) at (15.9,2.65)
+    {{\fontsize{26}{31}\selectfont\bfseries\color{ink}Risk-Aware Reward}\\[0.16cm]{\fontsize{19.5}{23.5}\selectfont\color{ink}terminal win, tower gap, push window, unsafe dive}};
+  \node[box,draw=siiBlue,fill=white,text width=17.6cm,minimum height=3.55cm] (record) at (36.2,2.65)
+    {{\fontsize{26}{31}\selectfont\bfseries\color{ink}Evidence Recorder}\\[0.16cm]{\fontsize{19.5}{23.5}\selectfont\color{ink}reward detail, episode outcome, checkpoint metadata}};
+  \node[box,draw=red,fill=red!6,text width=17.6cm,minimum height=3.55cm] (select) at (56.5,2.65)
+    {{\fontsize{26}{31}\selectfont\bfseries\color{ink}Evaluation Matrix}\\[0.16cm]{\fontsize{19.5}{23.5}\selectfont\color{ink}matchup coverage, validation, ablation verdicts}};
+
+  \draw[flow] (obs) -- (feat);
+  \draw[flow] (feat) -- (ppo);
+  \draw[flow] (ppo) -- (act);
+  \draw[flow] (act) -- (env);
+  \draw[flow] (env.south west) to[bend left=10] (reward.north east);
+  \draw[flow] (reward) -- (record);
+  \draw[flow] (record) -- (select);
+  \draw[feedback] (select.north) to[out=120,in=-70] node[above,note,sloped]{checkpoint and ablation feedback} (ppo.south);
+  \draw[feedback] (select.west) to[out=180,in=-90] node[below,note]{reward-weight revision} (reward.south);
+
+  \node[
+    rounded corners=2.2mm,
+    draw=rule,
+    fill=white,
+    line width=1pt,
+    text width=66.3cm,
+    align=left,
+    inner xsep=0.65cm,
+    inner ysep=0.38cm
+  ] at (34.6,-0.48) {%
+    {\fontsize{22.5}{27}\selectfont\bfseries\color{ink}Design idea:}
+    {\fontsize{20}{24}\selectfont\color{ink} treat tower-taking as a closed-loop control problem. Tactical state features, risk-aware reward terms, and auditable evidence jointly drive checkpoint selection by objective conversion rather than scalar reward alone.}
+  };
+\end{tikzpicture}%
+}
+
+\newcommand{\TakeawayCards}{%
+\begin{tikzpicture}
+\node[
+  rounded corners=2mm,
+  fill=paleTeal,
+  draw=siiTeal,
+  line width=1.15pt,
+  text width=20.9cm,
+  minimum height=2.45cm,
+  inner xsep=0.48cm,
+  inner ysep=0.34cm,
+  anchor=north west
+] at (0,0) {
+  {\fontsize{18}{21}\selectfont\bfseries\color{ink}What improved}\par
+  {\fontsize{13.6}{16.4}\selectfont\color{ink}Deaths compress; objective play becomes safer.}
+};
+\node[
+  rounded corners=2mm,
+  fill=paleWarn,
+  draw=orange,
+  line width=1.15pt,
+  text width=20.9cm,
+  minimum height=2.45cm,
+  inner xsep=0.48cm,
+  inner ysep=0.34cm,
+  anchor=north west
+] at (24.15,0) {
+  {\fontsize{18}{21}\selectfont\bfseries\color{ink}What is missing}\par
+  {\fontsize{13.6}{16.4}\selectfont\color{ink}Tower conversion needs full-matrix evidence.}
+};
+\node[
+  rounded corners=2mm,
+  fill=paleBlue,
+  draw=siiBlue,
+  line width=1.15pt,
+  text width=20.9cm,
+  minimum height=2.45cm,
+  inner xsep=0.48cm,
+  inner ysep=0.34cm,
+  anchor=north west
+] at (48.3,0) {
+  {\fontsize{18}{21}\selectfont\bfseries\color{ink}What proves it}\par
+  {\fontsize{13.6}{16.4}\selectfont\color{ink}Matrix, ablations, window and dive diagnostics.}
+};
+\end{tikzpicture}%
+}
 
 \begin{document}
 
@@ -118,53 +376,43 @@
 \hspace*{4.8cm}
 \begin{minipage}[t]{70.4cm}
 
-{\fontsize{26.5}{34}\selectfont\color{ink}\RaggedRight
-\textbf{Abstract.} This work investigates reward shaping and evidence-driven checkpoint selection for a PPO agent in a long-horizon 1v1 MOBA task. The proposed risk-aware training run introduces terminal outcome rewards, explicit tower-pressure terms, push-window diagnostics, and unsafe-dive penalties. Results show a substantial reduction in death rate, while tower conversion still lags behind the previous peak baseline. We therefore identify step-15003 as the strongest candidate for full matchup-matrix evaluation.}
+{\fontsize{25.5}{32}\selectfont\color{ink}\RaggedRight
+\textbf{Abstract.} This work studies risk-aware PPO for long-horizon tower-taking in 1v1 MOBA play. The agent combines an 83-d tactical feature space, masked multi-head actions, terminal/tower rewards, push-window diagnostics, unsafe-dive penalties, curriculum hooks, and evidence-driven checkpoint selection. The best candidate sharply reduces deaths, but still needs full matchup-matrix validation for objective conversion.}
 
-\vspace{1.7cm}
+\vspace{1.15cm}
 
 \begin{minipage}[t]{21.8cm}
 \PosterBlock{Research Problem}{
 \textbf{Goal.} Train a PPO agent to turn local lane advantages into stable tower-taking wins in a long-horizon 1v1 MOBA environment.
 
-\vspace{0.72cm}
+\vspace{0.44cm}
 \textbf{Core difficulty.} Immediate combat rewards can make the policy fight, trade, or dive, while the real objective is delayed: preserve enough safety to destroy the enemy tower.
 
-\vspace{0.72cm}
+\vspace{0.44cm}
 \textbf{Hypothesis.} Terminal outcome reward, explicit tower-pressure terms, and tactical-window diagnostics should improve objective conversion. Unsafe-dive penalties should reduce death inflation without making the policy passive.
 }
 
-\vspace{2.05cm}
+\vspace{1.25cm}
 
 \PosterBlock{Implemented Method}{
 \begin{itemize}
   \item \textbf{PPO backbone:} clipped policy loss, value loss, entropy regularization, GAE, legal-action masking, and gradient clipping.
+  \item \textbf{Policy dimensions:} 83 state features, 85 legal-action mask dimensions, 6 action heads, 16-step rollout state, and 512-unit recurrent state.
   \item \textbf{Tower objective:} enemy tower damage, self tower damage, tower destroy, terminal win/loss, and timeout tower-gap rewards.
   \item \textbf{Tactical window:} push-window tower-damage reward plus zero-weight diagnostics.
-  \item \textbf{Risk control:} death, unsafe-dive, and unsafe-dive severity penalties.
-  \item \textbf{Evidence chain:} checkpoint, lineup, matchup, opponent source, terminal outcome, and reward-detail logging.
+  \item \textbf{Curriculum hook:} common-AI anchoring for isolation, with weighted common/historical/self-play schedule support.
 \end{itemize}
 
-\vspace{0.65cm}
+\vspace{0.35cm}
 \[
 R_t=\sum_i w_i\Delta f_i(s_t)+20R_{\mathrm{win}}+8R_{\mathrm{tower\ gap}}
 \]
 }
 
-\vspace{2.05cm}
+\vspace{1.25cm}
 
-\PosterBlock{Acceptance Gates}{
-\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
-\toprule
-\textbf{Gate} & \textbf{Target}\\
-\midrule
-Win rate & Beat 0.84, or match it with much lower death\\
-Tower pressure & Enemy tower HP below 1400.59\\
-Death control & Average death below 3.09\\
-Coverage & All 9 hero matchups with side swaps\\
-Diagnostics & Push-window share and unsafe-dive correlation\\
-\bottomrule
-\end{tabularx}
+\PosterBlock{Network Architecture}{
+\ActorCriticDiagram
 }
 \end{minipage}
 \hfill
@@ -178,167 +426,137 @@ Diagnostics & Push-window share and unsafe-dive correlation\\
 \MetricCard{9.15cm}{0.47}{average deaths, far below late baseline 3.09}{green}
 \end{minipage}
 
-\vspace{1.65cm}
+\vspace{1.05cm}
 
-{\fontsize{25.5}{32}\selectfont\color{ink}\RaggedRight
-\textbf{Checkpoint ranking selected step-15003.} It is the only checkpoint with both high win rate and strong objective pressure. Later checkpoints improve scalar reward but regress on gameplay metrics.}
+{\fontsize{24.5}{30}\selectfont\color{ink}\RaggedRight
+\textbf{Checkpoint ranking selected step-15003.} It is the only checkpoint with both high win rate and strong objective pressure; later checkpoints improve scalar reward but regress in gameplay.}
 
-\vspace{1.85cm}
+\vspace{1.25cm}
 
 \PosterBlock{Checkpoint Ranking}{
-\begin{tabularx}{\linewidth}{r r r r r}
-\toprule
-\textbf{Step} & \textbf{Win} & \textbf{Enemy HP} & \textbf{Death} & \textbf{Score}\\
-\midrule
-15003 & 0.78 & 2129 & 0.47 & 75.79\\
-17617 & 0.53 & 4106 & 0.53 & 48.50\\
-15977 & 0.53 & 3978 & 0.69 & 48.35\\
-10004 & 0.53 & 4735 & 0.59 & 47.66\\
-17022 & 0.47 & 5423 & 0.56 & 41.09\\
-\bottomrule
-\end{tabularx}
+\CheckpointBarChart
 
-\vspace{0.72cm}
+\vspace{0.44cm}
 \textbf{Selection rule.} Do not pick the final checkpoint by default. Use win rate, tower HP, death, and matchup evidence.
 }
 
-\vspace{2.05cm}
+\vspace{1.25cm}
 
-\PosterBlock{Candidate vs. Peak Baseline}{
-\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X r r r}
+\PosterBlock{Architecture Innovation}{
+The implementation adds a tactical tower-taking layer around the PPO core and keeps each design axis auditable.
+
+\vspace{0.44cm}
+\begin{tabularx}{\linewidth}{>{\bfseries}l X}
 \toprule
-\textbf{Metric} & \textbf{Candidate} & \textbf{Baseline} & \textbf{Delta}\\
-\midrule
-Win rate & 0.78 & 0.84 & -0.06\\
-Enemy tower HP & 2129 & 1401 & +729\\
-Self tower HP & 4296 & 7745 & -3449\\
-Frame & 15726 & 13670 & +2055\\
-Kill & 3.44 & 3.75 & -0.31\\
-Death & 0.47 & 2.72 & -2.25\\
-Money/frame & 0.53 & 0.58 & -0.05\\
-Hero damage & 1.63 & 1.88 & -0.25\\
+Structure & shared actor-critic encoder plus masked multi-head actions\\
+Dimensions & 83-d features, 85-d legal mask, 6 heads, 512 recurrent state\\
+Reward & terminal, tower-gap, push-window, and unsafe-dive alignment\\
+Curriculum & common-AI isolation plus weighted common/historical/self-play hooks\\
 \bottomrule
 \end{tabularx}
-
-\vspace{0.72cm}
-\textbf{Interpretation.} Safety improved dramatically, but objective conversion is weaker and slower.
 }
+
+\vspace{1.25cm}
+
+\begin{tikzpicture}
+\node[
+  rounded corners=2mm,
+  fill=paleTeal,
+  draw=siiTeal,
+  line width=1.05pt,
+  text width=6.15cm,
+  minimum height=5.15cm,
+  inner xsep=0.32cm,
+  inner ysep=0.32cm,
+  anchor=north west
+] at (0,0) {
+  {\fontsize{19.5}{23}\selectfont\bfseries\color{ink}What improved}\par
+  \vspace{0.16cm}
+  {\fontsize{15.5}{18.5}\selectfont\color{ink}Safer play with lower deaths.}
+};
+\node[
+  rounded corners=2mm,
+  fill=paleWarn,
+  draw=orange,
+  line width=1.05pt,
+  text width=6.15cm,
+  minimum height=5.15cm,
+  inner xsep=0.32cm,
+  inner ysep=0.32cm,
+  anchor=north west
+] at (7.15,0) {
+  {\fontsize{19.5}{23}\selectfont\bfseries\color{ink}What is missing}\par
+  \vspace{0.16cm}
+  {\fontsize{15.5}{18.5}\selectfont\color{ink}Tower conversion needs matrix evidence.}
+};
+\node[
+  rounded corners=2mm,
+  fill=paleBlue,
+  draw=siiBlue,
+  line width=1.05pt,
+  text width=6.15cm,
+  minimum height=5.15cm,
+  inner xsep=0.32cm,
+  inner ysep=0.32cm,
+  anchor=north west
+] at (14.3,0) {
+  {\fontsize{19.5}{23}\selectfont\bfseries\color{ink}What proves it}\par
+  \vspace{0.16cm}
+  {\fontsize{15.5}{18.5}\selectfont\color{ink}Matrix, ablations, window and dive diagnostics.}
+};
+\end{tikzpicture}
 \end{minipage}
 \hfill
 \begin{minipage}[t]{21.8cm}
 \PosterBlock{Training Dynamics}{
-\begin{itemize}
-  \item \textbf{0-2979:} cold start; enemy tower HP remains above 9500.
-  \item \textbf{4028-7018:} first breakthrough; win rate reaches 0.47.
-  \item \textbf{7992-13964:} plateau around 0.38-0.53 win rate.
-  \item \textbf{15003:} narrow peak with 0.78 win rate and 2129 enemy tower HP.
-  \item \textbf{15977-17617:} reward improves, but gameplay metrics regress.
-\end{itemize}
+\resizebox{0.98\linewidth}{!}{\TrainingLineChart}
 
-\vspace{0.72cm}
-Win rate tracks tower pressure, self-tower survival, economy, kills, and outgoing hero damage. Death is no longer the main bottleneck because the risk-aware run has already compressed deaths into a low range.
+\vspace{0.44cm}
+\textbf{Peak.} Step-15003 aligns win rate with tower pressure. Later checkpoints regress in gameplay despite better scalar reward.
 }
 
-\vspace{2.05cm}
+\vspace{1.25cm}
 
-\PosterBlock{Candidate Gate}{
+\PosterBlock{Validation Criteria}{
 \begin{tabularx}{\linewidth}{>{\bfseries}l X}
 \toprule
-\Status{green}{PASS} & death control; hero-damage balance; explicit checkpoint selection\\
-\Status{orange}{WARN} & win rate below 0.84; tower pressure below the peak baseline\\
-\Status{red}{MISSING} & 9-matchup matrix, worst-matchup gap, push-window share, unsafe-dive correlation, death p90, self-tower p10, timeout rate\\
+Outcome & win rate, enemy tower HP, self-tower survival, and episode length\\
+Robustness & 9 hero matchups, side swaps, worst-matchup gap, and death tail\\
+Mechanism & push-window share, unsafe-dive correlation, reward-detail traces\\
 \bottomrule
 \end{tabularx}
 
-\vspace{0.72cm}
-\textbf{Meaning.} The gate failure is actionable: run the missing evidence package before making a final model claim.
+\vspace{0.44cm}
+\textbf{Current status.} The candidate is promising on safety, but the full matchup matrix and mechanism-level diagnostics are still required for a final model claim.
 }
 
-\vspace{2.05cm}
+\vspace{1.25cm}
 
-\PosterBlock{Next Experiment}{
+\PosterBlock{Ablation Analysis}{
+\begin{tabularx}{\linewidth}{>{\bfseries}l X}
+\toprule
+Full recipe & terminal win, tower gap, push window, and risk terms\\
+No window & remove push-window reward and unsafe-dive shaping\\
+No terminal & remove terminal win and timeout tower-gap rewards\\
+Death-only risk & keep death/severity risk, remove window and self-tower shaping\\
+\bottomrule
+\end{tabularx}
+
+\vspace{0.44cm}
+\textbf{Readout.} Compare matchup win rate, enemy tower HP, death tail, push-window share, and unsafe-dive/death correlation.
+\vspace{0.24cm}
 \begin{itemize}
-  \item Freeze \textbf{step-15003} as the candidate checkpoint.
-  \item Run 9 hero matchups, side swaps, 20 repeats, and the planned skill grid.
-  \item Preserve reward-detail logs for push-window and unsafe-dive analysis.
-  \item Keep risk shaping, but increase tower-damage and terminal-win alignment.
-  \item Compare full reward, no-window, no-terminal, and death-only-risk ablations.
+  \item worse no-window: supports tactical-window modeling
+  \item worse no-terminal: supports terminal alignment
+  \item safe but weak death-only: risk control alone is insufficient
 \end{itemize}
 }
 \end{minipage}
 
-\vspace{1.85cm}
+\vspace{1.9cm}
 
-\begin{tikzpicture}
-\node[
-  rounded corners=3mm,
-  fill=paleTeal,
-  draw=siiTeal,
-  line width=1.35pt,
-  text width=20.8cm,
-  minimum height=8.1cm,
-  inner xsep=0.72cm,
-  inner ysep=0.62cm,
-  anchor=north west
-] at (0,0) {
-  {\fontsize{25}{30}\selectfont\bfseries\color{ink}What improved}\par
-  \vspace{0.38cm}
-  {\fontsize{20.5}{26}\selectfont\color{ink}
-  Deaths dropped from the late-training baseline 3.09 to 0.47 at the selected checkpoint. The agent learned safety.}
-};
-\node[
-  rounded corners=3mm,
-  fill=paleWarn,
-  draw=orange,
-  line width=1.35pt,
-  text width=20.8cm,
-  minimum height=8.1cm,
-  inner xsep=0.72cm,
-  inner ysep=0.62cm,
-  anchor=north west
-] at (24.3,0) {
-  {\fontsize{25}{30}\selectfont\bfseries\color{ink}What is missing}\par
-  \vspace{0.38cm}
-  {\fontsize{20.5}{26}\selectfont\color{ink}
-  Enemy tower HP remains 2129, worse than the peak baseline. Safety is not yet converted into tower destruction.}
-};
-\node[
-  rounded corners=3mm,
-  fill=paleBlue,
-  draw=siiBlue,
-  line width=1.35pt,
-  text width=20.8cm,
-  minimum height=8.1cm,
-  inner xsep=0.72cm,
-  inner ysep=0.62cm,
-  anchor=north west
-] at (48.6,0) {
-  {\fontsize{25}{30}\selectfont\bfseries\color{ink}What proves it}\par
-  \vspace{0.38cm}
-  {\fontsize{20.5}{26}\selectfont\color{ink}
-  The full 9-matchup matrix with push-window and unsafe-dive evidence decides whether the candidate generalizes.}
-};
-\end{tikzpicture}
-
-\vspace{1.2cm}
-
-\begin{tikzpicture}
-\node[
-  rounded corners=3mm,
-  fill=paleBlue,
-  draw=siiBlue,
-  line width=1.4pt,
-  text width=69.0cm,
-  inner xsep=0.95cm,
-  inner ysep=1.05cm,
-  anchor=north west
-] at (0,0) {
-  {\fontsize{34}{41}\selectfont\bfseries\color{ink}Takeaway}\par
-  \vspace{0.52cm}
-  {\fontsize{24.5}{31}\selectfont\color{ink}
-  Risk-aware reward shaping can sharply reduce deaths, but stable MOBA success still depends on converting safety into tower destruction. The next decisive evidence is the full matchup matrix for step-15003.}
-};
-\end{tikzpicture}
+\BlockTitle{Closed-Loop Training Architecture}
+\resizebox{\linewidth}{!}{\TrainingLoopDiagram}
 
 \end{minipage}
 
