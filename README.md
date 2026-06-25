@@ -9,6 +9,8 @@
 ├── agent_ppo/      # PPO 智能体、特征处理、模型与训练流程
 ├── agent_diy/      # DIY 智能体、模型与训练流程
 ├── conf/           # 应用与算法配置
+├── docs/           # 开发指南、优化方案与实验分析
+├── paper/          # 项目 minipaper、poster 与 LaTeX 源文件
 ├── train_test.py   # 本地训练测试入口
 └── kaiwu.json      # Kaiwu 相关配置
 ```
@@ -38,6 +40,17 @@ python train_test.py
 - [智能体详述](docs/dev-guide/agent_lite.md)：特征处理、奖励设计、召唤师技能和评估模式。
 - [数据协议](docs/dev-guide/protocol.md)：原始帧状态、英雄/NPC/技能字段定义。
 - [胜率优化管线](docs/optimization-pipeline.md)：面向胜率提升的工程优化路线。
+
+## 论文与海报
+
+项目展示材料入口见 [paper/README.md](paper/README.md)。
+
+常用文件：
+
+- [Minipaper PDF](paper/Honor-of-King-Paper/minipaper.pdf)：项目研究小论文，包含方法、实验、结果、参考文献和附录。
+- [Minipaper LaTeX](paper/Honor-of-King-Paper/minipaper.tex)：minipaper 源文件，基于 NeurIPS 模板。
+- [Poster PDF](paper/poster.pdf)：项目学术海报。
+- [Poster LaTeX](paper/poster.tex)：poster 源文件。
 
 ## 说明
 

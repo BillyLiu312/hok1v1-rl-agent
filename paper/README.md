@@ -1,16 +1,35 @@
-# Poster
+# Paper and Poster
 
-This folder contains a LaTeX academic poster based on `poster模板.pptx`.
+This folder contains the project minipaper, academic poster, and their LaTeX sources.
 
 ## Files
 
-- `poster.tex`: main LaTeX source.
-- `figures/poster_template_background.jpg`: background extracted from the PPTX template.
-- `poster模板.pptx`: original reference template.
+- `Honor-of-King-Paper/minipaper.pdf`: compiled project minipaper.
+- `Honor-of-King-Paper/minipaper.tex`: minipaper LaTeX source based on the NeurIPS template.
+- `Honor-of-King-Paper/neurips_2026.tex`: original NeurIPS template shell.
+- `poster.pdf`: compiled project poster.
+- `poster.tex`: poster LaTeX source.
+- `figures/poster_template_background.jpg`: poster background extracted from the PPTX template.
+- `poster模板.pptx`: original poster reference template.
+- `Honor-of-King-Poster/`: archived poster source/output copy.
 
 ## Compile
 
-Preferred compile command:
+Compile the minipaper with Tectonic:
+
+```bash
+cd paper/Honor-of-King-Paper
+tectonic -X compile minipaper.tex
+```
+
+If you use a local TeX Live / MacTeX installation, `xelatex` also works for the minipaper:
+
+```bash
+cd paper/Honor-of-King-Paper
+xelatex minipaper.tex
+```
+
+Preferred poster compile command:
 
 ```bash
 cd paper
@@ -25,5 +44,3 @@ pdflatex poster.tex
 ```
 
 If `Helvetica Neue` is unavailable under XeLaTeX, replace it in `poster.tex` with another installed sans-serif font, such as `Arial` or `Noto Sans`.
-
-The current workspace did not have a TeX engine installed, so PDF compilation was not performed here.
